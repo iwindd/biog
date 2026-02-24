@@ -1,93 +1,103 @@
 <?php
 
 namespace frontend\controllers;
-use Yii;
-use yii\web\Controller;
-use yii\data\Pagination;
+
 use frontend\models\Content;
-//use frontend\models\ContentPlant;
-use frontend\models\content\ContentPlant;
-use frontend\models\ContentStatistics;
-use frontend\models\Comment;
-use frontend\models\content\Picture;
+use yii\data\Pagination;
+use yii\web\Controller;
+use Yii;
+// use frontend\models\ContentPlant;
 use common\components\Helper;
 use frontend\components\FrontendHelper;
-
+use frontend\models\content\ContentPlant;
+use frontend\models\content\Picture;
+use frontend\models\Comment;
+use frontend\models\ContentStatistics;
 
 class ContentPlantController extends Controller
 {
-    public function actionIndex() {
+    public function actionIndex()
+    {
         $limit = 6;
         $page = 1;
-        if(!empty($_GET['page'])) {
+        if (!empty($_GET['page'])) {
             $page = filter_input(INPUT_GET, 'page', FILTER_VALIDATE_INT);
-            if(false === $page) {
+            if (false === $page) {
                 $page = 1;
             }
         }
         $offset = ($page - 1) * $limit;
-        //$query = Content::find()->where(['type_id' => 1, 'active' => 1]);
 
         $query = Content::find()->select(['content.id', 'name', 'description', 'content.picture_path', 'content.created_by_user_id', 'content.created_at', 'content.updated_at']);
-        //$query->leftJoin('content_plant','content_plant.content_id = content.id');
-        $query->where(['content.active'=>1, 'content.type_id' => 1, 'content.status' => 'approved']);
-
+        $query->where([
+            'content.active' => 1,
+            'content.type_id' => 1,
+            'content.status' => 'approved',
+            'content.is_hidden' => false
+        ]);
         $countQuery = clone $query;
-        $pagination = new Pagination(['totalCount' => $countQuery->count(), 'pageSize'=>$limit]);
+
+        $totalCount = Yii::$app->cache->getOrSet('content_plant_count', function () use ($countQuery) {
+            return $countQuery->count();
+        }, 60 * 5);
+
+        $pagination = new Pagination(['totalCount' => $totalCount, 'pageSize' => $limit]);
         $plant = $query->limit($limit)->offset($offset)->asArray()->orderBy(['content.updated_at' => SORT_DESC])->all();
 
         return $this->render('index', [
             'plant' => $plant,
             'pagination' => $pagination
         ]);
-        
     }
 
-    public function actionView($id) {
+    public function actionView($id)
+    {
         $latestContentId = Helper::getEventIDActive($id);
-        if($id != $latestContentId){
-            return $this->redirect(['/content-plant/'.$latestContentId]);
+        if ($id != $latestContentId) {
+            return $this->redirect(['/content-plant/' . $latestContentId]);
         }
 
         $content = Content::find()
-        ->select(['id', 'name', 'description', 'picture_path', 'type_id', 'photo_credit', 'source_information','province_id', 'district_id', 'subdistrict_id', 'zipcode_id', 'latitude', 'longitude', 'status', 'content_root_id', 'created_by_user_id', 'created_at'])
-        ->where(['id' => $id])->asArray()->one();
-        
-        if($content["type_id"] != 1) {
+            ->select(['id', 'name', 'description', 'picture_path', 'type_id', 'photo_credit', 'source_information', 'province_id', 'district_id', 'subdistrict_id', 'zipcode_id', 'latitude', 'longitude', 'status', 'content_root_id', 'created_by_user_id', 'created_at'])
+            ->where(['id' => $id, 'is_hidden' => false])
+            ->asArray()
+            ->one();
+
+        if ($content['type_id'] != 1) {
             throw new \yii\web\HttpException(404, 'The requested Item could not be found.');
         }
 
-        //check can view
-        if($content["status"] == 'pending' || $content["status"] == 'rejected'){
-            if(empty(Yii::$app->user->identity->id)){
+        // check can view
+        if ($content['status'] == 'pending' || $content['status'] == 'rejected') {
+            if (empty(Yii::$app->user->identity->id)) {
                 throw new \yii\web\HttpException(404, 'The requested Item could not be found.');
-            }else if(Yii::$app->user->identity->id == $content['created_by_user_id']){
-                //ok
-            }else{
+            } else if (Yii::$app->user->identity->id == $content['created_by_user_id']) {
+                // ok
+            } else {
                 $teacher = FrontendHelper::checkCanViewContentForTeacher($content['created_by_user_id']);
-                if($teacher == false){
+                if ($teacher == false) {
                     throw new \yii\web\HttpException(404, 'The requested Item could not be found.');
                 }
             }
         }
 
         $content_plant = ContentPlant::find()->where(['content_id' => $id])->one();
-        if($content["content_root_id"] != 0){
+        if ($content['content_root_id'] != 0) {
             $contentComment = Comment::find()
-            ->select(['id', 'user_id', 'created_at', 'message'])
-            ->where(['content_root_id' => $content["content_root_id"]])
-            ->orderBy(['created_at' => SORT_DESC])
-            ->asArray()
-            ->all();
-        }else{
+                ->select(['id', 'user_id', 'created_at', 'message'])
+                ->where(['content_root_id' => $content['content_root_id']])
+                ->orderBy(['created_at' => SORT_DESC])
+                ->asArray()
+                ->all();
+        } else {
             $contentComment = Comment::find()
-            ->select(['id', 'user_id', 'created_at', 'message'])
-            ->where(['content_root_id' => $id])
-            ->orderBy(['created_at' => SORT_DESC])
-            ->asArray()
-            ->all();
+                ->select(['id', 'user_id', 'created_at', 'message'])
+                ->where(['content_root_id' => $id])
+                ->orderBy(['created_at' => SORT_DESC])
+                ->asArray()
+                ->all();
         }
-        
+
         $other_content_plant = Content::find()
             ->select(['id', 'name', 'description', 'picture_path', 'created_by_user_id', 'created_at'])
             ->where(['type_id' => 1, 'active' => 1, 'status' => 'approved'])
@@ -100,10 +110,10 @@ class ContentPlantController extends Controller
 
         if (!empty($id)) {
             $dataContentStatistics = ContentStatistics::find()
-            ->select(['pageview'])
-            ->where(['content_root_id' => $id])
-            ->asArray()
-            ->one();
+                ->select(['pageview'])
+                ->where(['content_root_id' => $id])
+                ->asArray()
+                ->one();
 
             $session = Yii::$app->session;
             $canUpViewPage = false;
@@ -113,8 +123,7 @@ class ContentPlantController extends Controller
                     'ip_address' => $_SERVER['REMOTE_ADDR']
                 ];
                 $canUpViewPage = true;
-            }else if( $_SERVER['REMOTE_ADDR'] != $session['views_content']['ip_address'] || $id != $session['views_content']['content_id']){
-                
+            } else if ($_SERVER['REMOTE_ADDR'] != $session['views_content']['ip_address'] || $id != $session['views_content']['content_id']) {
                 $session['views_content'] = [
                     'content_id' => $id,
                     'ip_address' => $_SERVER['REMOTE_ADDR']
@@ -123,20 +132,21 @@ class ContentPlantController extends Controller
                 $canUpViewPage = true;
             }
 
-            //Count View
+            // Count View
             if (!empty($dataContentStatistics)) {
                 if ($canUpViewPage == true) {
                     $pageview = $dataContentStatistics['pageview'] + 1;
-                    Yii::$app->db->createCommand()
+                    Yii::$app
+                        ->db
+                        ->createCommand()
                         ->update('content_statistics', ['pageview' => $pageview], 'content_root_id = ' . $id)
                         ->execute();
                 }
-            }
-            else {
+            } else {
                 $count = new ContentStatistics;
                 $count->content_root_id = $id;
                 $count->pageview = 1;
-                $count->updated_at = date("Y-m-d H:i:s");
+                $count->updated_at = date('Y-m-d H:i:s');
                 $count->save();
             }
         }
@@ -149,5 +159,4 @@ class ContentPlantController extends Controller
             'picture' => $picture
         ]);
     }
-
 }

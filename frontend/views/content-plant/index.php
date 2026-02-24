@@ -2,23 +2,24 @@
 
 /* @var $this yii\web\View */
 
+use common\components\FileLibrary;
 use frontend\components\FrontendHelper;
 use frontend\components\PermissionAccess;
-use common\components\FileLibrary;
 use frontend\models\content\Content;
 
 $this->title = 'พืช';
 $this->registerCss("nav {background-image: url('/images/banner/Data_Banner.png'); }");
-$linkMain = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST']; //
+$linkMain = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];  //
 $_SESSION['currentUrl'] = $linkMain . $_SERVER['REQUEST_URI'];
 
 use frontend\models\Banner;
+
 $banner = Banner::find()->where(['slug_url' => 'Content Plant'])->one();
 
 ?>
 <?php $this->beginBlock('banner') ?>
 <div class="section-banner">
-    <?php if(!empty($banner->picture_path)): ?>
+    <?php if (!empty($banner->picture_path)): ?>
         <img src="/files/banner/<?php echo $banner->picture_path; ?>" class="banner ">
     <?php else: ?>
         <img src="/images/banner/Data_Banner.png" class="banner ">
@@ -56,7 +57,7 @@ $banner = Banner::find()->where(['slug_url' => 'Content Plant'])->one();
                                     <a href="/content-expert" class="btn btn-outline-soft-green  mr-1 mb-3">ภูมิปัญญา / ปราชญ์ Expert</a>
                                     <a href="/content-ecotourism" class="btn btn-outline-soft-green  mr-1 mb-3">การท่องเที่ยวเชิงนิเวศ</a>
                                     <a href="/content-product" class="btn btn-outline-soft-green  mr-1 mb-3">ผลิตภัณฑ์ชุมชน</a>
-                                    <?php if (PermissionAccess::FrontendAccess('student_create_content', 'function')) : ?>
+                                    <?php if (PermissionAccess::FrontendAccess('student_create_content', 'function')): ?>
                                         <a href="/content/create/plant" class="btn btn-purple float-right"><img src="/images/icon/Upload_Data.svg" class="icon-btn">การนำเข้าข้อมูลของฉัน</a>
                                     <?php endif; ?>
                                 </div>
@@ -67,7 +68,7 @@ $banner = Banner::find()->where(['slug_url' => 'Content Plant'])->one();
                             <div class="row content-list">
                                 <?php
                                 if (empty($plant)) {
-                                ?>
+                                    ?>
                                     <div class="container empty-data">
                                         <p class="text-center">ไม่พบข้อมูล</p>
                                     </div>
@@ -75,22 +76,23 @@ $banner = Banner::find()->where(['slug_url' => 'Content Plant'])->one();
                                 }
 
                                 ?>
-                                <?php foreach ($plant as $key => $value) {
-                                    $thisUrl = '/content-plant/' . $value["id"];
-                                ?>
-                                    <a href="/content-plant/<?= $value["id"] ?>" class="col-lg-4 mb-3">
+                                <?php
+                                foreach ($plant as $key => $value) {
+                                    $thisUrl = '/content-plant/' . $value['id'];
+                                    ?>
+                                    <a href="/content-plant/<?= $value['id'] ?>" class="col-lg-4 mb-3">
                                         <object>
                                             <div class="content-img">
-                                                <?php echo FileLibrary::getImageFrontend(Content::UPLOAD_FOLDER_CONTENT_PLANT, $value["picture_path"]); ?>
+                                                <?php echo FileLibrary::getImageFrontend(Content::UPLOAD_FOLDER_CONTENT_PLANT, $value['picture_path']); ?>
                                             </div>
-                                            <h1 class="title"><?php echo $value["name"]; ?></h1>
-                                            <p class="short-desc"><?php echo strip_tags($value["description"]); ?></p>
+                                            <h1 class="title"><?php echo $value['name']; ?></h1>
+                                            <p class="short-desc"><?php echo strip_tags($value['description']); ?></p>
                                             <p class="creator-post">
-                                                <?php echo FileLibrary::getImageFrontend('profile', FrontendHelper::getProfileImage($value["created_by_user_id"]), '', false, '', 'img-rounded-small'); ?>
-                                                <?php echo FrontendHelper::getProfileName($value["created_by_user_id"]); ?>
+                                                <?php echo FileLibrary::getImageFrontend('profile', FrontendHelper::getProfileImage($value['created_by_user_id']), '', false, '', 'img-rounded-small'); ?>
+                                                <?php echo FrontendHelper::getProfileName($value['created_by_user_id']); ?>
                                             </p>
-                                            <div class="post">โพสต์ <?php echo FrontendHelper::getTime($value["created_at"]); ?>
-                                                <span class="post-date">วันที่ <?php echo FrontendHelper::getDate($value["created_at"]) ?> </span>
+                                            <div class="post">โพสต์ <?php echo FrontendHelper::getTime($value['created_at']); ?>
+                                                <span class="post-date">วันที่ <?php echo FrontendHelper::getDate($value['created_at']) ?> </span>
                                                 <span class="dropdown share">
                                                     <span class="share-label"><i class="fas fa-share"></i> แชร์</span>
                                                     <div class="dropdown-content share-dropdown-item">
@@ -99,7 +101,7 @@ $banner = Banner::find()->where(['slug_url' => 'Content Plant'])->one();
                                                         <a class="line-share" data-href="<?php echo $linkMain . $thisUrl; ?>" href="https://lineit.line.me/share/ui?url=<?php echo $linkMain . $thisUrl; ?>" target="_blank" data-url="<?php echo $linkMain . $thisUrl; ?>"><i class="fab fa-line"></i> Line</a>
                                                     </div>
                                                 </span>
-                                                <span class="viewer"><i class="far fa-user"></i> ผู้เข้าชม <?= FrontendHelper::getPageView($value["id"], "content") ?> คน</span>
+                                                <span class="viewer"><i class="far fa-user"></i> ผู้เข้าชม <?= FrontendHelper::getPageView($value['id'], 'content') ?> คน</span>
                                             </div>
                                         </object>
                                     </a>
