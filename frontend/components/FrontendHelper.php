@@ -1128,6 +1128,60 @@ class FrontendHelper
         return false;
     }
 
+    public static function checkCanViewContent($status, $createdByUserId)
+    {
+        if ($status == 'pending' || $status == 'rejected') {
+            if (empty(Yii::$app->user->identity->id)) {
+                throw new \yii\web\HttpException(404, 'The requested Item could not be found.');
+            } else if (Yii::$app->user->identity->id != $createdByUserId) {
+                if (!self::checkCanViewContentForTeacher($createdByUserId)) {
+                    throw new \yii\web\HttpException(404, 'The requested Item could not be found.');
+                }
+            }
+        }
+    }
+
+    public static function incrementContentPageview($id)
+    {
+        if (!empty($id)) {
+            $dataContentStatistics = ContentStatistics::find()
+                ->select(['pageview'])
+                ->where(['content_root_id' => $id])
+                ->asArray()
+                ->one();
+
+            $session = Yii::$app->session;
+            $canUpViewPage = false;
+
+            if (empty($session['views_content']) ||
+                    $_SERVER['REMOTE_ADDR'] != $session['views_content']['ip_address'] ||
+                    $id != $session['views_content']['content_id']) {
+                $session['views_content'] = [
+                    'content_id' => $id,
+                    'ip_address' => $_SERVER['REMOTE_ADDR']
+                ];
+                $canUpViewPage = true;
+            }
+
+            if (!empty($dataContentStatistics)) {
+                if ($canUpViewPage) {
+                    $pageview = $dataContentStatistics['pageview'] + 1;
+                    Yii::$app
+                        ->db
+                        ->createCommand()
+                        ->update('content_statistics', ['pageview' => $pageview], 'content_root_id = ' . (int) $id)
+                        ->execute();
+                }
+            } else {
+                $count = new ContentStatistics();
+                $count->content_root_id = $id;
+                $count->pageview = 1;
+                $count->updated_at = date('Y-m-d H:i:s');
+                $count->save();
+            }
+        }
+    }
+
     public static function getYoutubeEmbedUrl($url)
     {
         $shortUrlRegex = '/youtu.be\/([a-zA-Z0-9_-]+)\??/i';

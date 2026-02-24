@@ -54,35 +54,16 @@ class ContentProductController extends Controller
             throw new \yii\web\HttpException(404, 'The requested Item could not be found.');
         }
         // check can view
-        if ($product['status'] == 'pending' || $product['status'] == 'rejected') {
-            if (empty(Yii::$app->user->identity->id)) {
-                throw new \yii\web\HttpException(404, 'The requested Item could not be found.');
-            } else if (Yii::$app->user->identity->id == $product['created_by_user_id']) {
-                // ok
-            } else {
-                $teacher = FrontendHelper::checkCanViewContentForTeacher($product['created_by_user_id']);
-                if ($teacher == false) {
-                    throw new \yii\web\HttpException(404, 'The requested Item could not be found.');
-                }
-            }
-        }
+        FrontendHelper::checkCanViewContent($product['status'], $product['created_by_user_id']);
 
         $content_product = ContentProduct::find()->where(['content_id' => $id])->one();
-        if ($product['content_root_id'] != 0) {
-            $contentComment = Comment::find()
-                ->select(['id', 'user_id', 'created_at', 'message'])
-                ->where(['content_root_id' => $product['content_root_id']])
-                ->orderBy(['created_at' => SORT_DESC])
-                ->asArray()
-                ->all();
-        } else {
-            $contentComment = Comment::find()
-                ->select(['id', 'user_id', 'created_at', 'message'])
-                ->where(['content_root_id' => $id])
-                ->orderBy(['created_at' => SORT_DESC])
-                ->asArray()
-                ->all();
-        }
+        $rootId = $product['content_root_id'] != 0 ? $product['content_root_id'] : $id;
+        $contentComment = Comment::find()
+            ->select(['id', 'user_id', 'created_at', 'message'])
+            ->where(['content_root_id' => $rootId])
+            ->orderBy(['created_at' => SORT_DESC])
+            ->asArray()
+            ->all();
         $other_content_product = Content::find()
             ->select(['id', 'name', 'description', 'picture_path', 'created_by_user_id', 'created_at'])
             ->where(['active' => 1, 'status' => 'approved', 'type_id' => 6])
@@ -93,48 +74,7 @@ class ContentProductController extends Controller
             ->all();
 
         $picture = Picture::find()->where(['content_id' => $id])->asArray()->all();
-        if (!empty($id)) {
-            $dataContentStatistics = ContentStatistics::find()
-                ->select(['pageview'])
-                ->where(['content_root_id' => $id])
-                ->asArray()
-                ->one();
-
-            $session = Yii::$app->session;
-            $canUpViewPage = false;
-            if (empty($session['views_content'])) {
-                $session['views_content'] = [
-                    'content_id' => $id,
-                    'ip_address' => $_SERVER['REMOTE_ADDR']
-                ];
-                $canUpViewPage = true;
-            } else if ($_SERVER['REMOTE_ADDR'] != $session['views_content']['ip_address'] || $id != $session['views_content']['content_id']) {
-                $session['views_content'] = [
-                    'content_id' => $id,
-                    'ip_address' => $_SERVER['REMOTE_ADDR']
-                ];
-
-                $canUpViewPage = true;
-            }
-
-            // Count View
-            if (!empty($dataContentStatistics)) {
-                if ($canUpViewPage == true) {
-                    $pageview = $dataContentStatistics['pageview'] + 1;
-                    Yii::$app
-                        ->db
-                        ->createCommand()
-                        ->update('content_statistics', ['pageview' => $pageview], 'content_root_id = ' . $id)
-                        ->execute();
-                }
-            } else {
-                $count = new ContentStatistics;
-                $count->content_root_id = $id;
-                $count->pageview = 1;
-                $count->updated_at = date('Y-m-d H:i:s');
-                $count->save();
-            }
-        }
+        FrontendHelper::incrementContentPageview($id);
 
         return $this->render('view', [
             'product' => $product,
