@@ -807,13 +807,42 @@ class FrontendHelper
         return $profileImg['picture'];
     }
 
+    public static function maskName($name)
+    {
+        $length = mb_strlen($name, 'UTF-8');
+
+        $firstTwo = mb_substr($name, 0, 2, 'UTF-8');
+        $starCount = $length - 2;
+
+        if ($starCount < 2) {
+            $starCount = 2;
+        }
+
+        if ($starCount > 5) {
+            $starCount = 4;
+        }
+
+        return $firstTwo . str_repeat('*', $starCount);
+    }
+
     public static function getProfileName($user_id)
     {
-        $profile = Profile::find('firstname', 'lastname')->where(['user_id' => $user_id])->asArray()->one();
-        if (!empty($profile)) {
-            return $profile['firstname'] . ' ' . $profile['lastname'];
-        }
-        return '';
+        return Yii::$app->cache->getOrSet("profile_${user_id}_name", function () use ($user_id) {
+            $profile = Profile::find()
+                ->select(['firstname', 'lastname'])
+                ->where(['user_id' => $user_id])
+                ->asArray()
+                ->one();
+
+            if (!empty($profile)) {
+                $maskedFirstName = self::maskName($profile['firstname']);
+                $maskedLastName = self::maskName($profile['lastname']);
+
+                return $maskedFirstName . ' ' . $maskedLastName;
+            }
+
+            return '*****';
+        }, 60 * 5);
     }
 
     public static function showLike($id, $site)
