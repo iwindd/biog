@@ -1,0 +1,26 @@
+<nav id="navbar" class="fixed-top navbar-expand-md navbar-light bg-theme-style menu-header p-0 navbar">
+    <div class="container">
+        <div class="navbar-brand">
+            <div class="brand-group d-flex">
+                <a href="/" class="d-inline bedo-logo"><img id="link-logo" class="logo-biogang img-fluid mr-2" src="/images/logo/BEDO_Logo_Circle.png" alt="Home"></a>
+                <div class="vertical-line-navbar"></div><a href="/user/login" class="d-block"><img class="logo-biogang img-fluid" src="/images/logo/biogang_logo.png" alt="Home"></a>
+            </div>
+        </div>
+        <button type="button" class="navbar-toggler" data-toggle="collapse" data-target="#navbar-collapse" aria-controls="navbar-collapse" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+        <div id="navbar-collapse" class="collapse navbar-collapse">
+            <ul id="w0" class="header-menu ml-auto theme-mode nav">
+                <li class="option-text mr-5 dropdown nav-item"><a class="dropdown-toggle nav-link" href="#" data-toggle="dropdown">ก</a>
+                    <div id="w1" class="dropdown-menu">
+                        <h6 class="dropdown-header">ก</h6>
+                    </div>
+                </li>
+                <li class="yellow nav-item"><a class="nav-link" href="/">ก</a></li>
+                <li class="black nav-item"><a class="nav-link" href="/">ก</a></li>
+                <li class="white nav-item"><a class="nav-link" href="/">ก</a></li>
+            </ul>
+            <ul id="w2" class="header-menu login nav">
+                <li class="nav-login nav-item"><a class="nav-link" href="/login"><img src="/images/icon/Login.png" alt="" class="icon-login "> เข้าสู่ระบบ </a></li>
+            </ul>
+        </div>
+    </div>
+</nav>

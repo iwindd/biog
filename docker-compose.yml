@@ -1,0 +1,81 @@
+services:
+    mysql:
+        image: mysql:8.0
+        command: --local-infile=1
+        environment:
+            MYSQL_DATABASE: yii2advanced
+            MYSQL_USER: yii2advanced
+            MYSQL_PASSWORD: secret
+            MYSQL_ROOT_PASSWORD: verysecret
+            MYSQL_LOCAL_INFILE: 1
+            MYSQL_INITCONF_INNODB_REDO_LOG_CAPACITY: 512M
+        volumes:
+            - ./db/mysql-config/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+            - ./db/mysql-data:/var/lib/mysql
+            - ./db/biog_db.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+            - ./db/99-mysql-native-auth.sql:/docker-entrypoint-initdb.d/99-mysql-native-auth.sql:ro
+        healthcheck:
+            test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-u', 'root', '-pverysecret']
+            interval: 5s
+            timeout: 5s
+            retries: 10
+
+        ports:
+            - 3307:3306
+
+    biogang_frontend:
+        build: frontend
+        ports:
+            - 20080:80
+        depends_on:
+            mysql:
+                condition: service_healthy
+        environment:
+            - MYSQL_HOST=mysql
+            - MYSQL_DATABASE=yii2advanced
+            - MYSQL_USER=yii2advanced
+            - MYSQL_PASSWORD=secret
+        volumes:
+            - ~/.composer-docker/cache:/root/.composer/cache:delegated
+            - ./:/app
+
+    biogang_backend:
+        build: backend
+        ports:
+            - 21080:80
+        depends_on:
+            mysql:
+                condition: service_healthy
+        environment:
+            - MYSQL_HOST=mysql
+            - MYSQL_DATABASE=yii2advanced
+            - MYSQL_USER=yii2advanced
+            - MYSQL_PASSWORD=secret
+        volumes:
+            - ~/.composer-docker/cache:/root/.composer/cache:delegated
+            - ./:/app
+
+    tunnel_biogang_frontend:
+        image: cloudflare/cloudflared:latest
+        container_name: tunnel_biogang_frontend
+        command: tunnel --no-autoupdate --url http://biogang_frontend:80
+        depends_on:
+            - biogang_frontend
+
+    tunnel_biogang_backend:
+        image: cloudflare/cloudflared:latest
+        container_name: tunnel_biogang_backend
+        command: tunnel --no-autoupdate --url http://biogang_backend:80
+        depends_on:
+            - biogang_backend
+
+    #pgsql:
+    #  image: postgres:9.5
+    #  environment:
+    #    - POSTGRES_DB=yii2advanced
+    #    - POSTGRES_USER=yii2advanced
+    #    - POSTGRES_PASSWORD=secret
+
+#   grant permission to user yii2advanced (docker-compose exec mysql mysql -u root -p verysecret -e "GRANT ALL PRIVILEGES ON biog_db.* TO 'yii2advanced'@'%'; FLUSH PRIVILEGES;")
+# GRANT ALL PRIVILEGES ON yii2advanced.* TO 'yii2advanced'@'%';
+# FLUSH PRIVILEGES;

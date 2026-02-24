@@ -1,0 +1,46 @@
+version: '3.2'
+
+services:
+
+  biogang_frontend:
+    build: frontend
+    ports:
+      - 20080:80
+    volumes:
+      # Re-use local composer cache via host-volume
+      - ~/.composer-docker/cache:/root/.composer/cache:delegated
+      # Mount source-code for development
+      - ./:/app
+
+  biogang_backend:
+    build: backend
+    ports:
+      - 21080:80
+    volumes:
+      # Re-use local composer cache via host-volume
+      - ~/.composer-docker/cache:/root/.composer/cache:delegated
+      # Mount source-code for development
+      - ./:/app
+
+  mysql:
+    image: mysql:8.0
+    # image: mysql:5.7
+    environment:
+      - MYSQL_ROOT_PASSWORD=verysecret
+      - MYSQL_DATABASE=yii2advanced
+      - MYSQL_USER=yii2advanced
+      - MYSQL_PASSWORD=secret
+    volumes:
+      - ./db/mysql-data:/var/lib/mysql
+      - ./db/biog_db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./db/mysql-config/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+
+  #pgsql:
+  #  image: postgres:9.5
+  #  environment:
+  #    - POSTGRES_DB=yii2advanced
+  #    - POSTGRES_USER=yii2advanced
+  #    - POSTGRES_PASSWORD=secret
+
+
+#   @docker-compose.yml ปรับปรุงให้รันโปรเจคนี้ได้ โดยปัญหาที่เจอตอนนี้ 1. ถ้าเข้า frontend(http://localhost:20080/) จะขึ้น An internal server error occurred. 2. ถ้าเข้า backend(http://localhost:21080/) จะเด้งไปหน้า http://localhost:21080/admin/user/login แล้วขึ้น not found the requested url was not found on this server

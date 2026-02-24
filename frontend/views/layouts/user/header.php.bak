@@ -1,0 +1,126 @@
+<?php
+
+use yii\helpers\Html;
+use yii\bootstrap4\Nav;
+use yii\bootstrap4\NavBar;
+use yii\bootstrap4\Breadcrumbs;
+use frontend\assets\AppAsset;
+use common\widgets\Alert;
+use frontend\components\FrontendHelper;
+
+if (!Yii::$app->user->isGuest) {
+    $userProfile = FrontendHelper::getProfile(Yii::$app->user->identity->id);
+}
+
+$this->registerJsFile('@web/js/header.js', ['depends' => \yii\web\JqueryAsset::className()]);
+
+?>
+
+<div class="background-navbar" style="
+    width: 100vw;
+    max-height: 107px;
+    overflow-x: hidden;
+    position: fixed;
+    left: 0;
+    z-index: 1;
+">
+    <img src="<?= $background; ?>" alt="" style="
+    min-height: 500px;
+    object-fit: cover;
+">
+</div>
+
+<?php
+
+NavBar::begin([
+    'brandLabel' => '<div class="brand-group">'
+        . Html::img('/images/logo/biog-logo.png', ['alt' => 'Home', 'id' => 'link-logo', 'class' => 'logo-biogang img-fluid mr-2'])
+        . Html::img('/images/logo/biog-logo.png', ['alt' => 'Home', 'class' => 'logo-biogang img-fluid'])
+        . '</div>',
+    'brandUrl' => Yii::$app->homeUrl,
+    'options' => [
+        'class' => 'fixed-top navbar-expand-md navbar-light bg-theme-style menu-header p-0',
+    ],
+]);
+
+$menuItems = [
+    [
+        'label' => 'ก',
+        'items' => [
+            [
+                'label' => 'ก',
+                // 'url' => ['/community/' . $community_url . '/search-type'],
+
+            ],
+
+            [
+                'label' => 'ก',
+                // 'url' => ['/community/' . $community_url . '/search'],
+            ],
+
+        ],
+        'options' => [
+            'class' => [
+                'option-text mr-5'
+            ]
+        ]
+    ],
+    [
+        'label' => 'ก',
+        'url' => ['/'],
+        'options' => [
+            'class' => [
+                'yellow'
+            ]
+        ]
+    ],
+    [
+        'label' => 'ก',
+        'url' => ['/'],
+        'options' => [
+            'class' => [
+                'black'
+            ]
+        ]
+    ],
+    [
+        'label' => 'ก',
+        'url' => ['/'],
+        'options' => [
+            'class' => [
+                'white'
+            ]
+        ]
+    ],
+];
+if (Yii::$app->user->isGuest) {
+    $menuItemsUser[] = [
+        'label' => '<img src="" alt="" class="icon-login ">เข้าสู่ระบบ</a> ',
+        'encode' => false,
+        'items' => [
+            Html::a(
+                Html::img(
+                    '/images/Login.png',
+                    ['class' => 'img-register']
+                ) . ' <span>สมัครสมาชิก<span>',
+                false,
+                [
+                    'data-lang' => 'en',
+                    'class' => 'lang dropdown-item'
+                ]
+            ),
+        ],
+        'options' => ['class' => 'nav-login'],
+    ];
+} else {
+}
+echo Nav::widget([
+    'options' => ['class' => 'header-menu ml-auto zoom-text'],
+    'items' => $menuItems,
+]);
+echo Nav::widget([
+    'options' => ['class' => 'header-menu login'],
+    'items' => $menuItemsUser,
+]);
+NavBar::end();
+?>
