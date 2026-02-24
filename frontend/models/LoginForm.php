@@ -11,13 +11,13 @@
 
 namespace frontend\models;
 
-use dektrium\user\Finder;
 use dektrium\user\helpers\Password;
 use dektrium\user\traits\ModuleTrait;
+use dektrium\user\Finder;
+use yii\base\Model;
 use yii\helpers\ArrayHelper;
 use yii\helpers\Html;
 use Yii;
-use yii\base\Model;
 
 /**
  * LoginForm get user's login and password, validates them and logs the user in. If user has been blocked, it adds
@@ -27,24 +27,33 @@ use yii\base\Model;
  */
 class LoginForm extends Model
 {
-
     public $reCaptcha;
 
     use ModuleTrait;
 
-    /** @var string User's email or username */
+    /**
+     * @var string User's email or username
+     */
     public $login;
 
-    /** @var string User's plain password */
+    /**
+     * @var string User's plain password
+     */
     public $password;
 
-    /** @var string Whether to remember the user */
+    /**
+     * @var string Whether to remember the user
+     */
     public $rememberMe = false;
 
-    /** @var \dektrium\user\models\User */
+    /**
+     * @var \dektrium\user\models\User
+     */
     protected $user;
 
-    /** @var Finder */
+    /**
+     * @var Finder
+     */
     protected $finder;
 
     /**
@@ -74,29 +83,33 @@ class LoginForm extends Model
         });
     }
 
-    /** @inheritdoc */
+    /**
+     * @inheritdoc
+     */
     public function attributeLabels()
     {
         return [
-            'login'      => Yii::t('user', 'Login'),
-            'password'   => Yii::t('user', 'Password'),
+            'login' => Yii::t('user', 'Login'),
+            'password' => Yii::t('user', 'Password'),
             'rememberMe' => Yii::t('user', 'Remember me next time'),
         ];
     }
 
-    /** @inheritdoc */
+    /**
+     * @inheritdoc
+     */
     public function rules()
     {
         $rules = [
             'loginTrim' => ['login', 'trim'],
-            'loginPattern' => ['login', 'email','message' => Yii::t('app','รูปแบบอีเมลไม่ถูกต้อง')],
-            'requiredFields' => [['login'], 'required','message' => Yii::t('app','email')." ".Yii::t('app','อีเมลผู้ใช้ต้องไม่เป็นค่าว่าง')], 
+            'loginPattern' => ['login', 'email', 'message' => Yii::t('app', 'รูปแบบอีเมลไม่ถูกต้อง')],
+            'requiredFields' => [['login'], 'required', 'message' => Yii::t('app', 'email') . ' ' . Yii::t('app', 'อีเมลผู้ใช้ต้องไม่เป็นค่าว่าง')],
             'confirmationValidate' => [
                 'login',
                 function ($attribute) {
                     if ($this->user !== null) {
-                        $confirmationRequired = $this->module->enableConfirmation
-                            && !$this->module->enableUnconfirmedLogin;
+                        $confirmationRequired = $this->module->enableConfirmation &&
+                            !$this->module->enableUnconfirmedLogin;
                         if ($confirmationRequired && !$this->user->getIsConfirmed()) {
                             $this->addError($attribute, Yii::t('user', 'You need to confirm your email address'));
                         }
@@ -107,18 +120,16 @@ class LoginForm extends Model
                 }
             ],
             'rememberMe' => ['rememberMe', 'boolean'],
-
             // [['reCaptcha'], \himiklab\yii2\recaptcha\ReCaptchaValidator2::className(),
             //     'secret' => '6Lcfv74ZAAAAABLXfpba-wAPdhdynSeEKy-sEh8j', // unnecessary if reСaptcha is already configured
             //     'uncheckedMessage' => 'Please confirm that you are not a bot.'],
-            ];
+        ];
 
         if (!$this->module->debug) {
             $rules = array_merge($rules, [
-                'requiredFields' => 
-                    [['login'], 'required' ,'message' => Yii::t('app','อีเมลผู้ใช้ต้องไม่เป็นค่าว่าง')],
-                    [['password'], 'required' ,'message' => Yii::t('app','รหัสผ่านต้องไม่เป็นค่าว่าง')],
-
+                'requiredFields' =>
+                    [['login'], 'required', 'message' => Yii::t('app', 'อีเมลผู้ใช้ต้องไม่เป็นค่าว่าง')],
+                [['password'], 'required', 'message' => Yii::t('app', 'รหัสผ่านต้องไม่เป็นค่าว่าง')],
                 'loginValidate' => [
                     'login',
                     function ($attribute) {
@@ -127,7 +138,6 @@ class LoginForm extends Model
                         }
                     }
                 ],
-
                 'passwordValidate' => [
                     'password',
                     function ($attribute) {
@@ -150,8 +160,8 @@ class LoginForm extends Model
      */
     public function validatePassword($attribute, $params)
     {
-      if ($this->user === null || !Password::validate($this->password, $this->user->password_hash))
-        $this->addError($attribute, Yii::t('user', 'Invalid login or password'));
+        if ($this->user === null || !Password::validate($this->password, $this->user->password_hash))
+            $this->addError($attribute, Yii::t('user', 'Invalid login or password'));
     }
 
     /**
@@ -165,7 +175,7 @@ class LoginForm extends Model
             $isLogged = Yii::$app->getUser()->login($this->user, $this->rememberMe ? $this->module->rememberFor : 0);
 
             if ($isLogged) {
-                $this->user->updateAttributes(['last_login_at' => date("Y-m-d H:i:s")]);
+                $this->user->updateAttributes(['last_login_at' => date('Y-m-d H:i:s')]);
             }
 
             return $isLogged;
@@ -174,14 +184,17 @@ class LoginForm extends Model
         return false;
     }
 
-
-    /** @inheritdoc */
+    /**
+     * @inheritdoc
+     */
     public function formName()
     {
         return 'login-form';
     }
 
-    /** @inheritdoc */
+    /**
+     * @inheritdoc
+     */
     public function beforeValidate()
     {
         if (parent::beforeValidate()) {

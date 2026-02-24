@@ -57,7 +57,7 @@ class Content extends \yii\db\ActiveRecord
             [['type_id', 'created_by_user_id', 'updated_by_user_id'], 'required'],
             [['name', 'status'], 'required'],
             [['is_hidden'], 'boolean'],
-            [['type_id', 'region_id', 'province_id', 'district_id', 'subdistrict_id', 'zipcode_id', 'approved_by_user_id', 'created_by_user_id', 'updated_by_user_id', 'active'], 'integer'],
+            [['type_id', 'region_id', 'province_id', 'district_id', 'subdistrict_id', 'zipcode_id', 'approved_by_user_id', 'created_by_user_id', 'updated_by_user_id', 'active', 'license_id'], 'integer'],
             [['description', 'other_information', 'source_information', 'status'], 'string'],
             [['created_at', 'updated_at', 'files', 'picture_path', 'content_source_id', 'content_root_id'], 'safe'],
             [['name', 'note', 'photo_credit'], 'string', 'max' => 255],
@@ -97,6 +97,7 @@ class Content extends \yii\db\ActiveRecord
             'files' => 'รูปประกอบ (แสดงเป็น Gallery)',
             'taxonomy' => 'คำสำคัญ (Tags)',
             'is_hidden' => 'การแสดงผล',
+            'license_id' => 'สัญญาอนุญาต (License)',
         ];
     }
 
@@ -128,5 +129,15 @@ class Content extends \yii\db\ActiveRecord
     public function getContentPlants()
     {
         return $this->hasMany(ContentPlant::className(), ['content_id' => 'id']);
+    }
+
+    /**
+     * Gets query for [[License]].
+     *
+     * @return \yii\db\ActiveQuery
+     */
+    public function getLicense()
+    {
+        return $this->hasOne(License::className(), ['id' => 'license_id']);
     }
 }

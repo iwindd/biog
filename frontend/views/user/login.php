@@ -1,9 +1,10 @@
 <?php
 
+use frontend\models\Banner;
+use yii\bootstrap4\ActiveForm;
 use yii\bootstrap4\Html;
 use yii\helpers\ArrayHelper;
-use yii\bootstrap4\ActiveForm;
-use frontend\models\Banner;
+
 $banner = Banner::find()->where(['slug_url' => 'Login'])->one();
 
 $this->title = 'เข้าสู่ระบบ';
@@ -12,10 +13,10 @@ $this->title = 'เข้าสู่ระบบ';
 <?php
 $backgroundImage = '/images/banner/Login_Banner.png';
 
-if(!empty($banner->picture_path)){
-    $backgroundImage = '/files/banner/'.$banner->picture_path;
+if (!empty($banner->picture_path)) {
+    $backgroundImage = '/files/banner/' . $banner->picture_path;
     $this->registerCss("nav {background-image: url('" . $backgroundImage . "'); }");
-}else{
+} else {
     $this->registerCss("nav {background-image: url('" . $backgroundImage . "'); }");
 }
 ?>
@@ -39,12 +40,12 @@ if(!empty($banner->picture_path)){
     <div class="login-form row d-flex justify-content-center align-items-center">
         <div class="col-lg-5 col-md-7 col-sm-8">
 
-            <?php if (Yii::$app->session->hasFlash('REGISTER_SUCCESS')) : ?>
+            <?php if (Yii::$app->session->hasFlash('REGISTER_SUCCESS')): ?>
                 <?=
-                    \yii\bootstrap4\Alert::widget([
-                        'body' => ArrayHelper::getValue(Yii::$app->session->getFlash('REGISTER_SUCCESS'), 'body'),
-                        'options' => ArrayHelper::getValue(Yii::$app->session->getFlash('REGISTER_SUCCESS'), 'options'),
-                    ])
+                \yii\bootstrap4\Alert::widget([
+                    'body' => ArrayHelper::getValue(Yii::$app->session->getFlash('REGISTER_SUCCESS'), 'body'),
+                    'options' => ArrayHelper::getValue(Yii::$app->session->getFlash('REGISTER_SUCCESS'), 'options'),
+                ])
                 ?>
             <?php endif; ?>
 
@@ -52,27 +53,32 @@ if(!empty($banner->picture_path)){
 
             <?php $form = ActiveForm::begin([]); ?>
             <div class="form-group mb-3">
-                <?= $form->field($model, 'login')
-                    ->textInput()->input('text', [
-                        'placeholder' => "อีเมล"
+                <?= $form
+                    ->field($model, 'login')
+                    ->textInput()
+                    ->input('text', [
+                        'placeholder' => 'อีเมล'
                     ])
-                    ->label('อีเมล');  ?>
+                    ->label('อีเมล'); ?>
             </div>
             <div class="form-group">
-                <?= $form->field($model, 'password')
-                    ->textInput()->input('password', [
-                        'placeholder' => "รหัสผ่าน"
+                <?= $form
+                    ->field($model, 'password')
+                    ->textInput()
+                    ->input('password', [
+                        'placeholder' => 'รหัสผ่าน'
                     ])
-                    ->label('รหัสผ่าน');  ?>
+                    ->label('รหัสผ่าน'); ?>
             </div>
             <div class="d-flex justify-content-between">
                 <div class="form-group">
                     <?php
-                    echo $form->field($model, 'rememberMe', [
-                        'options' => [
-                            'class' => 'd-inline'
-                        ],
-                    ])
+                    echo $form
+                        ->field($model, 'rememberMe', [
+                            'options' => [
+                                'class' => 'd-inline'
+                            ],
+                        ])
                         ->checkbox(['checked' => false])
                         ->label('จำบัญชีผู้ใช้ของฉัน', [
                             'class' => 'custom-control-label cursor-pointer'

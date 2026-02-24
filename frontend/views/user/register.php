@@ -1,47 +1,46 @@
 <?php
 
-use yii\bootstrap4\Html;
-use kartik\date\DatePicker;
-use yii\helpers\ArrayHelper;
 use frontend\components\Utils;
-use yii\bootstrap4\ActiveForm;
-use yii\helpers\Url;
-use kartik\select2\Select2;
-
-use frontend\models\Region;
 use frontend\models\District;
+use frontend\models\Province;
+use frontend\models\Region;
+use frontend\models\School;
 use frontend\models\Subdistrict;
 use frontend\models\Zipcode;
-use frontend\models\School;
-use frontend\models\Province;
+use kartik\date\DatePicker;
+use kartik\select2\Select2;
+use yii\bootstrap4\ActiveForm;
+use yii\bootstrap4\Html;
+use yii\helpers\ArrayHelper;
+use yii\helpers\Url;
 
 $region = ArrayHelper::map(Region::find()->all(), 'id', 'name_th');
 $province = ArrayHelper::map(Province::find()->all(), 'id', 'name_th');
-$district = array();//ArrayHelper::map(District::find()->all(), 'id', 'name_th');
-$subdistrict = array();//ArrayHelper::map(Subdistrict::find()->all(), 'id', 'name_th');
-$zipcode = array();//ArrayHelper::map(Zipcode::find()->all(), 'id', 'name_th');
+$district = array();  // ArrayHelper::map(District::find()->all(), 'id', 'name_th');
+$subdistrict = array();  // ArrayHelper::map(Subdistrict::find()->all(), 'id', 'name_th');
+$zipcode = array();  // ArrayHelper::map(Zipcode::find()->all(), 'id', 'name_th');
 $dataSchool = ArrayHelper::map(School::find()->all(), 'id', 'name');
 
-$this->registerJsFile(Url::base().'/js/location.js', ['depends' => [\frontend\assets\AppAsset::className()]]);
-$this->registerJsFile(Url::base().'/js/image-preview.js', ['depends' => [\frontend\assets\AppAsset::className()]]);
-$this->registerJsFile(Url::base().'/js/user-profile.js', ['depends' => [\frontend\assets\AppAsset::className()]]);
+$this->registerJsFile(Url::base() . '/js/location.js', ['depends' => [\frontend\assets\AppAsset::className()]]);
+$this->registerJsFile(Url::base() . '/js/image-preview.js', ['depends' => [\frontend\assets\AppAsset::className()]]);
+$this->registerJsFile(Url::base() . '/js/user-profile.js', ['depends' => [\frontend\assets\AppAsset::className()]]);
 
-if(!empty($_GET['invite'])){
+if (!empty($_GET['invite'])) {
     $profileModel->invite_friend = base64_decode($_GET['invite']);
 }
 
 $this->title = Yii::t('app', 'สมัครสมาชิก');
 
 use frontend\models\Banner;
+
 $banner = Banner::find()->where(['slug_url' => 'Register'])->one();
 
+$backgroundImage = '/images/banner/Register_Banner.png';
 
-$backgroundImage =  '/images/banner/Register_Banner.png';
-
-if(!empty($banner->picture_path)){
-    $backgroundImage = '/files/banner/'.$banner->picture_path;
+if (!empty($banner->picture_path)) {
+    $backgroundImage = '/files/banner/' . $banner->picture_path;
     $this->registerCss("nav {background-image: url('" . $backgroundImage . "'); }");
-}else{
+} else {
     $this->registerCss("nav {background-image: url('" . $backgroundImage . "'); }");
 }
 
@@ -92,22 +91,28 @@ if(!empty($banner->picture_path)){
 
                 <div class="col-md-6 col-sm-12">
 
-                    <?= $form->field($userModel, 'email')
-                        ->textInput()->input('text', [
-                            'placeholder' => "อีเมล"
-                        ]);  ?>
+                    <?= $form
+                        ->field($userModel, 'email')
+                        ->textInput()
+                        ->input('text', [
+                            'placeholder' => 'อีเมล'
+                        ]); ?>
 
                     <div class="form-group ">
-                        <?= $form->field($userModel, 'new_password')
-                            ->textInput()->input('password', [
-                                'placeholder' => "รหัสผ่าน"
-                            ]);  ?>
+                        <?= $form
+                            ->field($userModel, 'new_password')
+                            ->textInput()
+                            ->input('password', [
+                                'placeholder' => 'รหัสผ่าน'
+                            ]); ?>
                     </div>
                     <div class="form-group ">
-                        <?= $form->field($userModel, 'confirm_password')
-                            ->textInput()->input('password', [
-                                'placeholder' => "ยืนยันรหัสผ่าน"
-                            ]);  ?>
+                        <?= $form
+                            ->field($userModel, 'confirm_password')
+                            ->textInput()
+                            ->input('password', [
+                                'placeholder' => 'ยืนยันรหัสผ่าน'
+                            ]); ?>
                     </div>
 
                 </div>
@@ -116,9 +121,9 @@ if(!empty($banner->picture_path)){
 
             <div class="row">
                 <?php
-                    if (!empty($case_error)) {
-                        foreach ($case_error as $error) {
-                    ?>
+                if (!empty($case_error)) {
+                    foreach ($case_error as $error) {
+                        ?>
                 <div class="alert alert-danger" role="alert">
                     <?php echo $error; ?>
 
@@ -127,8 +132,8 @@ if(!empty($banner->picture_path)){
                     </button>
                 </div>
                 <?php
-                        }
                     }
+                }
                 ?>
             </div>
 
@@ -142,10 +147,10 @@ if(!empty($banner->picture_path)){
                         <span class="h6">ข้อมูลส่วนตัว</span>
                     </div>
 
-                    <?= $form->field($profileModel, 'display_name')->textInput()->input('text', ['placeholder' => "ชื่อที่ใช้แสดง"])->label('ชื่อที่ใช้แสดง');  ?>
-                    <?= $form->field($profileModel, 'firstname')->textInput()->input('text', ['placeholder' => "ชื่อ"])->label('ชื่อ');  ?>
-                    <?= $form->field($profileModel, 'lastname')->textInput()->input('text', ['placeholder' => "นามสกุล"])->label('นามสกุล');  ?>
-                    <?= $form->field($profileModel, 'phone')->textInput()->input('text', ['placeholder' => "หมายเลขโทรศัพท์มือถือ"])->label('หมายเลขโทรศัพท์มือถือ');  ?>
+                    <?= $form->field($profileModel, 'display_name')->textInput()->input('text', ['placeholder' => 'ชื่อที่ใช้แสดง'])->label('ชื่อที่ใช้แสดง'); ?>
+                    <?= $form->field($profileModel, 'firstname')->textInput()->input('text', ['placeholder' => 'ชื่อ'])->label('ชื่อ'); ?>
+                    <?= $form->field($profileModel, 'lastname')->textInput()->input('text', ['placeholder' => 'นามสกุล'])->label('นามสกุล'); ?>
+                    <?= $form->field($profileModel, 'phone')->textInput()->input('text', ['placeholder' => 'หมายเลขโทรศัพท์มือถือ'])->label('หมายเลขโทรศัพท์มือถือ'); ?>
 
                     <?php
                     $genderList = [
@@ -168,13 +173,13 @@ if(!empty($banner->picture_path)){
                     ])->label('วันเกิด');
                     ?>
 
-                    <?= $form->field($profileModel, 'invite_friend')->textInput()->input('text', ['placeholder' => "อีเมล"])->label('ได้รับคำเชิญจาก');  ?>
+                    <?= $form->field($profileModel, 'invite_friend')->textInput()->input('text', ['placeholder' => 'อีเมล'])->label('ได้รับคำเชิญจาก'); ?>
 
                     <div class="mt-4 mb-2">
                         <span class="h6">ที่อยู่</span>
                     </div>
 
-                    <?= $form->field($profileModel, 'home_number')->textInput()->input('text', ['placeholder' => "บ้านเลขที่/หมู่ที่-หมู่บ้าน/ซอย/ถนน"])->label('บ้านเลขที่/หมู่ที่-หมู่บ้าน/ซอย/ถนน');  ?>
+                    <?= $form->field($profileModel, 'home_number')->textInput()->input('text', ['placeholder' => 'บ้านเลขที่/หมู่ที่-หมู่บ้าน/ซอย/ถนน'])->label('บ้านเลขที่/หมู่ที่-หมู่บ้าน/ซอย/ถนน'); ?>
 
                     <div class="row">
                         <div class="col">
@@ -191,7 +196,7 @@ if(!empty($banner->picture_path)){
                             <?= $form->field($profileModel, 'subdistrict_id')->dropDownList($subdistrict, ['prompt' => 'กรุณาเลือกตำบล'])->label('ตำบล'); ?>
                         </div>
                         <div class="col">
-                            <?= $form->field($profileModel, 'zipcode_id')->textInput()->input('text', ['placeholder' => "รหัสไปรษณีย์"])->label('รหัสไปรษณีย์');  ?>
+                            <?= $form->field($profileModel, 'zipcode_id')->textInput()->input('text', ['placeholder' => 'รหัสไปรษณีย์'])->label('รหัสไปรษณีย์'); ?>
                         </div>
                     </div>
 
@@ -207,7 +212,7 @@ if(!empty($banner->picture_path)){
                             </div>
                             <div class="d-flex justify-content-end">
                                 <div class="wrap-btn-upload">
-                                    <?= $form->field($profileModel, 'picture')->fileInput(['style' => "display: none;"])->label(false) ?>
+                                    <?= $form->field($profileModel, 'picture')->fileInput(['style' => 'display: none;'])->label(false) ?>
                                     <div
                                         class="btn-upload-profile btn btn-secondary d-flex justify-content-center align-items-center">
                                         <i class="align-self-center fas fa-camera"></i>
@@ -223,7 +228,6 @@ if(!empty($banner->picture_path)){
                     </div>
 
                     <?php
-                    
 
                     echo $form->field($schoolModel, 'school_id')->widget(Select2::classname(), [
                         'data' => $dataSchool,
@@ -236,10 +240,10 @@ if(!empty($banner->picture_path)){
                     ?>
 
                     <?=
-                        $form->field($userModel, 'role', ['errorOptions' => ['tag' => 'small']])->inline()->radioList([
-                            'student' => 'นักเรียน/นิสิต',
-                            'teacher' => 'อาจารย์',
-                        ])->label(false);
+                    $form->field($userModel, 'role', ['errorOptions' => ['tag' => 'small']])->inline()->radioList([
+                        'student' => 'นักเรียน/นิสิต',
+                        'teacher' => 'อาจารย์',
+                    ])->label(false);
                     ?>
 
                     <div class="form-group field-school-add_new">
@@ -254,39 +258,39 @@ if(!empty($banner->picture_path)){
 
 
 
-                    <?= $form->field($profileModel, 'class')->textInput()->input('text', ['placeholder' => "ชั้นเรียน"])->label('ชั้นเรียน');  ?>
+                    <?= $form->field($profileModel, 'class')->textInput()->input('text', ['placeholder' => 'ชั้นเรียน'])->label('ชั้นเรียน'); ?>
 
-                    <?= $form->field($profileModel, 'major')->textInput()->input('text', ['placeholder' => "ประจำสาขา/วิชา"])->label('ประจำสาขา/วิชา');  ?>
+                    <?= $form->field($profileModel, 'major')->textInput()->input('text', ['placeholder' => 'ประจำสาขา/วิชา'])->label('ประจำสาขา/วิชา'); ?>
 
                     <div id="school-info">
                         <div class="mt-4 mb-2">
                             <span class="h6">ที่อยู่สถานศึกษา</span>
                         </div>
 
-                        <?= $form->field($schoolModel, 'name')->textInput()->input('text', ['placeholder' => "ชื่อโรงเรียน/มหาวิทยาลัย"])->label('ชื่อโรงเรียน/มหาวิทยาลัย');  ?>
+                        <?= $form->field($schoolModel, 'name')->textInput()->input('text', ['placeholder' => 'ชื่อโรงเรียน/มหาวิทยาลัย'])->label('ชื่อโรงเรียน/มหาวิทยาลัย'); ?>
 
-                        <?= $form->field($schoolModel, 'address')->textInput(['placeholder' => "บ้านเลขที่/หมู่ที่-หมู่บ้าน/ซอย/ถนน", 'readonly'=> true])->label('บ้านเลขที่/หมู่ที่-หมู่บ้าน/ซอย/ถนน');  ?>
+                        <?= $form->field($schoolModel, 'address')->textInput(['placeholder' => 'บ้านเลขที่/หมู่ที่-หมู่บ้าน/ซอย/ถนน', 'readonly' => true])->label('บ้านเลขที่/หมู่ที่-หมู่บ้าน/ซอย/ถนน'); ?>
 
                         <div class="row">
                             <div class="col">
 
-                                <?= $form->field($schoolModel, 'province_id')->dropDownList($province, ['prompt' => 'กรุณาเลือกจังหวัด','disabled' => 'disabled'])->label('จังหวัด'); ?>
+                                <?= $form->field($schoolModel, 'province_id')->dropDownList($province, ['prompt' => 'กรุณาเลือกจังหวัด', 'disabled' => 'disabled'])->label('จังหวัด'); ?>
 
                             </div>
                             <div class="col">
-                                <?= $form->field($schoolModel, 'district_id')->dropDownList($district, ['prompt' => 'กรุณาเลือกอำเภอ','disabled' => 'disabled'])->label('อำเภอ'); ?>
+                                <?= $form->field($schoolModel, 'district_id')->dropDownList($district, ['prompt' => 'กรุณาเลือกอำเภอ', 'disabled' => 'disabled'])->label('อำเภอ'); ?>
                             </div>
                         </div>
                         <div class="row">
                             <div class="col">
-                                <?= $form->field($schoolModel, 'subdistrict_id')->dropDownList($subdistrict, ['prompt' => 'กรุณาเลือกตำบล','disabled' => 'disabled'])->label('ตำบล'); ?>
+                                <?= $form->field($schoolModel, 'subdistrict_id')->dropDownList($subdistrict, ['prompt' => 'กรุณาเลือกตำบล', 'disabled' => 'disabled'])->label('ตำบล'); ?>
                             </div>
                             <div class="col">
-                                <?= $form->field($schoolModel, 'zipcode_id')->textInput(['placeholder' => "รหัสไปรษณีย์", 'readonly'=> true])->label('รหัสไปรษณีย์');  ?>
+                                <?= $form->field($schoolModel, 'zipcode_id')->textInput(['placeholder' => 'รหัสไปรษณีย์', 'readonly' => true])->label('รหัสไปรษณีย์'); ?>
                             </div>
                         </div>
 
-                        <?= $form->field($schoolModel, 'phone')->textInput(['placeholder' => "หมายเลขโทรศัพท์", 'readonly'=> true])->label('หมายเลขโทรศัพท์');  ?>
+                        <?= $form->field($schoolModel, 'phone')->textInput(['placeholder' => 'หมายเลขโทรศัพท์', 'readonly' => true])->label('หมายเลขโทรศัพท์'); ?>
 
                     </div>
                 </div>
@@ -299,11 +303,11 @@ if(!empty($banner->picture_path)){
 
             <div class="form-group">
                 <?= $form->field($userModel, 'reCaptcha')->widget(
-                        \himiklab\yii2\recaptcha\ReCaptcha2::className(),
-                        [
-                            'siteKey' => '6Lcfv74ZAAAAABHCFqZBwgdU4dVi2klEiXvSY-Cj', // unnecessary is reCaptcha component was set up
-                        ]
-                    )->label(false) ?>
+                    \himiklab\yii2\recaptcha\ReCaptcha2::className(),
+                    [
+                        'siteKey' => '6Lcfv74ZAAAAABHCFqZBwgdU4dVi2klEiXvSY-Cj',  // unnecessary is reCaptcha component was set up
+                    ]
+                )->label(false) ?>
             </div>
 
         </div>
@@ -312,7 +316,7 @@ if(!empty($banner->picture_path)){
 
             <div class="form-group">
 
-                <?= $form->field($userModel, 'accept_biog')->checkbox(['uncheck' => false])->label('ยอมรับ <a id="show-accept-policy-cuar" href="javascript:void(0);" data-toggle="modal" data-target="#biogangAceptModalBlock">เงื่อนไขและนโยบายของ BIOGANG.NET</a>');  ?>
+                <?= $form->field($userModel, 'accept_biog')->checkbox(['uncheck' => false])->label('ยอมรับ <a id="show-accept-policy-cuar" href="javascript:void(0);" data-toggle="modal" data-target="#biogangAceptModalBlock">เงื่อนไขและนโยบายของ BIOGANG.NET</a>'); ?>
 
 
                 <?= $form->field($userModel, 'accept_condition', ['options' => ['class' => 'd-inline']])->checkbox(['uncheck' => false])->label('ยอมรับ <a id="show-accept-policy-personal" href="javascript:void(0);" data-toggle="modal" data-target="#conditionsModalBlock">เงื่อนไขและนโยบายคุ้มครองข้อมูลส่วนบุลคล</a>'); ?>

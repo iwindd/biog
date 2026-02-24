@@ -12,6 +12,7 @@ use yii\widgets\ActiveForm;
 $urlTaxonomy = \yii\helpers\Url::to(['/taxonomy/taxonomy']);
 
 use backend\models\District;
+use backend\models\License;
 use backend\models\ProductCategory;
 use backend\models\Province;
 use backend\models\Region;
@@ -56,6 +57,7 @@ if (!empty($model['subdistrict_id'])) {
 }
 
 $categoty = ArrayHelper::map(ProductCategory::find()->where(['active' => 1])->all(), 'id', 'name');
+$licenseList = ArrayHelper::map(License::find()->all(), 'id', 'name');
 ?>
 
 <div class="content-form">
@@ -327,6 +329,14 @@ echo $form->field($model, 'taxonomy')->widget(Select2::classname(), [
                 'approved' => 'Approved',
                 'rejected' => 'Rejected',
             ], ['prompt' => 'เลือกสถานะ']) ?>
+
+            <?= $form->field($model, 'license_id')->widget(Select2::classname(), [
+                'data' => $licenseList,
+                'options' => ['placeholder' => 'เลือกสัญญาอนุญาต...'],
+                'pluginOptions' => [
+                    'allowClear' => true
+                ],
+            ]); ?>
 
             <?= $form->field($model, 'is_hidden')->dropDownList([
                 '0' => 'แสดงผล',

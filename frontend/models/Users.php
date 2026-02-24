@@ -2,9 +2,8 @@
 
 namespace frontend\models;
 
-use Yii;
-
 use dektrium\user\helpers\Password;
+use Yii;
 
 /**
  * This is the model class for table "user".
@@ -36,12 +35,12 @@ class Users extends \yii\db\ActiveRecord
     public $subdistrict;
     public $zipcode;
     public $role;
-
     public $current_password;
     public $new_password;
     public $confirm_password;
     public $accept_biog;
     public $accept_condition;
+
     /**
      * {@inheritdoc}
      */
@@ -56,16 +55,12 @@ class Users extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-
-            ['email', 'required','message' => '{attribute}ต้องไม่เป็นค่าว่าง'],
+            ['email', 'required', 'message' => '{attribute}ต้องไม่เป็นค่าว่าง'],
             ['email', 'unique', 'targetClass' => '\frontend\models\Users', 'message' => 'อีเมลนี้มีอยู่แล้วในระบบ'],
-            'emailPattern' => ['email', 'email', 'message'=>'รูปแบบอีเมลไม่ถูกต้อง'],
-
+            'emailPattern' => ['email', 'email', 'message' => 'รูปแบบอีเมลไม่ถูกต้อง'],
             ['accept_biog', 'required', 'on' => 'create', 'message' => 'กรุณายอมรับเงื่อนไขและนโยบายของ BIOGANG.NET'],
             ['accept_condition', 'required', 'on' => 'create', 'message' => 'กรุณายอมรับเงื่อนไขและนโยบายคุ้มครองข้อมูลส่วนบุลคล'],
             ['confirm_password', 'required', 'on' => 'create', 'message' => 'ยืนยันรหัสผ่านต้องไม่เป็นค่าว่าง'],
-
-
             [['username', 'email', 'password_hash', 'auth_key', 'created_at', 'updated_at'], 'required'],
             [['confirmed_at', 'blocked_at', 'invited_by_user_id'], 'integer'],
             [['role', 'created_at', 'updated_at', 'last_login_at'], 'string'],
@@ -75,28 +70,25 @@ class Users extends \yii\db\ActiveRecord
             [['registration_ip'], 'string', 'max' => 45],
             [['username'], 'unique'],
             [['email'], 'unique'],
-
             [
-                ['reCaptcha'], \himiklab\yii2\recaptcha\ReCaptchaValidator2::className(),
-                'secret' => '6Lcfv74ZAAAAABLXfpba-wAPdhdynSeEKy-sEh8j', // unnecessary if reСaptcha is already configured
+                ['reCaptcha'],
+                \himiklab\yii2\recaptcha\ReCaptchaValidator2::className(),
+                'secret' => '6Lcfv74ZAAAAABLXfpba-wAPdhdynSeEKy-sEh8j',  // unnecessary if reСaptcha is already configured
                 'uncheckedMessage' => 'Please confirm that you are not a bot.',
-                'on' => 'create', 
+                'on' => 'create',
             ],
-
             [
-                ['reCaptcha'], \himiklab\yii2\recaptcha\ReCaptchaValidator2::className(),
-                'secret' => '6Lcfv74ZAAAAABLXfpba-wAPdhdynSeEKy-sEh8j', // unnecessary if reСaptcha is already configured
+                ['reCaptcha'],
+                \himiklab\yii2\recaptcha\ReCaptchaValidator2::className(),
+                'secret' => '6Lcfv74ZAAAAABLXfpba-wAPdhdynSeEKy-sEh8j',  // unnecessary if reСaptcha is already configured
                 'uncheckedMessage' => 'Please confirm that you are not a bot.',
-                'on' => 'login', 
+                'on' => 'login',
             ],
-
-
-
             'newPasswordLength' => ['new_password', 'string', 'max' => 72, 'min' => 6],
-            ['new_password', 'required', 'on' => 'create',  'message'=> "รหัสผ่านต้องไม่เป็นค่าว่าง"],
+            ['new_password', 'required', 'on' => 'create', 'message' => 'รหัสผ่านต้องไม่เป็นค่าว่าง'],
             'confirmPasswordLength' => ['confirm_password', 'string', 'max' => 72, 'min' => 6],
             //  'currentPasswordRequired' => ['current_password', 'required'],
-            ['confirm_password', 'compare', 'compareAttribute' => 'new_password',  'skipOnEmpty' => false, 'message'=> "ยืนยันรหัสผ่านไม่ถูกต้อง" ],
+            ['confirm_password', 'compare', 'compareAttribute' => 'new_password', 'skipOnEmpty' => false, 'message' => 'ยืนยันรหัสผ่านไม่ถูกต้อง'],
             'currentPasswordValidate' => ['current_password', function ($attr) {
                 if (!Password::validate($this->$attr, $this->user->password_hash)) {
                     $this->addError($attr, Yii::t('user', 'Current password is not valid'));
@@ -130,7 +122,8 @@ class Users extends \yii\db\ActiveRecord
         ];
     }
 
-    public function usersValidate(){
+    public function usersValidate()
+    {
         if (!$this->validate()) {
             return null;
         }

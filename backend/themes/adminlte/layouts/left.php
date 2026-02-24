@@ -61,6 +61,7 @@ $getMenuTemplate = function ($typeId) use ($contentTypes) {
                             ['label' => 'ตั้งค่าภูมิปัญญา', 'icon' => 'minus', 'url' => ['/setting/expert']],
                             ['label' => 'ตั้งค่า Data Protection', 'icon' => 'minus', 'url' => ['/setting/data-protection']],
                             ['label' => 'ตั้งค่าทั่วไป', 'icon' => 'minus', 'url' => ['/setting']],
+                            ['label' => 'สัญญาอนุญาต', 'icon' => 'copyright', 'url' => ['/license/']],
                         ],
                     ],
                 ],

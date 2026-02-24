@@ -1,21 +1,20 @@
 <?php
 
-use yii\helpers\Html;
-use yii\widgets\ActiveForm;
-use yii\helpers\Url;
-use kartik\widgets\FileInput;
-
 use common\components\Upload;
+use kartik\widgets\FileInput;
+use yii\helpers\Html;
+use yii\helpers\Url;
+use yii\widgets\ActiveForm;
 
 /* @var $this yii\web\View */
 /* @var $model backend\models\Blog */
 /* @var $form yii\widgets\ActiveForm */
 
-$this->registerJsFile(Url::base().'/js/content.js', ['depends' => [\backend\assets\AppAsset::className()]]);
+$this->registerJsFile(Url::base() . '/js/content.js', ['depends' => [\backend\assets\AppAsset::className()]]);
 
-$initialPreview = "";  
-if(!empty($model->picture_path)){
-   $initialPreview = '<img src="'.Yii::$app->params['urlWebBiog'].'/files/blog/'.$model->picture_path.'" class="img-responsive img-thumbnail " style="width:200px;" alt="" />';
+$initialPreview = '';
+if (!empty($model->picture_path)) {
+    $initialPreview = '<img src="' . Yii::$app->params['urlWebBiog'] . '/files/blog/' . $model->picture_path . '" class="img-responsive img-thumbnail " style="width:200px;" alt="" />';
 }
 
 ?>
@@ -26,7 +25,7 @@ if(!empty($model->picture_path)){
     <?php
     if (!empty($case_error)) {
         foreach ($case_error as $error) {
-    ?>
+            ?>
             <div class="alert alert-danger" role="alert">
                 <?php echo $error['message']; ?>
 
@@ -40,7 +39,7 @@ if(!empty($model->picture_path)){
     ?>
 
     <?php $form = ActiveForm::begin([
-      'options' => ['enctype' => 'multipart/form-data']
+        'options' => ['enctype' => 'multipart/form-data']
     ]); ?>
 
     <div class="panel panel-default">
@@ -50,40 +49,42 @@ if(!empty($model->picture_path)){
             <?= $form->field($model, 'title')->textInput(['maxlength' => true]) ?>
 
             <?= $form->field($model, 'picture_path', [
-                          'template' => "{label}\n{input}\n<div> รูปภาพควรมีขนาด 766x400 pixel มีขนาดไม่เกิน 2 MB และ ต้องเป็นไฟล์นามสกุล jpg, jpeg, png หรือ gif เท่านั้น </div>\n{hint}\n{error}",
-                          'labelOptions' => [ 'class' => 'control-label' ]
+                'template' => "{label}\n{input}\n<div> รูปภาพควรมีขนาด 766x400 pixel มีขนาดไม่เกิน 2 MB และ ต้องเป็นไฟล์นามสกุล jpg, jpeg, png หรือ gif เท่านั้น </div>\n{hint}\n{error}",
+                'labelOptions' => ['class' => 'control-label']
             ])->widget(FileInput::classname(), [
-                //'options' => ['accept' => 'image/*'],
+                // 'options' => ['accept' => 'image/*'],
                 'pluginOptions' => [
-                    'initialPreview'=>$initialPreview,
-                    'allowedFileExtensions'=>['jpg', 'jpeg', 'png', 'gif', 'PNG'],
+                    'initialPreview' => $initialPreview,
+                    'allowedFileExtensions' => ['jpg', 'jpeg', 'png', 'gif', 'PNG'],
                     'showPreview' => true,
                     'showRemove' => false,
                     'showUpload' => false,
-                    'maxFileSize'=>2048
-                 ]
+                    'maxFileSize' => 2048
+                ]
             ])->label('รูปภาพ'); ?> 
 
             <input type="hidden" name="deletePic" id="deletePic" value="0" >
 
-            <?php /*        
-            <?= $form->field($model, 'description')->widget(\yii2jodit\JoditWidget::className(), [
-                    'settings' => [
-                    'height'=>'auto',
-                    'enableDragAndDropFileToEditor'=>new \yii\web\JsExpression("true"),
-                    'buttons'=>[
-                        'source', '|',
-                        'bold','strikethrough','underline','italic','align','|',
-                        'ul','ol', '|',
-                        'outdent','indent', '|',
-                        'font','fontsize','brush','paragraph','eraser','|',
-                        'image','video','file','table','link','|',
-                        'align','undo','redo',
-                        ],
-                    ],
-                    'options' => ['placeholder' => 'รายละเอียด'],
-
-            ]) ?> */ ?>
+            <?php  /*
+                                                                                                                                        * <?= $form->field($model, 'description')->widget(\yii2jodit\JoditWidget::className(), [
+                                                                                                                                        *         'settings' => [
+                                                                                                                                        *         'height'=>'auto',
+                                                                                                                                        *         'enableDragAndDropFileToEditor'=>new \yii\web\JsExpression("true"),
+                                                                                                                                        *         'buttons'=>[
+                                                                                                                                        *             'source', '|',
+                                                                                                                                        *             'bold','strikethrough','underline','italic','align','|',
+                                                                                                                                        *             'ul','ol', '|',
+                                                                                                                                        *             'outdent','indent', '|',
+                                                                                                                                        *             'font','fontsize','brush','paragraph','eraser','|',
+                                                                                                                                        *             'image','video','file','table','link','|',
+                                                                                                                                        *             'align','undo','redo',
+                                                                                                                                        *             ],
+                                                                                                                                        *         ],
+                                                                                                                                        *         'options' => ['placeholder' => 'รายละเอียด'],
+                                                                                                                                        *
+                                                                                                                                        * ]) ?>
+                                                                                                                                        */
+            ?>
 
             <?= $form->field($model, 'description')->textarea(['rows' => '6', 'class' => 'summernote-description']) ?>
 
@@ -96,24 +97,25 @@ if(!empty($model->picture_path)){
             <input type="hidden" name="removeImage" id="removeImage">
 
             <?php
-            //print_r($mediaModel);
+            // print_r($mediaModel);
 
             if (!empty($mediaModel)) {
-            ?>
+                ?>
                 <label class="control-label">รูปประกอบ (แสดงเป็น Gallery)</label>
                 <div class="row">
                     <?php
                     foreach ($mediaModel as $value) {
-                        if (!empty($value['path']) &&  $value['application_type'] == 'image') {
-                    ?>
+                        if (!empty($value['path']) && $value['application_type'] == 'image') {
+                            ?>
                             <div class="col-md-3 card-picture-item" id="image-item-<?php echo $value['id']; ?>">
                                 <button onclick="removeImages(<?php echo $value['id']; ?>)" type="button" class="close" aria-label="ลบไฟล์นี้">
                                     <span aria-hidden="true">&times;</span>
                                 </button>
                                 <?php
-                                if( $value['application_type'] = 'image') {
+                                if ($value['application_type'] = 'image') {
                                     echo Upload::readfilePictureNoPermission('blog', $value['path']);
-                                } ?>
+                                }
+                                ?>
                             </div>
                     <?php
                         }
@@ -123,12 +125,13 @@ if(!empty($model->picture_path)){
             <?php
             }
             ?>
-            <?= $form->field($model, "files", [
+            <?=
+            $form->field($model, 'files', [
                 'template' => "{label}\n{input}\n<div> รูปภาพมีขนาดไม่เกิน 2 MB และไฟล์ต้องเป็นนามสกุลดังนี้ jpg, jpeg, png หรือ gif </div>\n{hint}\n{error}",
-                'labelOptions' => [ 'class' => 'control-label' ]
+                'labelOptions' => ['class' => 'control-label']
             ])->widget(FileInput::classname(), [
                 'options' => [
-                    //'accept' => 'image/*',
+                    // 'accept' => 'image/*',
                     'class' => 'caractboxes-img',
                     'multiple' => true
                 ],
@@ -149,20 +152,19 @@ if(!empty($model->picture_path)){
             <input type="hidden" name="removeDocument" id="removeDocument">
 
             <?php
-            //print_r($mediaModel);
+            // print_r($mediaModel);
             if (!empty($mediaModel)) {
-            ?>
+                ?>
                 <label class="control-label">ไฟล์</label>
                 <div class="row">
                     <div class="col-md-12">
                         <?php
                         foreach ($mediaModel as $value) {
-                            if (!empty($value['path']) &&  $value['application_type'] == 'file') {
-
-                                if ( $value['application_type'] = 'file') {
-                                    $documentPath =  Upload::readFileDocumentNoPermission('document', $value['path']);
+                            if (!empty($value['path']) && $value['application_type'] == 'file') {
+                                if ($value['application_type'] = 'file') {
+                                    $documentPath = Upload::readFileDocumentNoPermission('document', $value['path']);
                                 }
-                        ?>
+                                ?>
                                 <div class="document-list" id="document-item-<?php echo $value['id']; ?>">
 
                                     <a href="<?php echo $documentPath ?>" target="_blank"> <?php echo $value['name']; ?></a>
@@ -182,12 +184,12 @@ if(!empty($model->picture_path)){
             ?>
 
             <?php
-            echo $form->field($model, "document", [
+            echo $form->field($model, 'document', [
                 'template' => "{label}\n{input}\n<div> ขนาดไฟล์มากสุด 2 MB นามสกุลไฟล์ต้องเป็น jpg, jpeg, png,  gif, pdf, doc, docx, xls และ xlsx</div>\n{hint}\n{error}",
                 'labelOptions' => ['class' => 'control-label']
             ])->widget(FileInput::classname(), [
                 'options' => [
-                    //'accept' => 'image/*',
+                    // 'accept' => 'image/*',
                     'class' => 'caractboxes-img',
                     'multiple' => true
                 ],

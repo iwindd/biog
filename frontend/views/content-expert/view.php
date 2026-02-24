@@ -2,16 +2,14 @@
 
 /* @var $this yii\web\View */
 
-use frontend\components\FrontendHelper;
-use common\components\FileLibrary;
-use frontend\models\content\Content;
-use frontend\components\GoogleMapHelper;
 use backend\models\Variables;
+use common\components\FileLibrary;
+use frontend\components\FrontendHelper;
+use frontend\components\GoogleMapHelper;
+use frontend\models\content\Content;
 use yii\helpers\Url;
 
-
-
-$this->title = $expert["name"];
+$this->title = $expert['name'];
 // $this->registerJsFile('@web/js/content/google-map-content.js', ['depends' => \yii\web\JqueryAsset::className()]);
 // $this->registerJsFile(GoogleMapHelper::getGoogleMapApiUrl(), ['depends' => \yii\web\JqueryAsset::className(), 'async' => true, 'defer' => true]);
 $this->registerCss("nav {background-image: url('/images/banner/Data_Banner.png'); }");
@@ -24,22 +22,22 @@ $this->registerJsFile('@web/js/content/google-map-content.js', ['depends' => \yi
 $this->registerJsFile(GoogleMapHelper::getGoogleMapApiUrl(), ['depends' => \yii\web\JqueryAsset::className(), 'async' => true, 'defer' => true]);
 $this->registerJsFile('@web/js/content/content.js', ['depends' => \yii\web\JqueryAsset::className()]);
 
-$linkMain = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST']; //
+$linkMain = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];  //
 $_SESSION['currentUrl'] = $linkMain . $_SERVER['REQUEST_URI'];
-$thisUrl = '/content-expert/' . $expert["id"];
-//$linkMain = "https://biogang.devfunction.com";
+$thisUrl = '/content-expert/' . $expert['id'];
+// $linkMain = "https://biogang.devfunction.com";
 $url = $linkMain . $thisUrl;
 
-$curl = curl_init("http://developers.facebook.com/tools/debug/og/object?q=" . $url);
+$curl = curl_init('http://developers.facebook.com/tools/debug/og/object?q=' . $url);
 curl_setopt($curl, CURLOPT_HEADER, 0);
 
 curl_exec($curl);
 curl_close($curl);
 
-$pathImage = $expert["picture_path"];
-echo FrontendHelper::getMetaImage("content-expert", $pathImage);
+$pathImage = $expert['picture_path'];
+echo FrontendHelper::getMetaImage('content-expert', $pathImage);
 echo FrontendHelper::getMetaTitle($this->title);
-echo FrontendHelper::getDescription(strip_tags($expert["description"]));
+echo FrontendHelper::getDescription(strip_tags($expert['description']));
 echo FrontendHelper::getUrl($url);
 
 if (!empty($pathImage)) {
@@ -53,18 +51,18 @@ use frontend\models\Banner;
 $banner = Banner::find()->where(['slug_url' => 'Content Expert'])->one();
 
 $exportShow = Variables::find()->where(['key' => 'expert'])->one();
-if(!empty($exportShow)){
+if (!empty($exportShow)) {
     $exportShow = $exportShow->value;
-}else{
+} else {
     $exportShow = '';
 }
 
 ?>
 <?php $this->beginBlock('banner') ?>
 <div class="section-banner">
-    <?php if (!empty($banner->picture_path)) : ?>
+    <?php if (!empty($banner->picture_path)): ?>
         <img src="/files/banner/<?php echo $banner->picture_path; ?>" class="banner ">
-    <?php else : ?>
+    <?php else: ?>
         <img src="/images/banner/Data_Banner.png" class="banner ">
     <?php endif; ?>
 </div>
@@ -75,7 +73,7 @@ if(!empty($exportShow)){
         <ol class="breadcrumb pl-0">
             <li class="breadcrumb-item home"><a href="/">Home</a></li>
             <li class="breadcrumb-item"><a href="/content-expert">ภูมิปัญญา / ปราชญ์ Expert</a></li>
-            <li class="breadcrumb-item"><a href="/content-expert/<?php echo $expert["id"]; ?>"><?php echo $expert["name"]; ?></a></li>
+            <li class="breadcrumb-item"><a href="/content-expert/<?php echo $expert['id']; ?>"><?php echo $expert['name']; ?></a></li>
         </ol>
     </div>
 </div>
@@ -93,88 +91,95 @@ if(!empty($exportShow)){
                     <div class="section-main">
                         <div class="row">
                             <div class="col-lg-8">
-                                <p class="menu text-left title-text"><?php echo $expert["name"]; ?></p>
-                                <?php echo FileLibrary::getImageFrontend(Content::UPLOAD_FOLDER_CONTENT_EXPERT, $expert["picture_path"], '', false, '', 'w-100 mb-3'); ?>
-                                <?php if (!empty($content_expert["expert_category_id"])) : ?>
-                                    <p class="detail-title"><span><?= $content_expert->getAttributeLabel('expert_category_id'); ?>:</span> <?php echo FrontendHelper::getExpertCategoryName($content_expert["expert_category_id"]); ?></p>
+                                <p class="menu text-left title-text"><?php echo $expert['name']; ?></p>
+                                <?php echo FileLibrary::getImageFrontend(Content::UPLOAD_FOLDER_CONTENT_EXPERT, $expert['picture_path'], '', false, '', 'w-100 mb-3'); ?>
+                                <?php if (!empty($content_expert['expert_category_id'])): ?>
+                                    <p class="detail-title"><span><?= $content_expert->getAttributeLabel('expert_category_id'); ?>:</span> <?php echo FrontendHelper::getExpertCategoryName($content_expert['expert_category_id']); ?></p>
                                 <?php endif; ?>
-                                <?php if (!empty($content_expert["expert_firstname"]) && strpos($exportShow, 'expert_firstname') !== false) : ?>
-                                    <p class="detail-title"><span><?= $content_expert->getAttributeLabel('expert_firstname'); ?>:</span> <?php echo $content_expert["expert_firstname"]; ?></p>
+                                <?php if (!empty($content_expert['expert_firstname']) && strpos($exportShow, 'expert_firstname') !== false): ?>
+                                    <p class="detail-title"><span><?= $content_expert->getAttributeLabel('expert_firstname'); ?>:</span> <?php echo $content_expert['expert_firstname']; ?></p>
                                 <?php endif; ?>
-                                <?php if (!empty($content_expert["expert_lastname"]) && strpos($exportShow, 'expert_lastname') !== false) : ?>
-                                    <p class="detail-title"><span><?= $content_expert->getAttributeLabel('expert_lastname'); ?>:</span> <?php echo $content_expert["expert_lastname"]; ?></p>
+                                <?php if (!empty($content_expert['expert_lastname']) && strpos($exportShow, 'expert_lastname') !== false): ?>
+                                    <p class="detail-title"><span><?= $content_expert->getAttributeLabel('expert_lastname'); ?>:</span> <?php echo $content_expert['expert_lastname']; ?></p>
                                 <?php endif; ?>
-                                <?php if (!empty($content_expert["expert_birthdate"]) && strpos($exportShow, 'expert_birthdate') !== false) : ?>
-                                    <p class="detail-title"><span><?= $content_expert->getAttributeLabel('expert_birthdate'); ?>:</span> <?php echo FrontendHelper::getDate($content_expert["expert_birthdate"]); ?></p>
+                                <?php if (!empty($content_expert['expert_birthdate']) && strpos($exportShow, 'expert_birthdate') !== false): ?>
+                                    <p class="detail-title"><span><?= $content_expert->getAttributeLabel('expert_birthdate'); ?>:</span> <?php echo FrontendHelper::getDate($content_expert['expert_birthdate']); ?></p>
                                 <?php endif; ?>
-                                <?php if (!empty($content_expert["expert_expertise"]) && strpos($exportShow, 'expert_expertise') !== false) : ?>
-                                    <p class="detail-title"><span><?= $content_expert->getAttributeLabel('expert_expertise'); ?>:</span> <?php echo $content_expert["expert_expertise"]; ?></p>
+                                <?php if (!empty($content_expert['expert_expertise']) && strpos($exportShow, 'expert_expertise') !== false): ?>
+                                    <p class="detail-title"><span><?= $content_expert->getAttributeLabel('expert_expertise'); ?>:</span> <?php echo $content_expert['expert_expertise']; ?></p>
                                 <?php endif; ?>
-                                <?php if (!empty($content_expert["expert_occupation"]) && strpos($exportShow, 'expert_occupation') !== false) : ?>
-                                    <p class="detail-title"><span><?= $content_expert->getAttributeLabel('expert_occupation'); ?>:</span> <?php echo $content_expert["expert_occupation"]; ?></p>
+                                <?php if (!empty($content_expert['expert_occupation']) && strpos($exportShow, 'expert_occupation') !== false): ?>
+                                    <p class="detail-title"><span><?= $content_expert->getAttributeLabel('expert_occupation'); ?>:</span> <?php echo $content_expert['expert_occupation']; ?></p>
                                 <?php endif; ?>
-                                <?php if (!empty($content_expert["expert_card_id"]) && strpos($exportShow, 'expert_card_id') !== false) : ?>
-                                    <p class="detail-title"><span><?= $content_expert->getAttributeLabel('expert_card_id'); ?>:</span> <?php echo $content_expert["expert_card_id"]; ?></p>
+                                <?php if (!empty($content_expert['expert_card_id']) && strpos($exportShow, 'expert_card_id') !== false): ?>
+                                    <p class="detail-title"><span><?= $content_expert->getAttributeLabel('expert_card_id'); ?>:</span> <?php echo $content_expert['expert_card_id']; ?></p>
                                 <?php endif; ?>
-                                <?php if (!empty($content_expert["phone"]) && strpos($exportShow, 'phone') !== false) : ?>
-                                    <p class="detail-title"><span><?= $content_expert->getAttributeLabel('phone'); ?>:</span> <?php echo $content_expert["phone"]; ?></p>
+                                <?php if (!empty($content_expert['phone']) && strpos($exportShow, 'phone') !== false): ?>
+                                    <p class="detail-title"><span><?= $content_expert->getAttributeLabel('phone'); ?>:</span> <?php echo $content_expert['phone']; ?></p>
                                 <?php endif; ?>
-                                <?php if (!empty($content_expert["description"])) : ?>
-                                    <p class="detail-title fr-view"><span><?= $expert->getAttributeLabel('รายละเอียด'); ?>:</span> <?php echo $expert["description"]; ?></p>
+                                <?php if (!empty($content_expert['description'])): ?>
+                                    <p class="detail-title fr-view"><span><?= $expert->getAttributeLabel('รายละเอียด'); ?>:</span> <?php echo $expert['description']; ?></p>
                                 <?php endif; ?>
-                                <?php if (!empty(FrontendHelper::getAddress($expert["province_id"], $expert["district_id"], $expert["subdistrict_id"], $expert["zipcode_id"]))  && strpos($exportShow, 'address') !== false ) : ?>
+                                <?php if (!empty(FrontendHelper::getAddress($expert['province_id'], $expert['district_id'], $expert['subdistrict_id'], $expert['zipcode_id'])) && strpos($exportShow, 'address') !== false): ?>
                                     <p class="detail-title"><span>ที่อยู่:</span>
-                                        <?php echo $content_expert['address']." ".FrontendHelper::getAddress($expert["province_id"], $expert["district_id"], $expert["subdistrict_id"], $expert["zipcode_id"]); ?>
+                                        <?php echo $content_expert['address'] . ' ' . FrontendHelper::getAddress($expert['province_id'], $expert['district_id'], $expert['subdistrict_id'], $expert['zipcode_id']); ?>
                                     </p>
                                 <?php endif; ?>
 
-                                <?php if (!empty($expert["photo_credit"])) : ?>
-                                    <p class="detail-title"><span>แหล่งที่มาของภาพ:</span> <?php echo FrontendHelper::getSourceInformation($expert["photo_credit"]); ?></p>
+                                <?php if (!empty($expert['photo_credit'])): ?>
+                                    <p class="detail-title"><span>แหล่งที่มาของภาพ:</span> <?php echo FrontendHelper::getSourceInformation($expert['photo_credit']); ?></p>
                                 <?php endif; ?>
 
-                                <?php if (!empty($expert["source_information"])) : ?>
-                                    <p class="detail-title"><span>แหล่งที่มาของข้อมูล:</span> <?php echo FrontendHelper::getSourceInformation($expert["source_information"]); ?></p>
+                                <?php if (!empty($expert['source_information'])): ?>
+                                    <p class="detail-title"><span>แหล่งที่มาของข้อมูล:</span> <?php echo FrontendHelper::getSourceInformation($expert['source_information']); ?></p>
                                 <?php endif; ?>
 
-                                <?php if (!empty(FrontendHelper::getTaxonomyName($expert["id"]))) : ?>
-                                    <p class="detail-title"><span>คำช่วยค้นหา:</span> <?php echo FrontendHelper::getTaxonomyName($expert["id"]); ?></p>
+                                <?php if (!empty($expert['license_id']) && !empty($expert->license)): ?>
+                                    <p class="detail-title"><span>สัญญาอนุญาต:</span> <?php echo $expert->license->name; ?></p>
                                 <?php endif; ?>
-                                <?php /* if(!empty($expert["latitude"]) && !empty($expert["longitude"])) {?>
-                                <input id="content-latitude" type="hidden" value="<?=$expert["latitude"]?>">
-                                <input id="content-longitude" type="hidden" value="<?=$expert["longitude"]?>">
-                                <div class="row">
-                                    <div class="col">
-                                        <div id="content-google-map" class="content-google-map" style="min-height:400px;"></div>
-                                    </div>
-                                </div>
-                                <?php } */ ?>
+
+                                <?php if (!empty(FrontendHelper::getTaxonomyName($expert['id']))): ?>
+                                    <p class="detail-title"><span>คำช่วยค้นหา:</span> <?php echo FrontendHelper::getTaxonomyName($expert['id']); ?></p>
+                                <?php endif; ?>
+                                <?php  /* if(!empty($expert["latitude"]) && !empty($expert["longitude"])) {?>
+                                 <input id="content-latitude" type="hidden" value="<?=$expert["latitude"]?>">
+                                 <input id="content-longitude" type="hidden" value="<?=$expert["longitude"]?>">
+                                 <div class="row">
+                                     <div class="col">
+                                         <div id="content-google-map" class="content-google-map" style="min-height:400px;"></div>
+                                     </div>
+                                 </div>
+                                 <?php } */
+                                ?>
                                 <div class="image-galley">
                                     <div class="page-top">
                                         <div class="row">
-                                            <?php foreach ($picture as $key => $value) {
-                                            ?>
+                                            <?php
+                                            foreach ($picture as $key => $value) {
+                                                ?>
                                                 <div class="col-lg-4 col-md-4 col-6 thumb">
                                                     <a href="<?php echo FrontendHelper::contentImage($value['path'], 'expert'); ?>" class="fancybox" rel="ligthbox">
                                                         <img src="<?php echo FrontendHelper::contentImage($value['path'], 'expert'); ?>" class="zoom img-fluid " alt="">
                                                     </a>
                                                 </div>
                                             <?php
-                                            } ?>
+                                            }
+                                            ?>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="creator-post-block d-flex">
                                     <div class="profile-pic pr-2">
-                                    <?php echo FileLibrary::getImageFrontend('profile', FrontendHelper::getProfileImage($expert["created_by_user_id"]), '', false, '', 'img-rounded'); ?>
+                                    <?php echo FileLibrary::getImageFrontend('profile', FrontendHelper::getProfileImage($expert['created_by_user_id']), '', false, '', 'img-rounded'); ?>
                                     </div>
                                     <div class="profile-timestamp">
                                         <p class="title-user">
-                                                                <?php echo FrontendHelper::getProfileName($expert["created_by_user_id"]); ?>
+                                                                <?php echo FrontendHelper::getProfileName($expert['created_by_user_id']); ?>
                                         </p>
                                         <p class="post">โพสต์
-                                            <?php echo FrontendHelper::getTime($expert["created_at"]); ?> น.
+                                            <?php echo FrontendHelper::getTime($expert['created_at']); ?> น.
                                                 วันที่
-                                            <?php echo FrontendHelper::getDate($expert["created_at"]); ?>
+                                            <?php echo FrontendHelper::getDate($expert['created_at']); ?>
                                         </p>
                                     </div>
                                 </div>
@@ -184,9 +189,9 @@ if(!empty($exportShow)){
                                 <div class="section-comment">
                                     <div class="comment-header">
                                         <div class="post">
-                                            <span class="viewer"><i class="far fa-user"></i> ผู้เข้าชมทั้งหมด <?= FrontendHelper::getPageView($expert["id"], "content") ?> คน</span>
+                                            <span class="viewer"><i class="far fa-user"></i> ผู้เข้าชมทั้งหมด <?= FrontendHelper::getPageView($expert['id'], 'content') ?> คน</span>
                                             <?php if (!empty(Yii::$app->user->id)) { ?>
-                                                <span class="like <?php echo FrontendHelper::showLike($expert["id"], 'content'); ?>" onclick="likeSubmit(<?= $expert['id'] ?>, 'content')"><i class="far fa-thumbs-up"></i> ชื่นชอบ </span>
+                                                <span class="like <?php echo FrontendHelper::showLike($expert['id'], 'content'); ?>" onclick="likeSubmit(<?= $expert['id'] ?>, 'content')"><i class="far fa-thumbs-up"></i> ชื่นชอบ </span>
                                             <?php } ?>
                                             <span class="dropdown share">
                                                 <span class="share-label"><i class="fas fa-share"></i> แชร์</span>
@@ -203,7 +208,7 @@ if(!empty($exportShow)){
                                             <form action="" id="comment-form" class="comment-form pt-0">
                                                 <p><i class="far fa-comment"></i><span class="ml-3">แสดงความคิดเห็น</span></p>
                                                 <div class="">
-                                                    <input type="hidden" id="content-id" value="<?= $expert["id"] ?>">
+                                                    <input type="hidden" id="content-id" value="<?= $expert['id'] ?>">
                                                     <textarea name="message" id="comment-input" rows="3" class="comment-input px-4" placeholder="แสดงความคิดเห็น"></textarea>
                                                 </div>
                                                 <div class="text-right">
@@ -224,28 +229,28 @@ if(!empty($exportShow)){
                                     <?php } else { ?>
                                         <div class="block-comment">
                                             <?php foreach ($contentComment as $key => $value) { ?>
-                                                <div class="comment-list" data-id="<?= $value["id"] ?>">
+                                                <div class="comment-list" data-id="<?= $value['id'] ?>">
                                                     <div class="row">
-                                                        <?php if (Yii::$app->user->id == $value["user_id"]) { ?>
+                                                        <?php if (Yii::$app->user->id == $value['user_id']) { ?>
                                                             <span class="option-comment">
                                                                 <!-- <i class="fas fa-ellipsis-h"></i> -->
                                                                 <i class="fas fa-trash-alt"></i>
                                                             </span>
                                                         <?php } ?>
                                                         <div class="profile-pic">
-                                                            <?php echo FileLibrary::getImageFrontend('profile', FrontendHelper::getProfileImage($value["user_id"]), '', false, '', 'img-rounded'); ?>
+                                                            <?php echo FileLibrary::getImageFrontend('profile', FrontendHelper::getProfileImage($value['user_id']), '', false, '', 'img-rounded'); ?>
                                                         </div>
                                                         <div class="profile-timestamp">
                                                             <p class="title-user">
-                                                                <?php echo FrontendHelper::getProfileName($value["user_id"]); ?>
+                                                                <?php echo FrontendHelper::getProfileName($value['user_id']); ?>
                                                             </p>
                                                             <p class="post">โพสต์
-                                                                <?php echo FrontendHelper::getTime($value["created_at"]); ?>น.
+                                                                <?php echo FrontendHelper::getTime($value['created_at']); ?>น.
                                                                 วันที่
-                                                                <?php echo FrontendHelper::getDate($value["created_at"]); ?></p>
+                                                                <?php echo FrontendHelper::getDate($value['created_at']); ?></p>
                                                         </div>
                                                     </div>
-                                                    <p class="message"><?php echo $value["message"] ?></p>
+                                                    <p class="message"><?php echo $value['message'] ?></p>
                                                 </div>
                                             <?php } ?>
                                         </div>
@@ -278,8 +283,8 @@ if(!empty($exportShow)){
                                 <div class="address">
                                     <p class="menu text-left">ที่อยู่</p>
                                     <p class="detail-title"><span></span>
-                                        <?php if(strpos($exportShow, 'address') !== false): ?>
-                                        <?php echo FrontendHelper::getAddress($expert["province_id"], $expert["district_id"], $expert["subdistrict_id"], $expert["zipcode_id"]); ?>
+                                        <?php if (strpos($exportShow, 'address') !== false): ?>
+                                        <?php echo FrontendHelper::getAddress($expert['province_id'], $expert['district_id'], $expert['subdistrict_id'], $expert['zipcode_id']); ?>
                                         <?php endif; ?>
                                     </p>
                                 </div>
@@ -303,24 +308,25 @@ if(!empty($exportShow)){
                                     <p class="text-center">ไม่พบข้อมูล</p>
                                 </div>
                             <?php } ?>
-                            <?php foreach ($other_content_expert as $key => $value) {
-                                $thisUrl = '/content-expert/' . $value["id"];
-                            ?>
-                                <a href="/content-expert/<?= $value["id"] ?>" class="col-lg-4 mb-3">
+                            <?php
+                            foreach ($other_content_expert as $key => $value) {
+                                $thisUrl = '/content-expert/' . $value['id'];
+                                ?>
+                                <a href="/content-expert/<?= $value['id'] ?>" class="col-lg-4 mb-3">
                                     <object>
                                         <div class="content-img">
-                                            <?php echo FileLibrary::getImageFrontend(Content::UPLOAD_FOLDER_CONTENT_EXPERT, $value["picture_path"]); ?>
+                                            <?php echo FileLibrary::getImageFrontend(Content::UPLOAD_FOLDER_CONTENT_EXPERT, $value['picture_path']); ?>
                                         </div>
-                                        <h1 class="title"><?php echo $value["name"]; ?></h1>
+                                        <h1 class="title"><?php echo $value['name']; ?></h1>
                                         <p class="short-desc">
-                                            <?php echo strip_tags($value["description"]); ?>
+                                            <?php echo strip_tags($value['description']); ?>
                                         </p>
                                         <p class="creator-post">
-                                            <?php echo FileLibrary::getImageFrontend('profile', FrontendHelper::getProfileImage($value["created_by_user_id"]), '', false, '', 'img-rounded-small'); ?>
-                                            <?php echo FrontendHelper::getProfileName($value["created_by_user_id"]); ?>
+                                            <?php echo FileLibrary::getImageFrontend('profile', FrontendHelper::getProfileImage($value['created_by_user_id']), '', false, '', 'img-rounded-small'); ?>
+                                            <?php echo FrontendHelper::getProfileName($value['created_by_user_id']); ?>
                                         </p>
-                                        <div class="post">โพสต์ <?php echo FrontendHelper::getTime($value["created_at"]); ?>
-                                            <span class="post-date">วันที่ <?php echo FrontendHelper::getDate($value["created_at"]) ?> </span>
+                                        <div class="post">โพสต์ <?php echo FrontendHelper::getTime($value['created_at']); ?>
+                                            <span class="post-date">วันที่ <?php echo FrontendHelper::getDate($value['created_at']) ?> </span>
                                             <span class="dropdown share">
                                                 <span class="share-label"><i class="fas fa-share"></i> แชร์</span>
                                                 <div class="dropdown-content share-dropdown-item">
@@ -329,7 +335,7 @@ if(!empty($exportShow)){
                                                     <a class="line-share" data-href="<?php echo $linkMain . $thisUrl; ?>" href="https://lineit.line.me/share/ui?url=<?php echo $linkMain . $thisUrl; ?>" target="_blank" data-url="<?php echo $linkMain . $thisUrl; ?>"><i class="fab fa-line"></i> Line</a>
                                                 </div>
                                             </span>
-                                            <span class="viewer"><i class="far fa-user"></i> ผู้เข้าชม <?= FrontendHelper::getPageView($value["id"], "content") ?> คน</span>
+                                            <span class="viewer"><i class="far fa-user"></i> ผู้เข้าชม <?= FrontendHelper::getPageView($value['id'], 'content') ?> คน</span>
                                         </div>
                                     </object>
                                 </a>
