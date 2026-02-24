@@ -1,14 +1,19 @@
 <?php
 use backend\components\BackendHelper;
 use backend\components\PermissionAccess;
+
+$contentTypes = \backend\models\ContentType::find()->indexBy('id')->all();
+$getMenuTemplate = function ($typeId) use ($contentTypes) {
+    if (isset($contentTypes[$typeId]) && !$contentTypes[$typeId]->is_visible) {
+        return '<a href="{url}">{icon} {label} <span class="pull-right-container"><small class="label pull-right bg-red" style="margin-top: 1px;">ซ่อน</small></span></a>';
+    }
+    return '<a href="{url}">{icon} {label}</a>';
+};
 ?>
 
 <aside class="main-sidebar">
 
     <section class="sidebar"> 
-
-
-
 
         <?= dmstr\widgets\Menu::widget(
             [
@@ -19,12 +24,12 @@ use backend\components\PermissionAccess;
                         'icon' => 'list-alt',
                         'url' => '#',
                         'items' => [
-                            ['label' => 'พืช', 'icon' => 'leaf', 'url' => ['/content-plant'], 'active' => BackendHelper::menuActive('content-plant', $this->context->route)],
-                            ['label' => 'สัตว์', 'icon' => 'bug', 'url' => ['/content-animal'], 'active' => BackendHelper::menuActive('content-animal', $this->context->route)],
-                            ['label' => 'จุลินทรีย์', 'icon' => 'asterisk', 'url' => ['/content-fungi'], 'active' => BackendHelper::menuActive('content-fungi', $this->context->route)],
-                            ['label' => 'ภูมิปัญญา/ปราชญ์', 'icon' => 'graduation-cap', 'url' => ['/content-expert'], 'active' => BackendHelper::menuActive('content-expert', $this->context->route)],
-                            ['label' => 'ท่องเที่ยวเชิงนิเวศ', 'icon' => 'area-chart', 'url' => ['/content-ecotourism'], 'active' => BackendHelper::menuActive('content-ecotourism', $this->context->route)],
-                            ['label' => 'ผลิตภัณฑ์ชุมชน', 'icon' => 'archive', 'url' => ['/content-product'], 'active' => BackendHelper::menuActive('content-product', $this->context->route)],
+                            ['label' => 'พืช', 'icon' => 'leaf', 'url' => ['/content-plant'], 'active' => BackendHelper::menuActive('content-plant', $this->context->route), 'template' => $getMenuTemplate(1)],
+                            ['label' => 'สัตว์', 'icon' => 'bug', 'url' => ['/content-animal'], 'active' => BackendHelper::menuActive('content-animal', $this->context->route), 'template' => $getMenuTemplate(2)],
+                            ['label' => 'จุลินทรีย์', 'icon' => 'asterisk', 'url' => ['/content-fungi'], 'active' => BackendHelper::menuActive('content-fungi', $this->context->route), 'template' => $getMenuTemplate(3)],
+                            ['label' => 'ภูมิปัญญา/ปราชญ์', 'icon' => 'graduation-cap', 'url' => ['/content-expert'], 'active' => BackendHelper::menuActive('content-expert', $this->context->route), 'template' => $getMenuTemplate(4)],
+                            ['label' => 'ท่องเที่ยวเชิงนิเวศ', 'icon' => 'area-chart', 'url' => ['/content-ecotourism'], 'active' => BackendHelper::menuActive('content-ecotourism', $this->context->route), 'template' => $getMenuTemplate(5)],
+                            ['label' => 'ผลิตภัณฑ์ชุมชน', 'icon' => 'archive', 'url' => ['/content-product'], 'active' => BackendHelper::menuActive('content-product', $this->context->route), 'template' => $getMenuTemplate(6)],
                         ],
                     ],
                     ['label' => 'องค์ความรู้ออนไลน์', 'icon' => 'book', 'url' => ['/knowledge'], 'active' => BackendHelper::menuActive('knowledge', $this->context->route)],
