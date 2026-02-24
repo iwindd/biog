@@ -2,46 +2,44 @@
 
 namespace frontend\components;
 
-use Yii;
-use yii\helpers\Json;
-use common\components\FileLibrary;
-use frontend\models\Profile;
-use frontend\models\Media;
-use frontend\models\LearningcenterInformation;
-use frontend\models\Learningcenter;
-use frontend\models\Taxonomy;
-use frontend\models\Content;
-use frontend\models\ContentTaxonomy;
-use frontend\models\Blog;
-use frontend\models\Users;
-use frontend\models\Knowledge;
-use frontend\models\UserLikeBlog;
-use frontend\models\UserLikeContent;
-use frontend\models\UserSchool;
-use frontend\models\KnowledgeStatistics;
-use frontend\models\BlogStatistics;
-use frontend\models\NewsStatistics;
-use frontend\models\ContentStatistics;
-use frontend\models\Province;
-use frontend\models\District;
 use backend\models\Zipcode;
-use frontend\models\Subdistrict;
-use frontend\models\content\ContentPlant;
+use common\components\FileLibrary;
+use common\components\Upload;
+use frontend\components\TaxonomyHelper;
 use frontend\models\content\ContentAnimal;
 use frontend\models\content\ContentEcotourism;
 use frontend\models\content\ContentExpert;
 use frontend\models\content\ContentFungi;
+use frontend\models\content\ContentPlant;
 use frontend\models\content\ContentProduct;
 use frontend\models\content\ExpertCategory;
-use frontend\components\TaxonomyHelper;
+use frontend\models\Blog;
+use frontend\models\BlogStatistics;
+use frontend\models\Content;
+use frontend\models\ContentStatistics;
+use frontend\models\ContentTaxonomy;
+use frontend\models\District;
+use frontend\models\Knowledge;
+use frontend\models\KnowledgeStatistics;
+use frontend\models\Learningcenter;
+use frontend\models\LearningcenterInformation;
+use frontend\models\Media;
+use frontend\models\NewsStatistics;
+use frontend\models\Profile;
+use frontend\models\Province;
 use frontend\models\StudentTeacher;
+use frontend\models\Subdistrict;
+use frontend\models\Taxonomy;
+use frontend\models\UserLikeBlog;
+use frontend\models\UserLikeContent;
 use frontend\models\UserLog;
-
-use yii\helpers\Html;
+use frontend\models\Users;
+use frontend\models\UserSchool;
 use yii\db\query;
+use yii\helpers\Html;
+use yii\helpers\Json;
 use yii\helpers\Url;
-
-use common\components\Upload;
+use Yii;
 
 class FrontendHelper
 {
@@ -204,7 +202,6 @@ class FrontendHelper
             'Pattani' => 'Pattani',
             'Yala' => 'Yala',
             'Narathiwat' => 'Narathiwat',
-
         );
         $province_th_id = array(
             '1' => 'กรุงเทพมหานคร',
@@ -365,27 +362,29 @@ class FrontendHelper
             '76' => 'Yala',
             '77' => 'Narathiwat'
         );
-        if (Yii::$app->language == "th") {
+        if (Yii::$app->language == 'th') {
             return $province_th_id;
         } else {
             return $province_en_id;
         }
     }
+
     public static function getDefultValue($value)
     {
         if (!empty($value)) {
             return $value;
         } else {
-            return "-";
+            return '-';
         }
     }
 
     public static function getProfile($uid)
     {
         $query = new \yii\db\Query();
-        $query->select([
-            '*'
-        ])
+        $query
+            ->select([
+                '*'
+            ])
             ->from('profile')
             ->andFilterWhere(['=', 'profile.user_id', $uid]);
         $data = $query->one();
@@ -395,78 +394,76 @@ class FrontendHelper
 
     public static function getDateThai($strDate)
     {
-        $strYear = date("Y", strtotime($strDate)) + 543;
+        $strYear = date('Y', strtotime($strDate)) + 543;
         $strYear = substr($strYear, -2);
-        $strMonth = date("n", strtotime($strDate));
-        $strDay = date("j", strtotime($strDate));
-        $strHour = date("H", strtotime($strDate));
-        $strMinute = date("i", strtotime($strDate));
-        $strSeconds = date("s", strtotime($strDate));
-        $strMonthCut = array("", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค.");
+        $strMonth = date('n', strtotime($strDate));
+        $strDay = date('j', strtotime($strDate));
+        $strHour = date('H', strtotime($strDate));
+        $strMinute = date('i', strtotime($strDate));
+        $strSeconds = date('s', strtotime($strDate));
+        $strMonthCut = array('', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.');
         $strMonthThai = $strMonthCut[$strMonth];
         return "$strDay $strMonthThai $strYear";
     }
 
     public static function getMonthDateThai($strDate)
     {
-        $strMonth = date("n", strtotime($strDate));
-        $strMonthCut = array("", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค.");
+        $strMonth = date('n', strtotime($strDate));
+        $strMonthCut = array('', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.');
         $strMonthThai = $strMonthCut[$strMonth];
         return $strMonthThai;
     }
 
     public static function getDate($strDate)
     {
-        $strYear = date("Y", strtotime($strDate));
-        $strMonth = date("n", strtotime($strDate));
-        $strDay = date("j", strtotime($strDate));
-        $strHour = date("H", strtotime($strDate));
-        $strMinute = date("i", strtotime($strDate));
-        $strSeconds = date("s", strtotime($strDate));
-        $strMonthCut = array("", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม");
+        $strYear = date('Y', strtotime($strDate));
+        $strMonth = date('n', strtotime($strDate));
+        $strDay = date('j', strtotime($strDate));
+        $strHour = date('H', strtotime($strDate));
+        $strMinute = date('i', strtotime($strDate));
+        $strSeconds = date('s', strtotime($strDate));
+        $strMonthCut = array('', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม');
         $strMonthThai = $strMonthCut[$strMonth];
         return "$strDay $strMonthThai $strYear";
     }
 
     public static function getTime($strDate)
     {
-        $strHour = date("H", strtotime($strDate));
-        $strMinute = date("i", strtotime($strDate));
-        return $strHour . ":" . $strMinute;
+        $strHour = date('H', strtotime($strDate));
+        $strMinute = date('i', strtotime($strDate));
+        return $strHour . ':' . $strMinute;
     }
-
 
     public static function getDateEng($strDate)
     {
-        $strYear = date("Y", strtotime($strDate));
+        $strYear = date('Y', strtotime($strDate));
         $strYear = substr($strYear, -2);
-        $strMonth = date("n", strtotime($strDate));
-        $strDay = date("j", strtotime($strDate));
-        $strHour = date("H", strtotime($strDate));
-        $strMinute = date("i", strtotime($strDate));
-        $strSeconds = date("s", strtotime($strDate));
-        $strMonthCut = array("", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec");
+        $strMonth = date('n', strtotime($strDate));
+        $strDay = date('j', strtotime($strDate));
+        $strHour = date('H', strtotime($strDate));
+        $strMinute = date('i', strtotime($strDate));
+        $strSeconds = date('s', strtotime($strDate));
+        $strMonthCut = array('', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec');
         $strMonthThai = $strMonthCut[$strMonth];
         return "$strDay $strMonthThai $strYear";
     }
 
     public static function getMonthDateEng($strDate)
     {
-        $strMonth = date("n", strtotime($strDate));
-        $strMonthCut = array("", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec");
+        $strMonth = date('n', strtotime($strDate));
+        $strMonthCut = array('', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec');
         $strMonthThai = $strMonthCut[$strMonth];
         return $strMonthThai;
     }
 
     public static function getDayDateThai($strDate)
     {
-        $strDay = date("j", strtotime($strDate));
+        $strDay = date('j', strtotime($strDate));
         return $strDay;
     }
 
-    public static function  truncateStr($str, $maxChars, $holder = "....")
+    public static function truncateStr($str, $maxChars, $holder = '....')
     {
-
         // ตรวจสอบความยาวของประโยค
         if (mb_strlen($str) > $maxChars) {
             return trim(mb_substr($str, 0, $maxChars)) . $holder;
@@ -474,8 +471,6 @@ class FrontendHelper
             return $str;
         }
     }
-
-
 
     public static function renderProfileImage($uid)
     {
@@ -488,10 +483,9 @@ class FrontendHelper
 
     public static function profileImage($filename)
     {
-
         $frontendPath = \yii::getAlias('@frontend');
         $imagePath = str_replace('\\', '/', $frontendPath);
-        $imageFilePath = $imagePath . '/web/' . "files" . '/profile/' . $filename;
+        $imageFilePath = $imagePath . '/web/' . 'files' . '/profile/' . $filename;
         // print '<pre>';
         // print_r($filename);
         // exit();
@@ -501,16 +495,14 @@ class FrontendHelper
             }
         }
 
-        return "";
+        return '';
     }
-
 
     public static function contentImage($filename, $type)
     {
-
         $frontendPath = \yii::getAlias('@frontend');
         $imagePath = str_replace('\\', '/', $frontendPath);
-        $imageFilePath = $imagePath . '/web/' . "files" . '/content-' . $type . '/' . $filename;
+        $imageFilePath = $imagePath . '/web/' . 'files' . '/content-' . $type . '/' . $filename;
         // print '<pre>';
         // print_r($filename);
         // exit();
@@ -522,41 +514,40 @@ class FrontendHelper
 
         switch ($type) {
             case 'plant':
-                return "/images/BIOG_default_plant.png";
+                return '/images/BIOG_default_plant.png';
                 break;
 
             case 'animal':
-                return "/images/BIOG_default_animal.png";
+                return '/images/BIOG_default_animal.png';
                 break;
 
             case 'fungi':
-                return "/images/BIOG_default_fungi.png";
+                return '/images/BIOG_default_fungi.png';
                 break;
 
             case 'expert':
-                return "/images/BIOG_default_expert.png";
+                return '/images/BIOG_default_expert.png';
                 break;
 
             case 'ecotourism':
-                return "/images/BIOG_default_ecotourism.png";
+                return '/images/BIOG_default_ecotourism.png';
                 break;
 
             case 'product':
-                return "/images/BIOG_default_product.png";
+                return '/images/BIOG_default_product.png';
                 break;
 
             default:
-                return "/images/BIOG_default_plant.png";
+                return '/images/BIOG_default_plant.png';
                 break;
         }
     }
 
     public static function blogImage($filename, $type)
     {
-
         $frontendPath = \yii::getAlias('@frontend');
         $imagePath = str_replace('\\', '/', $frontendPath);
-        $imageFilePath = $imagePath . '/web/' . "files" . '/' . $type . '/' . $filename;
+        $imageFilePath = $imagePath . '/web/' . 'files' . '/' . $type . '/' . $filename;
         // print '<pre>';
         // print_r($filename);
         // exit();
@@ -566,32 +557,27 @@ class FrontendHelper
             }
         }
 
-        return "/images/BIOG_default_blog.png";
+        return '/images/BIOG_default_blog.png';
     }
 
     public static function profileImageComent($uid)
     {
-        $picture =  self::getProfileImage($uid);
+        $picture = self::getProfileImage($uid);
 
         $frontendPath = \yii::getAlias('@frontend');
         $imagePath = str_replace('\\', '/', $frontendPath);
-        $imageFilePath = $imagePath . '/web/' . "files" . '/profile/' . $picture;
+        $imageFilePath = $imagePath . '/web/' . 'files' . '/profile/' . $picture;
         // print '<pre>';
         // print_r($filename);
         // exit();
         if (!empty($picture)) {
             if (file_exists($imageFilePath)) {
-                return "/files/profile/" . $picture;
+                return '/files/profile/' . $picture;
             }
         }
 
-        return "/images/default-user.png";
+        return '/images/default-user.png';
     }
-
-
-
-
-
 
     public function getTagAllFeedLearning($id)
     {
@@ -612,8 +598,6 @@ class FrontendHelper
         // return $tags;
     }
 
-
-
     public static function random_color_part()
     {
         return str_pad(dechex(mt_rand(0, 255)), 2, '0', STR_PAD_LEFT);
@@ -627,137 +611,137 @@ class FrontendHelper
 
     public static function menuActive($site, $action)
     {
-        if ($site == "site") {
-            if ($action == "site/index") {
+        if ($site == 'site') {
+            if ($action == 'site/index') {
                 return true;
             } else {
                 return false;
             }
         }
 
-        if ($site == "story") {
-            if ($action == "site/story") {
+        if ($site == 'story') {
+            if ($action == 'site/story') {
                 return true;
             } else {
                 return false;
             }
         }
 
-        if ($site == "learning-center") {
-            $str = strrpos($action, "learning-center/");
+        if ($site == 'learning-center') {
+            $str = strrpos($action, 'learning-center/');
             if ($str === false) {
                 return false;
             } else {
-                if ($action != "learning-center/update") {
+                if ($action != 'learning-center/update') {
                     return true;
                 } else {
                     return false;
                 }
             }
         }
-        if ($site == "region") {
+        if ($site == 'region') {
             // print_r(strrpos($action, "learning-center/central"));
             // exit();
-            if ($action ==  $_SERVER["REQUEST_URI"]) {
+            if ($action == $_SERVER['REQUEST_URI']) {
                 return true;
             } else {
                 return false;
             }
         }
-        if ($site == "news") {
-            if ($action == "news/index" || $action == "news/view") {
+        if ($site == 'news') {
+            if ($action == 'news/index' || $action == 'news/view') {
                 return true;
             } else {
                 return false;
             }
         }
-        if ($site == "knowledge") {
-            if ($action == "knowledge/index" || $action == "knowledge/view") {
+        if ($site == 'knowledge') {
+            if ($action == 'knowledge/index' || $action == 'knowledge/view') {
                 return true;
             } else {
                 return false;
             }
         }
-        if ($site == "search") {
-            if ($action == "search/index" || $action == "search/view") {
+        if ($site == 'search') {
+            if ($action == 'search/index' || $action == 'search/view') {
                 return true;
             } else {
                 return false;
             }
         }
-    } //function
+    }  // function
 
     public static function menuActiveMain($site, $action)
     {
-        if ($site == "site") {
-            if ($action == "site/index") {
-                return "active";
+        if ($site == 'site') {
+            if ($action == 'site/index') {
+                return 'active';
             } else {
-                return "";
+                return '';
             }
         }
-        if ($site == "news") {
-            if ($action == "news/index" || $action == "news/view") {
-                return "active";
+        if ($site == 'news') {
+            if ($action == 'news/index' || $action == 'news/view') {
+                return 'active';
             } else {
-                return "";
+                return '';
             }
         }
-        if ($site == "knowledge") {
-            if ($action == "knowledge/index" || $action == "knowledge/view") {
-                return "active";
+        if ($site == 'knowledge') {
+            if ($action == 'knowledge/index' || $action == 'knowledge/view') {
+                return 'active';
             } else {
-                return "";
+                return '';
             }
         }
-        if ($site == "blog") {
-            if ($action == "blog/index" || $action == "blog/view") {
-                return "active";
+        if ($site == 'blog') {
+            if ($action == 'blog/index' || $action == 'blog/view') {
+                return 'active';
             } else {
-                return "";
+                return '';
             }
         }
-        if ($site == "contact") {
-            if ($action == "site/contact") {
-                return "active";
+        if ($site == 'contact') {
+            if ($action == 'site/contact') {
+                return 'active';
             } else {
-                return "";
+                return '';
             }
         }
     }
 
     public static function getPageView($id, $model)
     {
-        if ($model == "knowledge") {
-            $model =  KnowledgeStatistics::find(['pageview'])->where(['knowledge_root_id' => $id])->one();
+        if ($model == 'knowledge') {
+            $model = KnowledgeStatistics::find(['pageview'])->where(['knowledge_root_id' => $id])->one();
             if (!empty($model)) {
-                return number_format($model["pageview"]);
+                return number_format($model['pageview']);
             } else {
                 return 0;
             }
         }
-        if ($model == "blog") {
-            $model =  BlogStatistics::find(['pageview'])->where(['blog_root_id' => $id])->one();
+        if ($model == 'blog') {
+            $model = BlogStatistics::find(['pageview'])->where(['blog_root_id' => $id])->one();
             if (!empty($model)) {
-                return number_format($model["pageview"]);
-            } else {
-                return 0;
-            }
-        }
-
-        if ($model == "news") {
-            $model =  NewsStatistics::find(['pageview'])->where(['news_root_id' => $id])->one();
-            if (!empty($model)) {
-                return number_format($model["pageview"]);
+                return number_format($model['pageview']);
             } else {
                 return 0;
             }
         }
 
-        if ($model == "content") {
-            $model =  ContentStatistics::find(['pageview'])->where(['content_root_id' => $id])->one();
+        if ($model == 'news') {
+            $model = NewsStatistics::find(['pageview'])->where(['news_root_id' => $id])->one();
             if (!empty($model)) {
-                return number_format($model["pageview"]);
+                return number_format($model['pageview']);
+            } else {
+                return 0;
+            }
+        }
+
+        if ($model == 'content') {
+            $model = ContentStatistics::find(['pageview'])->where(['content_root_id' => $id])->one();
+            if (!empty($model)) {
+                return number_format($model['pageview']);
             } else {
                 return 0;
             }
@@ -766,22 +750,22 @@ class FrontendHelper
 
     public static function getStatisticsPageview()
     {
-        $sum_knowledge =  KnowledgeStatistics::find()->sum('pageview');
-        $sum_blog =  BlogStatistics::find()->sum('pageview');
-        $sum_news =  NewsStatistics::find()->sum('pageview');
-        $sum_content =  ContentStatistics::find()->sum('pageview');
+        $sum_knowledge = KnowledgeStatistics::find()->sum('pageview');
+        $sum_blog = BlogStatistics::find()->sum('pageview');
+        $sum_news = NewsStatistics::find()->sum('pageview');
+        $sum_content = ContentStatistics::find()->sum('pageview');
         return number_format($sum_knowledge + $sum_blog + $sum_news + $sum_content);
     }
 
     public static function getStatisticsKnowleage()
     {
-        $model =  Knowledge::find()->select('id')->where(['active' => 1])->count();
+        $model = Knowledge::find()->select('id')->where(['active' => 1])->count();
         return number_format($model);
     }
 
     public static function getStatisticsBlog()
     {
-        $model =  Blog::find()->select('id')->where(['active' => 1])->count();
+        $model = Blog::find()->select('id')->where(['active' => 1])->count();
         return number_format($model);
     }
 
@@ -793,14 +777,14 @@ class FrontendHelper
             ['user_role.role_id' => 5],
         ])->count(); */
 
-        $countUser  = Yii::$app->db->createCommand('SELECT COUNT(user.id) FROM `user` INNER JOIN `user_role` ON user.id = user_role.user_id WHERE (`user_role`.`role_id`=4 OR `user_role`.`role_id`=5) AND ( `user`.`blocked_at` is null or `user`.`blocked_at` = 0)')->queryScalar();
+        $countUser = Yii::$app->db->createCommand('SELECT COUNT(user.id) FROM `user` INNER JOIN `user_role` ON user.id = user_role.user_id WHERE (`user_role`.`role_id`=4 OR `user_role`.`role_id`=5) AND ( `user`.`blocked_at` is null or `user`.`blocked_at` = 0)')->queryScalar();
 
         return number_format($countUser);
     }
 
     public static function getContentPicture($type, $file_name)
     {
-        $picture = "";
+        $picture = '';
         if ($type == 1) {
             $picture = '<img src="/files/content-plant/' . $file_name . '" class="w-100">';
         } else if ($type == 2) {
@@ -820,30 +804,30 @@ class FrontendHelper
     public static function getProfileImage($user_id)
     {
         $profileImg = Profile::find('picture')->where(['user_id' => $user_id])->asArray()->one();
-        return $profileImg["picture"];
+        return $profileImg['picture'];
     }
 
     public static function getProfileName($user_id)
     {
         $profile = Profile::find('firstname', 'lastname')->where(['user_id' => $user_id])->asArray()->one();
         if (!empty($profile)) {
-            return $profile["firstname"] . " " . $profile["lastname"];
+            return $profile['firstname'] . ' ' . $profile['lastname'];
         }
-        return "";
+        return '';
     }
 
     public static function showLike($id, $site)
     {
         $user_id = Yii::$app->user->id;
-        if ($site == "blog") {
+        if ($site == 'blog') {
             $userLikeBlog = UserLikeBlog::find()->where(['user_id' => $user_id, 'blog_id' => $id])->asArray()->one();
             if (!empty($userLikeBlog)) {
-                return "active";
+                return 'active';
             }
-        } else if ($site == "content") {
+        } else if ($site == 'content') {
             $userLikeContent = UserLikeContent::find()->where(['user_id' => $user_id, 'content_id' => $id])->asArray()->one();
             if (!empty($userLikeContent)) {
-                return "active";
+                return 'active';
             }
         }
     }
@@ -856,7 +840,7 @@ class FrontendHelper
                 return $data['name_th'];
             }
         }
-        return "-";
+        return '-';
     }
 
     public static function getNameDistrict($id)
@@ -867,7 +851,7 @@ class FrontendHelper
                 return $data['name_th'];
             }
         }
-        return "-";
+        return '-';
     }
 
     public static function getNameSubDistrict($id)
@@ -878,21 +862,22 @@ class FrontendHelper
                 return $data['name_th'];
             }
         }
-        return "-";
+        return '-';
     }
 
-    public static function getNameZipcode($id){
+    public static function getNameZipcode($id)
+    {
         $model = Zipcode::findOne($id);
-        if(!empty($model)){
+        if (!empty($model)) {
             return $model['zipcode'];
-        }else{
-            return "-";
+        } else {
+            return '-';
         }
     }
 
     public static function getAddress($province_id, $district_id, $subdistrict_id, $zipcode_id)
     {
-        $address = "";
+        $address = '';
         if (!empty($subdistrict_id) || !empty($district_id) || !empty($province_id) || !empty($zipcode_id)) {
             if (!empty($subdistrict_id)) {
                 $address .= 'ต.' . FrontendHelper::getNameSubDistrict($subdistrict_id);
@@ -904,98 +889,79 @@ class FrontendHelper
                 $address .= ' จ.' . FrontendHelper::getNameProvince($province_id);
             }
             if (!empty($zipcode_id)) {
-                $address .= " " . FrontendHelper::getNameZipcode($zipcode_id);
+                $address .= ' ' . FrontendHelper::getNameZipcode($zipcode_id);
             }
             return $address;
         }
-        return "";
+        return '';
     }
 
     public static function getExpertCategoryName($id)
     {
         $expertCategory = ExpertCategory::find()->where(['id' => $id])->one();
         if (!empty($expertCategory)) {
-            return $expertCategory["name"];
+            return $expertCategory['name'];
         } else {
-            return "-";
+            return '-';
         }
     }
 
     public static function getTaxonomyName($id)
     {
-        $text = "";
+        $text = '';
         $count = 1;
         $nameTaxonomy = TaxonomyHelper::getTaxonomyListByContentName($id);
         if (!empty($nameTaxonomy)) {
             foreach ($nameTaxonomy as $key => $value) {
                 if (count($nameTaxonomy) > 0) {
                     if (count($nameTaxonomy) == 1) {
-                        $text =  '<a href="/search?taxonomy=' . $value . '" >' . $value . '</a>';
+                        $text = '<a href="/search?taxonomy=' . $value . '" >' . $value . '</a>';
                     } else {
                         if ($count == count($nameTaxonomy)) {
-                            $text .=  '<a href="/search?taxonomy=' . $value . '" >' . $value . '</a>';
+                            $text .= '<a href="/search?taxonomy=' . $value . '" >' . $value . '</a>';
                         } else {
-                            $text .=  '<a href="/search?taxonomy=' . $value . '" >' . $value . '</a>' . ", ";
+                            $text .= '<a href="/search?taxonomy=' . $value . '" >' . $value . '</a>' . ', ';
                         }
                     }
                 } else {
-                    $text =  "";
+                    $text = '';
                 }
                 $count++;
             }
         } else {
-            $text =  "";
+            $text = '';
         }
         return $text;
     }
 
     public static function getCountContent($content)
     {
-        if ($content == "plants") {
-            $count = (new \yii\db\Query())
-                    ->select([
-                        'content.id'
-                        ])
-                    ->from('content')
-                    ->where(['type_id' => 1, 'status' => 'approved', 'active' => '1'])->count();
+        $types = [
+            'plants' => 1,
+            'animal' => 2,
+            'fungi' => 3,
+            'expert' => 4,
+            'ecotourism' => 5,
+            'product' => 6,
+        ];
 
-        } else if ($content == "animal") {
-
-            $count = (new \yii\db\Query())
-                    ->select([
-                        'content.id'
-                        ])
+        $count = 0;
+        if (isset($types[$content])) {
+            $typeId = $types[$content];
+            $count = Yii::$app->cache->getOrSet("content_${content}_count", function () use ($typeId) {
+                return (new \yii\db\Query())
+                    ->select(['content.id'])
                     ->from('content')
-                    ->where(['type_id' => 2, 'status' => 'approved', 'active' => '1'])->count();
-        } else if ($content == "fungi") {
-            $count = (new \yii\db\Query())
-                    ->select([
-                        'content.id'
-                        ])
-                    ->from('content')
-                    ->where(['type_id' => 3, 'status' => 'approved', 'active' => '1'])->count();
-        } else if ($content == "expert") {
-            $count = (new \yii\db\Query())
-                    ->select([
-                        'content.id'
-                        ])
-                    ->from('content')
-                    ->where(['type_id' => 4, 'status' => 'approved', 'active' => '1'])->count();
-        } else if ($content == "ecotourism") {
-            $count = (new \yii\db\Query())
-                    ->select([
-                        'content.id'
-                        ])
-                    ->from('content')
-                    ->where(['type_id' => 5, 'status' => 'approved', 'active' => '1'])->count();
-        } else if ($content == "product") {
-            $count = (new \yii\db\Query())
-                    ->select([
-                        'content.id'
-                        ])
-                    ->from('content')
-                    ->where(['type_id' => 6, 'status' => 'approved', 'active' => '1'])->count();
+                    ->where([
+                        'type_id' => $typeId,
+                        'status' => 'approved',
+                        'active' => '1',
+                        'is_hidden' => false,
+                    ])
+                    ->count();
+            }, 60 * 5);
         }
+
         return number_format($count);
     }
 
@@ -1003,48 +969,47 @@ class FrontendHelper
     {
         if (!empty($user_id)) {
             $userSchool = UserSchool::find()
-                ->select(["school.name AS school_name", "user_school.user_id AS user_id", "user_school.school_id AS school_id"])
-                ->innerjoin("school", "school.id=user_school.school_id")
+                ->select(['school.name AS school_name', 'user_school.user_id AS user_id', 'user_school.school_id AS school_id'])
+                ->innerjoin('school', 'school.id=user_school.school_id')
                 ->andWhere('user_school.user_id =' . $user_id)
-                ->asArray()->one();
-            return $userSchool["school_name"];
+                ->asArray()
+                ->one();
+            return $userSchool['school_name'];
 
             // $userSchool = UserSchool::find()->where(['user_id'])->asArray()->one();
         }
         return '-';
     }
 
-
     public static function getMetaImage($site, $path)
     {
         $frontendPath = \yii::getAlias('@frontend');
         $imagePath = str_replace('\\', '/', $frontendPath);
-        $imageFilePath = $imagePath . '/web/' . "files" . '/' . $site . '/' . $path;
+        $imageFilePath = $imagePath . '/web/' . 'files' . '/' . $site . '/' . $path;
 
-
-        $actual_link = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'];
-        //$actual_link = "https://biogang.devfunction.com";
+        $actual_link = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'];
+        // $actual_link = "https://biogang.devfunction.com";
         if (!file_exists($imageFilePath)) {
-            if ($site == "content-plant") {
-                $path = "/images/BIOG_default_plant.png";
-            } else if ($site == "content-animal") {
-                $path = "/images/BIOG_default_animal.png";
-            } else if ($site == "content-ecotourism") {
-                $path = "/images/BIOG_default_ecotourism.png";
-            } else if ($site == "content-expert") {
-                $path = "/images/BIOG_default_expert.png";
-            } else if ($site == "content-fungi") {
-                $path = "/images/BIOG_default_fungi.png";
-            } else if ($site == "content-product") {
-                $path = "/images/BIOG_default_product.png";
-            } else if ($site == "knowledge") {
-                $path = "/images/BIOG_default_knowledge.png";
-            } else if ($site == "news") {
-                $path = "/images/BIOG_default_news.png";
-            } else if ($site == "blog") {
-                $path = "/images/BIOG_default_fungi.png";
+            if ($site == 'content-plant') {
+                $path = '/images/BIOG_default_plant.png';
+            } else if ($site == 'content-animal') {
+                $path = '/images/BIOG_default_animal.png';
+            } else if ($site == 'content-ecotourism') {
+                $path = '/images/BIOG_default_ecotourism.png';
+            } else if ($site == 'content-expert') {
+                $path = '/images/BIOG_default_expert.png';
+            } else if ($site == 'content-fungi') {
+                $path = '/images/BIOG_default_fungi.png';
+            } else if ($site == 'content-product') {
+                $path = '/images/BIOG_default_product.png';
+            } else if ($site == 'knowledge') {
+                $path = '/images/BIOG_default_knowledge.png';
+            } else if ($site == 'news') {
+                $path = '/images/BIOG_default_news.png';
+            } else if ($site == 'blog') {
+                $path = '/images/BIOG_default_fungi.png';
             } else {
-                $path = "/images/default.png";
+                $path = '/images/default.png';
             }
 
             \Yii::$app->view->registerMetaTag([
@@ -1054,7 +1019,7 @@ class FrontendHelper
         } else {
             \Yii::$app->view->registerMetaTag([
                 'property' => 'og:image',
-                'content' => $actual_link . "/files/" . $site . "/" . $path,
+                'content' => $actual_link . '/files/' . $site . '/' . $path,
             ]);
         }
 
@@ -1180,10 +1145,9 @@ class FrontendHelper
 
     public static function getProfileUrl($filename)
     {
-
         $frontendPath = \yii::getAlias('@frontend');
         $imagePath = str_replace('\\', '/', $frontendPath);
-        $imageFilePath = $imagePath . '/web/' . "files" . '/profile/' . $filename;
+        $imageFilePath = $imagePath . '/web/' . 'files' . '/profile/' . $filename;
         if (!empty($filename)) {
             if (file_exists($imageFilePath)) {
                 return '/files/profile/' . $filename;
@@ -1192,9 +1156,8 @@ class FrontendHelper
             }
         }
 
-        return "/images/default-user.png";
+        return '/images/default-user.png';
     }
-
 
     public static function saveUserLog($table, $uid, $contentId, $actionName, $description)
     {
@@ -1208,13 +1171,12 @@ class FrontendHelper
         $model->save();
     }
 
-
     public static function getSourceInformation($text)
     {
         if (strpos($text, 'http') !== false) {
             $textFetch = explode('http', $text);
 
-            $link = "";
+            $link = '';
             if (!empty($textFetch)) {
                 foreach ($textFetch as $value) {
                     $valueFetch = explode(' ', $value);
@@ -1225,7 +1187,7 @@ class FrontendHelper
                                     $url = 'http' . $valueSpace;
                                     $link = $link . '<a href="' . $url . '" target="_blank" >' . urldecode($url) . '</a>&nbsp;';
                                 } else {
-                                    $link = $link . $valueSpace . "&nbsp;";
+                                    $link = $link . $valueSpace . '&nbsp;';
                                 }
                             }
                         }
@@ -1235,7 +1197,7 @@ class FrontendHelper
                                 $url = 'http' . $value;
                                 $link = $link . '<a href="' . $url . '" target="_blank" >' . urldecode($url) . '</a>&nbsp;';
                             } else {
-                                $link = $link . $value . "&nbsp;";
+                                $link = $link . $value . '&nbsp;';
                             }
                         }
                     }
