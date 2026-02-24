@@ -2,9 +2,9 @@
 
 namespace backend\models;
 
+use backend\models\Content;
 use yii\base\Model;
 use yii\data\ActiveDataProvider;
-use backend\models\Content;
 
 /**
  * ContentFungiSearch represents the model behind the search form of `backend\models\Content`.
@@ -17,7 +17,7 @@ class ContentFungiSearch extends Content
     public function rules()
     {
         return [
-            [['id', 'type_id', 'region_id', 'province_id', 'district_id', 'subdistrict_id', 'zipcode_id', 'approved_by_user_id', 'created_by_user_id', 'updated_by_user_id', 'active'], 'integer'],
+            [['id', 'type_id', 'region_id', 'province_id', 'district_id', 'subdistrict_id', 'zipcode_id', 'approved_by_user_id', 'created_by_user_id', 'updated_by_user_id', 'active', 'is_hidden'], 'integer'],
             [['name', 'picture_path', 'description', 'other_information', 'source_information', 'latitude', 'longitude', 'note', 'status', 'created_at', 'updated_at'], 'safe'],
         ];
     }
@@ -69,9 +69,11 @@ class ContentFungiSearch extends Content
             'created_by_user_id' => $this->created_by_user_id,
             'updated_by_user_id' => $this->updated_by_user_id,
             'active' => 1,
+            'is_hidden' => $this->is_hidden,
         ]);
 
-        $query->andFilterWhere(['like', 'name', $this->name])
+        $query
+            ->andFilterWhere(['like', 'name', $this->name])
             ->andFilterWhere(['like', 'created_at', $this->created_at])
             ->andFilterWhere(['like', 'picture_path', $this->picture_path])
             ->andFilterWhere(['like', 'description', $this->description])
@@ -82,31 +84,28 @@ class ContentFungiSearch extends Content
             ->andFilterWhere(['like', 'note', $this->note])
             ->andFilterWhere(['like', 'status', $this->status]);
 
-            if (!empty($this->updated_at)) {
-                $dateRang = explode('to', $this->updated_at);
-                if(!empty($dateRang)){
-                    if(count($dateRang) == 2){
-    
-                        $dateStart = trim($dateRang[0]);
-                        $dateEnd = trim($dateRang[1]);
-                        if ($dateStart != $dateEnd) {
-    
-                            $dateEnd = date('Y-m-d', strtotime($dateEnd . ' +1 day'));
-    
-                            $query->andFilterWhere(['between', 'content.updated_at', $dateStart, $dateEnd]);
-                            
-                        }else{
-                            $query->andFilterWhere(['like', 'content.updated_at', $dateStart]);
-                        }
-                    }
-                }else{
-                    $query->andFilterWhere(['like', 'content.updated_at', $this->updated_at]);
-                }
-            }
+        if (!empty($this->updated_at)) {
+            $dateRang = explode('to', $this->updated_at);
+            if (!empty($dateRang)) {
+                if (count($dateRang) == 2) {
+                    $dateStart = trim($dateRang[0]);
+                    $dateEnd = trim($dateRang[1]);
+                    if ($dateStart != $dateEnd) {
+                        $dateEnd = date('Y-m-d', strtotime($dateEnd . ' +1 day'));
 
-            if(empty($params['sort'])){
-                $dataProvider->query->orderBy('updated_at DESC');
+                        $query->andFilterWhere(['between', 'content.updated_at', $dateStart, $dateEnd]);
+                    } else {
+                        $query->andFilterWhere(['like', 'content.updated_at', $dateStart]);
+                    }
+                }
+            } else {
+                $query->andFilterWhere(['like', 'content.updated_at', $this->updated_at]);
             }
+        }
+
+        if (empty($params['sort'])) {
+            $dataProvider->query->orderBy('updated_at DESC');
+        }
 
         return $dataProvider;
     }

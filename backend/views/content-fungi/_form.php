@@ -373,6 +373,10 @@ if (!empty($model['subdistrict_id'])) {
 
             <?= $form->field($model, 'status')->dropDownList([ 'pending' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected', ], ['prompt' => 'เลือกสถานะ']) ?>
             
+            <?= $form->field($model, 'is_hidden')->dropDownList([
+                '0' => 'แสดงผล',
+                '1' => 'ซ่อน',
+            ]) ?>
 
             <div class="form-group">
                 <?= Html::submitButton('บันทึก', ['class' => 'btn btn-success']) ?>

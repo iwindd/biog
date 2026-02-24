@@ -172,9 +172,27 @@ $this->params['breadcrumbs'][] = $this->title;
             'note',
 
             [
+                'format' => 'html',
                 'attribute'=>'status',
                 'value'=>function($model){
-                    return ucfirst($model->status);
+                    if ($model->status == 'pending') {
+                        return "<span class='label label-warning'>Pending</span>";
+                    } elseif ($model->status == 'approved') {
+                        return "<span class='label label-success'>Approved</span>";
+                    } elseif ($model->status == 'rejected') {
+                        return "<span class='label label-danger'>Rejected</span>";
+                    }
+                }
+            ],
+            [
+                'format' => 'html',
+                'attribute'=>'is_hidden',
+                'value'=>function($model){
+                    if ($model->is_hidden == '0') {
+                        return "<span class='label label-success'>แสดงผล</span>";
+                    } elseif ($model->is_hidden == '1') {
+                        return "<span class='label label-warning'>ซ่อน</span>";
+                    }
                 }
             ],
             //'active',

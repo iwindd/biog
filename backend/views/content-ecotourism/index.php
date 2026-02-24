@@ -242,16 +242,28 @@ if (!empty($_GET['sort'])) {
                 'attribute'=>'note',
             ],
             [
-                'format'=>'html',
+                'format' => 'html',
                 'attribute' => 'status',
-                'filter'=>Html::activeDropDownList($searchModel, 'status', array('pending'=> 'Pending','approved'=>'Approved','rejected'=>'Rejected'),['class'=>'form-control','prompt' => 'ทั้งหมด']),
+                'filter' => Html::activeDropDownList($searchModel, 'status', array('pending' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected'), ['class' => 'form-control', 'prompt' => 'ทั้งหมด']),
                 'value' => function ($model) {
-                    if($model->status=='pending'){
-                        return "<span class='status-color pending'>Pending</span>";
-                    }else if($model->status=='approved'){
-                        return "<span class='status-color approved'>Approved</span>";
-                    }else if($model->status=='rejected'){
-                        return "<span class='status-color rejected'>Rejected</span>";
+                    if ($model->status == 'pending') {
+                        return "<span class='label label-warning'>Pending</span>";
+                    } elseif ($model->status == 'approved') {
+                        return "<span class='label label-success'>Approved</span>";
+                    } elseif ($model->status == 'rejected') {
+                        return "<span class='label label-danger'>Rejected</span>";
+                    }
+                }
+            ],
+            [
+                'format' => 'html',
+                'attribute' => 'is_hidden',
+                'filter' => Html::activeDropDownList($searchModel, 'is_hidden', array('0' => 'แสดงผล', '1' => 'ซ่อน'), ['class' => 'form-control', 'prompt' => 'ทั้งหมด']),
+                'value' => function ($model) {
+                    if ($model->is_hidden == '0') {
+                        return "<span class='label label-success'>แสดงผล</span>";
+                    } elseif ($model->is_hidden == '1') {
+                        return "<span class='label label-warning'>ซ่อน</span>";
                     }
                 }
             ],

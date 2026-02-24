@@ -96,6 +96,7 @@ class Content extends \yii\db\ActiveRecord
             'updated_at' => 'วันที่แก้ไขล่าสุด',
             'files' => 'รูปประกอบ (แสดงเป็น Gallery)',
             'taxonomy' => 'คำสำคัญ (Tags)',
+            'is_hidden' => 'การแสดงผล',
         ];
     }
 

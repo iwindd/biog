@@ -1,38 +1,37 @@
 <?php
 
-use yii\helpers\Html;
-use yii\widgets\ActiveForm;
-use yii\helpers\Url;
+use common\components\Upload;
+use kartik\select2\Select2;
 use kartik\widgets\FileInput;
 use yii\helpers\ArrayHelper;
-use common\components\Upload;
-
-use kartik\select2\Select2;
+use yii\helpers\Html;
+use yii\helpers\Url;
 use yii\web\JsExpression;
+use yii\widgets\ActiveForm;
+
 $urlTaxonomy = \yii\helpers\Url::to(['/taxonomy/taxonomy']);
 
-use backend\models\Region;
-use backend\models\Province;
 use backend\models\District;
+use backend\models\ProductCategory;
+use backend\models\Province;
+use backend\models\Region;
 use backend\models\Subdistrict;
 use backend\models\Zipcode;
-use backend\models\ProductCategory;
-
 use frontend\components\GoogleMapHelper;
+
 /* @var $this yii\web\View */
 /* @var $model backend\models\Content */
 /* @var $form yii\widgets\ActiveForm */
 
-$this->registerJsFile(Url::base().'/js/content.js', ['depends' => [\backend\assets\AppAsset::className()]]);
-$this->registerJsFile(Url::base().'/js/location.js', ['depends' => [\backend\assets\AppAsset::className()]]);
+$this->registerJsFile(Url::base() . '/js/content.js', ['depends' => [\backend\assets\AppAsset::className()]]);
+$this->registerJsFile(Url::base() . '/js/location.js', ['depends' => [\backend\assets\AppAsset::className()]]);
 
-$this->registerJsFile(Url::base().'/js/map.js', ['depends' => \yii\web\JqueryAsset::className()]);
+$this->registerJsFile(Url::base() . '/js/map.js', ['depends' => \yii\web\JqueryAsset::className()]);
 $this->registerJsFile(GoogleMapHelper::getGoogleMapApiUrl(), ['depends' => \yii\web\JqueryAsset::className(), 'async' => true, 'defer' => true]);
 
-
-$initialPreview = "";  
-if(!empty($model->picture_path)){
-   $initialPreview = '<img src="'.Yii::$app->params['urlWebBiog'].'/files/content-product/'.$model->picture_path.'" class="img-responsive img-thumbnail " style="width:200px;" alt="" />';
+$initialPreview = '';
+if (!empty($model->picture_path)) {
+    $initialPreview = '<img src="' . Yii::$app->params['urlWebBiog'] . '/files/content-product/' . $model->picture_path . '" class="img-responsive img-thumbnail " style="width:200px;" alt="" />';
 }
 
 $region = ArrayHelper::map(Region::find()->all(), 'id', 'name_th');
@@ -64,7 +63,7 @@ $categoty = ArrayHelper::map(ProductCategory::find()->where(['active' => 1])->al
     <?php
     if (!empty($case_error)) {
         foreach ($case_error as $error) {
-    ?>
+            ?>
             <div class="alert alert-danger" role="alert">
                 <?php echo $error['message']; ?>
 
@@ -78,7 +77,7 @@ $categoty = ArrayHelper::map(ProductCategory::find()->where(['active' => 1])->al
     ?>
 
     <?php $form = ActiveForm::begin([
-      'options' => ['enctype' => 'multipart/form-data']
+        'options' => ['enctype' => 'multipart/form-data']
     ]); ?>
 
     <div class="panel panel-default">
@@ -88,24 +87,26 @@ $categoty = ArrayHelper::map(ProductCategory::find()->where(['active' => 1])->al
             <?= $form->field($model, 'name')->textInput(['maxlength' => true]) ?>
 
              <?= $form->field($modelProduct, 'product_category_id')->dropDownList($categoty, ['prompt' => 'กรุณาเลือกหมวดหมู่']) ?>
-            <?php /*
-            <?= $form->field($modelProduct, 'product_features')->widget(\yii2jodit\JoditWidget::className(), [
-                    'settings' => [
-                    'height'=>'auto',
-                    'enableDragAndDropFileToEditor'=>new \yii\web\JsExpression("true"),
-                    'buttons'=>[
-                        'source', '|',
-                        'bold','strikethrough','underline','italic','align','|',
-                        'ul','ol', '|',
-                        'outdent','indent', '|',
-                        'font','fontsize','brush','paragraph','eraser','|',
-                        'image','video','file','table','link','|',
-                        'align','undo','redo',
-                        ],
-                    ],
-                    'options' => ['placeholder' => 'รายละเอียด'],
-
-            ]) ?> */ ?>
+            <?php  /*
+                                                                                                                                                                                                                                                                                                                                                                                             * <?= $form->field($modelProduct, 'product_features')->widget(\yii2jodit\JoditWidget::className(), [
+                                                                                                                                                                                                                                                                                                                                                                                             *         'settings' => [
+                                                                                                                                                                                                                                                                                                                                                                                             *         'height'=>'auto',
+                                                                                                                                                                                                                                                                                                                                                                                             *         'enableDragAndDropFileToEditor'=>new \yii\web\JsExpression("true"),
+                                                                                                                                                                                                                                                                                                                                                                                             *         'buttons'=>[
+                                                                                                                                                                                                                                                                                                                                                                                             *             'source', '|',
+                                                                                                                                                                                                                                                                                                                                                                                             *             'bold','strikethrough','underline','italic','align','|',
+                                                                                                                                                                                                                                                                                                                                                                                             *             'ul','ol', '|',
+                                                                                                                                                                                                                                                                                                                                                                                             *             'outdent','indent', '|',
+                                                                                                                                                                                                                                                                                                                                                                                             *             'font','fontsize','brush','paragraph','eraser','|',
+                                                                                                                                                                                                                                                                                                                                                                                             *             'image','video','file','table','link','|',
+                                                                                                                                                                                                                                                                                                                                                                                             *             'align','undo','redo',
+                                                                                                                                                                                                                                                                                                                                                                                             *             ],
+                                                                                                                                                                                                                                                                                                                                                                                             *         ],
+                                                                                                                                                                                                                                                                                                                                                                                             *         'options' => ['placeholder' => 'รายละเอียด'],
+                                                                                                                                                                                                                                                                                                                                                                                             *
+                                                                                                                                                                                                                                                                                                                                                                                             * ]) ?>
+                                                                                                                                                                                                                                                                                                                                                                                             */
+            ?>
 
             <?= $form->field($modelProduct, 'product_features')->textarea(['rows' => '6', 'class' => 'summernote-product_features']) ?>
 
@@ -141,64 +142,66 @@ $categoty = ArrayHelper::map(ProductCategory::find()->where(['active' => 1])->al
 
 
             <?= $form->field($model, 'picture_path', [
-                          'template' => "{label}\n{input}\n<div> รูปภาพควรมีขนาด 1532x800 pixel มีขนาดไม่เกิน 5 MB และ ต้องเป็นไฟล์นามสกุล jpg, jpeg, png หรือ gif เท่านั้น </div>\n{hint}\n{error}",
-                          'labelOptions' => [ 'class' => 'control-label' ]
+                'template' => "{label}\n{input}\n<div> รูปภาพควรมีขนาด 1532x800 pixel มีขนาดไม่เกิน 5 MB และ ต้องเป็นไฟล์นามสกุล jpg, jpeg, png หรือ gif เท่านั้น </div>\n{hint}\n{error}",
+                'labelOptions' => ['class' => 'control-label']
             ])->widget(FileInput::classname(), [
-                //'options' => ['accept' => 'image/*'],
+                // 'options' => ['accept' => 'image/*'],
                 'pluginOptions' => [
-                    'initialPreview'=>$initialPreview,
-                    'allowedFileExtensions'=>['jpg', 'jpeg', 'png', 'gif', 'PNG'],
+                    'initialPreview' => $initialPreview,
+                    'allowedFileExtensions' => ['jpg', 'jpeg', 'png', 'gif', 'PNG'],
                     'showPreview' => true,
                     'showRemove' => false,
                     'showUpload' => false,
-                    'maxFileSize'=>5120
-                    ]
+                    'maxFileSize' => 5120
+                ]
             ]); ?> 
 
 
             <input type="hidden" name="deletePic" id="deletePic" value="0" >
 
-            <?php /*
-            <?= $form->field($modelProduct, 'other_information')->widget(\yii2jodit\JoditWidget::className(), [
-                    'settings' => [
-                    'height'=>'auto',
-                    'enableDragAndDropFileToEditor'=>new \yii\web\JsExpression("true"),
-                    'buttons'=>[
-                        'source', '|',
-                        'bold','strikethrough','underline','italic','align','|',
-                        'ul','ol', '|',
-                        'outdent','indent', '|',
-                        'font','fontsize','brush','paragraph','eraser','|',
-                        'image','video','file','table','link','|',
-                        'align','undo','redo',
-                        ],
-                    ],
-                    'options' => ['placeholder' => 'รายละเอียด'],
-
-            ]) ?> 
-
-
-            <label>ข้อมูลอื่นๆ ที่ฉันรู้</label>
-            <?php echo froala\froalaeditor\FroalaEditorWidget::widget([
-                    'model' => $model,
-                    'attribute' => 'other_information',
-                    'options' => [
-                        // html attributes
-                        
-                        'id'=>'content-other_information'
-                    ],
-                    'clientOptions' => [
-                        'placeholderText' => 'ข้อมูลอื่นๆ ที่ฉันรู้',
-                        'toolbarInline' => false,
-                        'height' => 300,
-                        'theme' => 'gray', //optional: dark, red, gray, royal
-                        'language' => 'en_gb', // optional: ar, bs, cs, da, de, en_ca, en_gb, en_us ...
-                        'imageUploadURL' => \yii\helpers\Url::to(['api/upload/']),
-                        'fileUploadURL' => \yii\helpers\Url::to(['api/upload/']),
-                        'toolbarButtons'   => ['fullscreen', 'bold', 'italic', 'underline', 'alignLeft', 'alignCenter', 'formatOLSimple', 'alignRight', 'paragraphFormat', 'fontFamily', 'fontSize', 'textColor', 'insertLink', 'insertImage', 'insertVideo', 'insertFile', 'undo', 'redo']
-                    ]
-            ]); ?>
-            <br/> */ ?>
+            <?php  /*
+                                                                                                                        * <?= $form->field($modelProduct, 'other_information')->widget(\yii2jodit\JoditWidget::className(), [
+                                                                                                                        *         'settings' => [
+                                                                                                                        *         'height'=>'auto',
+                                                                                                                        *         'enableDragAndDropFileToEditor'=>new \yii\web\JsExpression("true"),
+                                                                                                                        *         'buttons'=>[
+                                                                                                                        *             'source', '|',
+                                                                                                                        *             'bold','strikethrough','underline','italic','align','|',
+                                                                                                                        *             'ul','ol', '|',
+                                                                                                                        *             'outdent','indent', '|',
+                                                                                                                        *             'font','fontsize','brush','paragraph','eraser','|',
+                                                                                                                        *             'image','video','file','table','link','|',
+                                                                                                                        *             'align','undo','redo',
+                                                                                                                        *             ],
+                                                                                                                        *         ],
+                                                                                                                        *         'options' => ['placeholder' => 'รายละเอียด'],
+                                                                                                                        *
+                                                                                                                        * ]) ?>
+                                                                                                                        *
+                                                                                                                        *
+                                                                                                                        * <label>ข้อมูลอื่นๆ ที่ฉันรู้</label>
+                                                                                                                        * <?php echo froala\froalaeditor\FroalaEditorWidget::widget([
+                                                                                                                        *         'model' => $model,
+                                                                                                                        *         'attribute' => 'other_information',
+                                                                                                                        *         'options' => [
+                                                                                                                        *             // html attributes
+                                                                                                                        *
+                                                                                                                        *             'id'=>'content-other_information'
+                                                                                                                        *         ],
+                                                                                                                        *         'clientOptions' => [
+                                                                                                                        *             'placeholderText' => 'ข้อมูลอื่นๆ ที่ฉันรู้',
+                                                                                                                        *             'toolbarInline' => false,
+                                                                                                                        *             'height' => 300,
+                                                                                                                        *             'theme' => 'gray', //optional: dark, red, gray, royal
+                                                                                                                        *             'language' => 'en_gb', // optional: ar, bs, cs, da, de, en_ca, en_gb, en_us ...
+                                                                                                                        *             'imageUploadURL' => \yii\helpers\Url::to(['api/upload/']),
+                                                                                                                        *             'fileUploadURL' => \yii\helpers\Url::to(['api/upload/']),
+                                                                                                                        *             'toolbarButtons'   => ['fullscreen', 'bold', 'italic', 'underline', 'alignLeft', 'alignCenter', 'formatOLSimple', 'alignRight', 'paragraphFormat', 'fontFamily', 'fontSize', 'textColor', 'insertLink', 'insertImage', 'insertVideo', 'insertFile', 'undo', 'redo']
+                                                                                                                        *         ]
+                                                                                                                        * ]); ?>
+                                                                                                                        * <br/>
+                                                                                                                        */
+            ?>
 
             <?= $form->field($model, 'other_information')->textarea(['rows' => '6', 'class' => 'summernote-other_information']) ?>
 
@@ -206,24 +209,26 @@ $categoty = ArrayHelper::map(ProductCategory::find()->where(['active' => 1])->al
 
             <?= $form->field($modelProduct, 'contact')->textInput(['maxlength' => true]) ?>
 
-            <?php /*
-            <?= $form->field($model, 'source_information')->widget(\yii2jodit\JoditWidget::className(), [
-                    'settings' => [
-                    'height'=>'auto',
-                    'enableDragAndDropFileToEditor'=>new \yii\web\JsExpression("true"),
-                    'buttons'=>[
-                        'source', '|',
-                        'bold','strikethrough','underline','italic','align','|',
-                        'ul','ol', '|',
-                        'outdent','indent', '|',
-                        'font','fontsize','brush','paragraph','eraser','|',
-                        'image','video','file','table','link','|',
-                        'align','undo','redo',
-                        ],
-                    ],
-                    'options' => ['placeholder' => 'รายละเอียด'],
-
-            ]) ?> */ ?>
+            <?php  /*
+                                                                                                                                                                                                                                                                                                                                                                       * <?= $form->field($model, 'source_information')->widget(\yii2jodit\JoditWidget::className(), [
+                                                                                                                                                                                                                                                                                                                                                                       *         'settings' => [
+                                                                                                                                                                                                                                                                                                                                                                       *         'height'=>'auto',
+                                                                                                                                                                                                                                                                                                                                                                       *         'enableDragAndDropFileToEditor'=>new \yii\web\JsExpression("true"),
+                                                                                                                                                                                                                                                                                                                                                                       *         'buttons'=>[
+                                                                                                                                                                                                                                                                                                                                                                       *             'source', '|',
+                                                                                                                                                                                                                                                                                                                                                                       *             'bold','strikethrough','underline','italic','align','|',
+                                                                                                                                                                                                                                                                                                                                                                       *             'ul','ol', '|',
+                                                                                                                                                                                                                                                                                                                                                                       *             'outdent','indent', '|',
+                                                                                                                                                                                                                                                                                                                                                                       *             'font','fontsize','brush','paragraph','eraser','|',
+                                                                                                                                                                                                                                                                                                                                                                       *             'image','video','file','table','link','|',
+                                                                                                                                                                                                                                                                                                                                                                       *             'align','undo','redo',
+                                                                                                                                                                                                                                                                                                                                                                       *             ],
+                                                                                                                                                                                                                                                                                                                                                                       *         ],
+                                                                                                                                                                                                                                                                                                                                                                       *         'options' => ['placeholder' => 'รายละเอียด'],
+                                                                                                                                                                                                                                                                                                                                                                       *
+                                                                                                                                                                                                                                                                                                                                                                       * ]) ?>
+                                                                                                                                                                                                                                                                                                                                                                       */
+            ?>
 
 
 
@@ -232,16 +237,16 @@ $categoty = ArrayHelper::map(ProductCategory::find()->where(['active' => 1])->al
             <input type="hidden" name="removeVideo" id="removeVideo">
 
             <?php
-            //print_r($mediaModel);
+            // print_r($mediaModel);
 
             if (!empty($mediaModel)) {
-            ?>
+                ?>
                 <label class="control-label">รูปประกอบ (แสดงเป็น Gallery)</label>
                 <div class="row">
                     <?php
                     foreach ($mediaModel as $value) {
-                        if (!empty($value['path']) ) {
-                    ?>
+                        if (!empty($value['path'])) {
+                            ?>
                             <div class="col-md-3 card-picture-item" id="image-item-<?php echo $value['id']; ?>">
                                 <button onclick="removeImages(<?php echo $value['id']; ?>)" type="button" class="close" aria-label="ลบไฟล์นี้">
                                     <span aria-hidden="true">&times;</span>
@@ -256,12 +261,13 @@ $categoty = ArrayHelper::map(ProductCategory::find()->where(['active' => 1])->al
             <?php
             }
             ?>
-            <?= $form->field($model, "files", [
+            <?=
+            $form->field($model, 'files', [
                 'template' => "{label}\n{input}\n<div> รูปภาพมีขนาดไม่เกิน 5 MB และต้องเป็นไฟล์นามสกุล jpg, jpeg, png หรือ gif เท่านั้น </div>\n{hint}\n{error}",
-                'labelOptions' => [ 'class' => 'control-label' ]
+                'labelOptions' => ['class' => 'control-label']
             ])->widget(FileInput::classname(), [
                 'options' => [
-                    //'accept' => 'image/*',
+                    // 'accept' => 'image/*',
                     'class' => 'caractboxes-img',
                     'multiple' => true
                 ],
@@ -276,49 +282,57 @@ $categoty = ArrayHelper::map(ProductCategory::find()->where(['active' => 1])->al
             ?>
             <!-- end multi image -->
 
-             <?php 
-            echo $form->field($model, 'taxonomy')->widget(Select2::classname(), [
-                'maintainOrder' => true,
-                'options' => ['placeholder' => 'คำช่วยค้นหา...' , 'multiple' => true ],
-                'pluginOptions' => [
-                    'allowClear' => true,
-                    'tags' => true,
-                    'language' => [
-                        'errorLoading' => new JsExpression("function () { return 'Waiting for results...'; }"),
-                    ],
-                    'ajax' => [
-                        'url' => $urlTaxonomy,
-                        'dataType' => 'json',
-                        'data' => new JsExpression('function(params) { return {q:params.term}; }')
-                    ],
-                    'escapeMarkup' => new JsExpression('function (markup) { return markup; }'),
-                    'templateResult' => new JsExpression('function(taxonomy) { return taxonomy.text; }'),
-                    'templateSelection' => new JsExpression('function (taxonomy) { return taxonomy.text; }'),
-                ],
-                'addon' => [
-                    'append' => [
-                        'content' => Html::tag('div','<i class="fa fa-circle-o"></i>', [
-                            'class' => 'btn btn-circle-o',
-                            'title' => 'Text autocomplete', 
-                            'data-toggle' => 'tooltip'
-                        ]),
-                        'asButton' => true
-                    ]
-                ]
-            ]);
-            ?>
+             <?php
+echo $form->field($model, 'taxonomy')->widget(Select2::classname(), [
+    'maintainOrder' => true,
+    'options' => ['placeholder' => 'คำช่วยค้นหา...', 'multiple' => true],
+    'pluginOptions' => [
+        'allowClear' => true,
+        'tags' => true,
+        'language' => [
+            'errorLoading' => new JsExpression("function () { return 'Waiting for results...'; }"),
+        ],
+        'ajax' => [
+            'url' => $urlTaxonomy,
+            'dataType' => 'json',
+            'data' => new JsExpression('function(params) { return {q:params.term}; }')
+        ],
+        'escapeMarkup' => new JsExpression('function (markup) { return markup; }'),
+        'templateResult' => new JsExpression('function(taxonomy) { return taxonomy.text; }'),
+        'templateSelection' => new JsExpression('function (taxonomy) { return taxonomy.text; }'),
+    ],
+    'addon' => [
+        'append' => [
+            'content' => Html::tag('div', '<i class="fa fa-circle-o"></i>', [
+                'class' => 'btn btn-circle-o',
+                'title' => 'Text autocomplete',
+                'data-toggle' => 'tooltip'
+            ]),
+            'asButton' => true
+        ]
+    ]
+]);
+?>
 
             <input type="hidden" name="removeTaxonomy" id="removeTaxonomy">
 
             <?= $form->field($model, 'photo_credit')->textInput(['maxlength' => true]) ?>
 
-            <?= $form->field($model, 'source_information')->textarea(['rows' => '3'], 'รายละเอียด');  ?>
+            <?= $form->field($model, 'source_information')->textarea(['rows' => '3'], 'รายละเอียด'); ?>
 
-            
             <?= $form->field($model, 'note')->textInput(['maxlength' => true]) ?>
 
-            <?= $form->field($model, 'status')->dropDownList([ 'pending' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected', ], ['prompt' => 'เลือกสถานะ']) ?>
-            
+            <?= $form->field($model, 'status')->dropDownList([
+                'pending' => 'Pending',
+                'approved' => 'Approved',
+                'rejected' => 'Rejected',
+            ], ['prompt' => 'เลือกสถานะ']) ?>
+
+            <?= $form->field($model, 'is_hidden')->dropDownList([
+                '0' => 'แสดงผล',
+                '1' => 'ซ่อน',
+            ]) ?>
+
 
             <div class="form-group">
                 <?= Html::submitButton('บันทึก', ['class' => 'btn btn-success']) ?>
