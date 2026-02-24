@@ -17,6 +17,8 @@ class ContentProductController extends Controller
 {
     public function actionIndex()
     {
+        FrontendHelper::checkContentTypeVisible(6);
+
         $limit = 6;
         $page = 1;
         if (!empty($_GET['page'])) {
@@ -54,7 +56,7 @@ class ContentProductController extends Controller
             throw new \yii\web\HttpException(404, 'The requested Item could not be found.');
         }
         // check can view
-        FrontendHelper::checkCanViewContent($product['status'], $product['created_by_user_id']);
+        FrontendHelper::checkCanViewContent($product['status'], $product['created_by_user_id'], 6);
 
         $content_product = ContentProduct::find()->where(['content_id' => $id])->one();
         $rootId = $product['content_root_id'] != 0 ? $product['content_root_id'] : $id;

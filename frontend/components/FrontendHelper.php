@@ -1128,8 +1128,28 @@ class FrontendHelper
         return false;
     }
 
-    public static function checkCanViewContent($status, $createdByUserId)
+    public static function isContentTypeVisible($typeId)
     {
+        if ($typeId) {
+            $contentType = \backend\models\ContentType::findOne($typeId);
+            return $contentType ? (bool) $contentType->is_visible : true;
+        }
+        return true;
+    }
+
+    public static function checkContentTypeVisible($typeId)
+    {
+        if (!self::isContentTypeVisible($typeId)) {
+            throw new \yii\web\HttpException(403, 'This content type is currently disabled.');
+        }
+    }
+
+    public static function checkCanViewContent($status, $createdByUserId, $typeId = null)
+    {
+        if ($typeId) {
+            self::checkContentTypeVisible($typeId);
+        }
+
         if ($status == 'pending' || $status == 'rejected') {
             if (empty(Yii::$app->user->identity->id)) {
                 throw new \yii\web\HttpException(404, 'The requested Item could not be found.');

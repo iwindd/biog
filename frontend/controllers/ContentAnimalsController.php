@@ -17,6 +17,8 @@ class ContentAnimalsController extends Controller
 {
     public function actionIndex()
     {
+        FrontendHelper::checkContentTypeVisible(2);
+
         $limit = 6;
         $page = 1;
         if (!empty($_GET['page'])) {
@@ -59,7 +61,7 @@ class ContentAnimalsController extends Controller
             throw new \yii\web\HttpException(404, 'The requested Item could not be found.');
         }
         // check can view
-        FrontendHelper::checkCanViewContent($animals['status'], $animals['created_by_user_id']);
+        FrontendHelper::checkCanViewContent($animals['status'], $animals['created_by_user_id'], 2);
 
         $content_animal = ContentAnimal::find()
             ->where(['content_id' => $id])

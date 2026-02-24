@@ -17,6 +17,8 @@ class ContentExpertController extends Controller
 {
     public function actionIndex()
     {
+        FrontendHelper::checkContentTypeVisible(4);
+
         $limit = 6;
         $page = 1;
         if (!empty($_GET['page'])) {
@@ -55,7 +57,7 @@ class ContentExpertController extends Controller
             throw new \yii\web\HttpException(404, 'The requested Item could not be found.');
         }
         // check can view
-        FrontendHelper::checkCanViewContent($expert->status, $expert['created_by_user_id']);
+        FrontendHelper::checkCanViewContent($expert->status, $expert['created_by_user_id'], 4);
 
         $content_expert = ContentExpert::find()->where(['content_id' => $id])->one();
         $rootId = $expert->content_root_id != 0 ? $expert->content_root_id : $id;

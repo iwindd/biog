@@ -17,6 +17,8 @@ class ContentFungiController extends Controller
 {
     public function actionIndex()
     {
+        FrontendHelper::checkContentTypeVisible(3);
+
         $limit = 6;
         $page = 1;
         if (!empty($_GET['page'])) {
@@ -55,7 +57,7 @@ class ContentFungiController extends Controller
             throw new \yii\web\HttpException(404, 'The requested Item could not be found.');
         }
         // check can view
-        FrontendHelper::checkCanViewContent($fungi->status, $fungi['created_by_user_id']);
+        FrontendHelper::checkCanViewContent($fungi->status, $fungi['created_by_user_id'], 3);
 
         $content_fungi = ContentFungi::find()->where(['content_id' => $id])->one();
         $rootId = $fungi->content_root_id != 0 ? $fungi->content_root_id : $id;

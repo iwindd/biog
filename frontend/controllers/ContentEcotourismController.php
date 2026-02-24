@@ -17,6 +17,8 @@ class ContentEcotourismController extends Controller
 {
     public function actionIndex()
     {
+        FrontendHelper::checkContentTypeVisible(5);
+
         $limit = 6;
         $page = 1;
         if (!empty($_GET['page'])) {
@@ -55,7 +57,7 @@ class ContentEcotourismController extends Controller
             throw new \yii\web\HttpException(404, 'The requested Item could not be found.');
         }
         // check can view
-        FrontendHelper::checkCanViewContent($ecotourism['status'], $ecotourism['created_by_user_id']);
+        FrontendHelper::checkCanViewContent($ecotourism['status'], $ecotourism['created_by_user_id'], 5);
 
         $content_ecotourism = ContentEcotourism::find()->where(['content_id' => $id])->one();
         $rootId = $ecotourism['content_root_id'] != 0 ? $ecotourism['content_root_id'] : $id;

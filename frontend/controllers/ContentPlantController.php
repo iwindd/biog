@@ -18,6 +18,8 @@ class ContentPlantController extends Controller
 {
     public function actionIndex()
     {
+        FrontendHelper::checkContentTypeVisible(1);
+
         $limit = 6;
         $page = 1;
         if (!empty($_GET['page'])) {
@@ -68,7 +70,7 @@ class ContentPlantController extends Controller
         }
 
         // check can view
-        FrontendHelper::checkCanViewContent($content['status'], $content['created_by_user_id']);
+        FrontendHelper::checkCanViewContent($content['status'], $content['created_by_user_id'], 1);
 
         $content_plant = ContentPlant::find()->where(['content_id' => $id])->one();
         $rootId = $content['content_root_id'] != 0 ? $content['content_root_id'] : $id;
