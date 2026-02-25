@@ -123,4 +123,9 @@ class Content extends \yii\db\ActiveRecord
     {
         return $this->hasMany(ContentPlant::className(), ['content_id' => 'id']);
     }
+
+    public function getLicense()
+    {
+        return $this->hasOne(License::className(), ['id' => 'license_id']);
+    }
 }

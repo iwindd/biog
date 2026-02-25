@@ -51,7 +51,7 @@ class ContentProductController extends Controller
             return $this->redirect(['/content-product/' . $latestContentId]);
         }
 
-        $product = Content::find()->where(['id' => $id, 'is_hidden' => false])->asArray()->one();
+        $product = Content::find()->where(['id' => $id, 'is_hidden' => false])->one();
         if ($product['type_id'] != 6) {
             throw new \yii\web\HttpException(404, 'The requested Item could not be found.');
         }

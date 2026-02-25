@@ -53,9 +53,8 @@ class ContentAnimalsController extends Controller
         }
 
         $animals = Content::find()
-            ->select(['id', 'name', 'description', 'type_id', 'status', 'picture_path', 'content_root_id', 'province_id', 'district_id', 'subdistrict_id', 'zipcode_id', 'created_by_user_id', 'created_at', 'latitude', 'longitude'])
+            ->select(['id', 'name', 'description', 'type_id', 'status', 'picture_path', 'content_root_id', 'province_id', 'district_id', 'subdistrict_id', 'zipcode_id', 'created_by_user_id', 'created_at', 'latitude', 'longitude', 'license_id'])
             ->where(['id' => $id, 'is_hidden' => false])
-            ->asArray()
             ->one();
         if ($animals['type_id'] != 2) {
             throw new \yii\web\HttpException(404, 'The requested Item could not be found.');

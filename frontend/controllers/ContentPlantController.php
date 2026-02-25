@@ -58,11 +58,9 @@ class ContentPlantController extends Controller
         if ($id != $latestContentId) {
             return $this->redirect(['/content-plant/' . $latestContentId]);
         }
-
         $content = Content::find()
-            ->select(['id', 'name', 'description', 'picture_path', 'type_id', 'photo_credit', 'source_information', 'province_id', 'district_id', 'subdistrict_id', 'zipcode_id', 'latitude', 'longitude', 'status', 'content_root_id', 'created_by_user_id', 'created_at'])
+            ->select(['id', 'name', 'description', 'picture_path', 'type_id', 'photo_credit', 'source_information', 'province_id', 'district_id', 'subdistrict_id', 'zipcode_id', 'latitude', 'longitude', 'status', 'content_root_id', 'created_by_user_id', 'created_at', 'license_id'])
             ->where(['id' => $id, 'is_hidden' => false])
-            ->asArray()
             ->one();
 
         if ($content['type_id'] != 1) {

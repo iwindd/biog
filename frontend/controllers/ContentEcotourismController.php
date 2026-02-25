@@ -52,7 +52,7 @@ class ContentEcotourismController extends Controller
             return $this->redirect(['/content-ecotourism/' . $latestContentId]);
         }
 
-        $ecotourism = Content::find()->where(['id' => $id, 'is_hidden' => false])->asArray()->one();
+        $ecotourism = Content::find()->where(['id' => $id, 'is_hidden' => false])->one();
         if ($ecotourism['type_id'] != 5) {
             throw new \yii\web\HttpException(404, 'The requested Item could not be found.');
         }

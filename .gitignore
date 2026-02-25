@@ -51,3 +51,5 @@ composer.lock
 /db
 /document/css/**
 backup
+
+note.md
