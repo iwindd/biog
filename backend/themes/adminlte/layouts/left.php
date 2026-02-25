@@ -50,6 +50,7 @@ $getMenuTemplate = function ($typeId) use ($contentTypes) {
                     // ['label' => 'รายงาน','icon' => 'book ','url' => ['/report'] , 'active' => BackendHelper::menuActive("report", $this->context->route)],
                     // ['label' => 'ตั้งค่าทั่วไป','icon' => 'cog','url' => ['/setting'] , 'active' => BackendHelper::menuActive("setting", $this->context->route)],
                     // // ['label' => 'ติดต่อเรา','icon' => 'fax','url' => ['/contact-us'], 'active' => BackendHelper::menuActive("contact-us", $this->context->route)],
+                    ['label' => 'จัดการ Short URLs', 'icon' => 'link', 'url' => ['/short-url'], 'active' => BackendHelper::menuActive('short-url', $this->context->route)],
                     [
                         'label' => 'ตั้งค่า',
                         'icon' => 'cog',

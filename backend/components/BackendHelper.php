@@ -343,6 +343,12 @@ class BackendHelper
             } else {
                 return false;
             }
+        } elseif ($site == "short-url") {
+            if ($action == "short-url/index" || $action == "short-url/view" || $action == "short-url/create" || $action == "short-url/update") {
+                return true;
+            } else {
+                return false;
+            }
         }
     }
 

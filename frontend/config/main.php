@@ -46,6 +46,7 @@ return [
             'showScriptName' => false,
             'enablePrettyUrl' => true,
             'rules' => [
+                's/<code:[A-Za-z0-9_-]+>' => 'short-url/redirect',
                 '/profile' => '/user/profile',
                 '/login' => '/login/index',
                 '/register' => '/user/registration/register',
