@@ -146,13 +146,18 @@ class ContentPlantController extends Controller
 
                 $model->description = $modelPlant->features;
 
-                $mainPicture = Upload::uploadPictureNoPermission($model, 'content-plant', '', 0, 'picture_path');
-                if (!empty($mainPicture)) {
-    
-                    if ($mainPicture != 'error') {
-                        $model->picture_path = $mainPicture;
-                    }else{
-                        $case_error[] = "อัพโหลดรูปภาพไม่สำเร็จ";
+                $post = Yii::$app->request->post();
+                if (!empty($post['filecenter_picture_path'])) {
+                    $model->picture_path = $post['filecenter_picture_path'];
+                } else {
+                    $mainPicture = Upload::uploadPictureNoPermission($model, 'content-plant', '', 0, 'picture_path');
+                    if (!empty($mainPicture)) {
+        
+                        if ($mainPicture != 'error') {
+                            $model->picture_path = $mainPicture;
+                        }else{
+                            $case_error[] = "อัพโหลดรูปภาพไม่สำเร็จ";
+                        }
                     }
                 }
 
@@ -312,19 +317,23 @@ class ContentPlantController extends Controller
                     $del = $_POST['deletePic'];
                 }
 
-                $mainPicture = Upload::uploadPictureNoPermission($model, 'content-plant', $modelOld->getOldAttribute('picture_path'), $del, 'picture_path');
+                if (!empty($post['filecenter_picture_path'])) {
+                    $model->picture_path = $post['filecenter_picture_path'];
+                } else {
+                    $mainPicture = Upload::uploadPictureNoPermission($model, 'content-plant', $modelOld->getOldAttribute('picture_path'), $del, 'picture_path');
 
-        
-                if (!empty($mainPicture)) {
-    
+            
                     if (!empty($mainPicture)) {
-                        if ($mainPicture == 'error') {
-                            $error[] = "อัพโหลดรูปภาพไม่สำเร็จ";
-                            $checkUpdate = false;
-                        }else if($mainPicture == 'remove'){
-                            $model->picture_path = '';
-                        }else{
-                            $model->picture_path = $mainPicture;
+        
+                        if (!empty($mainPicture)) {
+                            if ($mainPicture == 'error') {
+                                $error[] = "อัพโหลดรูปภาพไม่สำเร็จ";
+                                $checkUpdate = false;
+                            }else if($mainPicture == 'remove'){
+                                $model->picture_path = '';
+                            }else{
+                                $model->picture_path = $mainPicture;
+                            }
                         }
                     }
                 }

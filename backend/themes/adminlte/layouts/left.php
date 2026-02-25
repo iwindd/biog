@@ -51,6 +51,7 @@ $getMenuTemplate = function ($typeId) use ($contentTypes) {
                     // ['label' => 'ตั้งค่าทั่วไป','icon' => 'cog','url' => ['/setting'] , 'active' => BackendHelper::menuActive("setting", $this->context->route)],
                     // // ['label' => 'ติดต่อเรา','icon' => 'fax','url' => ['/contact-us'], 'active' => BackendHelper::menuActive("contact-us", $this->context->route)],
                     ['label' => 'จัดการ Short URLs', 'icon' => 'link', 'url' => ['/short-url'], 'active' => BackendHelper::menuActive('short-url', $this->context->route)],
+                    ['label' => 'จัดการไฟล์ (File Center)', 'icon' => 'folder-open', 'url' => ['/file-center'], 'active' => BackendHelper::menuActive('file-center', $this->context->route)],
                     [
                         'label' => 'ตั้งค่า',
                         'icon' => 'cog',

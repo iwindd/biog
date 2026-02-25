@@ -7,4 +7,15 @@ return [
     'senderName' => 'Example.com mailer',
     'user.passwordResetTokenExpire' => 3600,
     'shortUrlDomain' => 'http://localhost:20080/s/',
+    'urlFrontend' => 'http://localhost:20080',
+    'fileCenterUploadLimits' => [
+        'image' => [
+            'extensions' => ['png', 'jpg', 'jpeg'],
+            'maxSize' => 8 * 1024 * 1024, // 8MB
+        ],
+        'document' => [
+            'extensions' => ['pdf'],
+            'maxSize' => 25 * 1024 * 1024, // 25MB
+        ]
+    ],
 ];
