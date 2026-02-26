@@ -64,7 +64,10 @@ use yii\jui\JuiAsset;
                     <td class="vcenter">
                         <?= $form->field($modelSource, "[{$indexImageSource}]published_date")->label(false)->widget(
                             \kartik\date\DatePicker::classname(), [
-                            'options' => ['placeholder' => 'วันที่เผยแพร่'],
+                            'options' => [
+                                'placeholder' => 'วันที่เผยแพร่',
+                                'class' => 'dynamic-date-picker',
+                            ],
                             'pluginOptions' => [
                                 'autoclose' => true,
                                 'format' => 'yyyy-mm-dd',
@@ -86,3 +89,28 @@ use yii\jui\JuiAsset;
         <?php DynamicFormWidget::end(); ?>
     </div>
 </div>
+
+<?php
+$js = <<<JS
+$(".dynamicform_image_source").on("afterInsert", function(e, item) {
+    var \$input = $(item).find('.dynamic-date-picker');
+    var \$dateGroup = \$input.closest('.input-group.date');
+    
+    // Krajee's DatePicker (used by Kartik DatePicker) initializes with kvDatepicker
+    if (\$dateGroup.length > 0) {
+        \$dateGroup.kvDatepicker({
+            autoclose: true,
+            format: 'yyyy-mm-dd',
+            todayHighlight: true
+        });
+    } else {
+        \$input.kvDatepicker({
+            autoclose: true,
+            format: 'yyyy-mm-dd',
+            todayHighlight: true
+        });
+    }
+});
+JS;
+$this->registerJs($js);
+?>
