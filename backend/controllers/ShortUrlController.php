@@ -142,6 +142,55 @@ class ShortUrlController extends Controller
     }
 
     /**
+     * AJAX action to toggle between original URL and short URL.
+     * POST params: url (the current URL), mode ('shorten' or 'expand')
+     * Returns JSON: { success: true, url: '...', mode: 'short'|'original' }
+     */
+    public function actionToggleShortUrl()
+    {
+        Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+        $request = Yii::$app->request;
+
+        if (!$request->isAjax || !$request->isPost) {
+            return ['success' => false, 'message' => 'Invalid request'];
+        }
+
+        $url = trim($request->post('url', ''));
+        $mode = $request->post('mode', 'shorten'); // 'shorten' or 'expand'
+        $shortUrlBase = Yii::$app->params['shortUrlDomain'] ?? '';
+
+        if (empty($url)) {
+            return ['success' => false, 'message' => 'URL is empty'];
+        }
+
+        if ($mode === 'expand') {
+            // Current value is a short URL, try to find the original
+            $code = str_replace($shortUrlBase, '', $url);
+            $model = ShortUrl::findOne(['code' => $code]);
+            if ($model) {
+                return ['success' => true, 'url' => $model->target_url, 'mode' => 'original'];
+            }
+            return ['success' => false, 'message' => 'Short URL not found'];
+        }
+
+        // mode === 'shorten': find existing or create new
+        $model = ShortUrl::findOne(['target_url' => $url]);
+        if ($model) {
+            return ['success' => true, 'url' => $shortUrlBase . $model->code, 'mode' => 'short'];
+        }
+
+        // Create new
+        $model = new ShortUrl();
+        $model->target_url = $url;
+        $model->generateCode();
+        if ($model->save()) {
+            return ['success' => true, 'url' => $shortUrlBase . $model->code, 'mode' => 'short'];
+        }
+
+        return ['success' => false, 'message' => 'Failed to create short URL'];
+    }
+
+    /**
      * Finds the ShortUrl model based on its primary key value.
      * If the model is not found, a 404 HTTP exception will be thrown.
      * @param integer $id
