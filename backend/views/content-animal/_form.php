@@ -26,9 +26,6 @@ use frontend\components\GoogleMapHelper;
 $this->registerJsFile(Url::base() . '/js/content.js', ['depends' => [\backend\assets\AppAsset::className()]]);
 $this->registerJsFile(Url::base() . '/js/location.js', ['depends' => [\backend\assets\AppAsset::className()]]);
 
-$this->registerJsFile(Url::base() . '/js/map.js', ['depends' => \yii\web\JqueryAsset::className()]);
-$this->registerJsFile(GoogleMapHelper::getGoogleMapApiUrl(), ['depends' => \yii\web\JqueryAsset::className(), 'async' => true, 'defer' => true]);
-
 $initialPreview = '';
 if (!empty($model->picture_path)) {
     $initialPreview = '<img src="' . Yii::$app->params['urlWebBiog'] . '/files/content-animal/' . $model->picture_path . '" class="img-responsive img-thumbnail " style="width:200px;" alt="" />';
@@ -93,13 +90,10 @@ $licenseList = ArrayHelper::map(License::find()->all(), 'id', 'name');
 
             <?= $form->field($modelAnimal, 'found_source')->textInput(['maxlength' => true]) ?>
 
-            <?= $form->field($model, 'latitude')->textInput(['maxlength' => true]) ?>
-
-            <?= $form->field($model, 'longitude')->textInput(['maxlength' => true]) ?>
-
-            <div class="col-12 map-block">
-                <div id="content-google-map" class="content-google-map" style="min-height:400px;"></div>
-            </div>
+            <?= $this->render('../components/_map_component', [
+                'model' => $model,
+                'form' => $form,
+            ]) ?>
 
             <?= $form->field($model, 'region_id')->dropDownList($region, ['prompt' => 'กรุณาเลือกภูมิภาค']) ?>
 
