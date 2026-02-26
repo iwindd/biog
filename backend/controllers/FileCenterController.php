@@ -170,7 +170,7 @@ class FileCenterController extends Controller
     /**
      * API Endpoint for File Picker to fetch files
      */
-    public function actionListApi($page = 1, $q = '')
+    public function actionListApi($page = 1, $q = '', $extensions = '')
     {
         Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
         
@@ -178,6 +178,16 @@ class FileCenterController extends Controller
         
         if (!empty($q)) {
             $query->andFilterWhere(['like', 'file_name', $q]);
+        }
+        
+        if (!empty($extensions)) {
+            $extArray = explode(',', $extensions);
+            $extCondition = ['or'];
+            foreach ($extArray as $ext) {
+                // adding % at the beginning for the LIKE condition and false to disable auto-escaping `%` and `_` inside Yii
+                $extCondition[] = ['like', 'file_name', '%.' . trim($ext), false];
+            }
+            $query->andWhere($extCondition);
         }
         
         $query->orderBy(['created_at' => SORT_DESC]);

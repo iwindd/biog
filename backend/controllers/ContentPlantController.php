@@ -156,18 +156,24 @@ class ContentPlantController extends Controller
                 $model->description = $modelPlant->features;
 
                 $post = Yii::$app->request->post();
-                if (!empty($post['filecenter_picture_path'])) {
-                    $model->picture_path = $post['filecenter_picture_path'];
-                } else {
-                    $mainPicture = Upload::uploadPictureNoPermission($model, 'content-plant', '', 0, 'picture_path');
-                    if (!empty($mainPicture)) {
-        
-                        if ($mainPicture != 'error') {
-                            $model->picture_path = $mainPicture;
-                        }else{
-                            $case_error[] = "อัพโหลดรูปภาพไม่สำเร็จ";
+                if (!empty($model->picture_path) && strpos($model->picture_path, '/uploads/filecenter/') !== false) {
+                    $sourcePath = Yii::getAlias('@frontend/web') . $model->picture_path;
+                    if (file_exists($sourcePath)) {
+                        $ext = pathinfo($sourcePath, PATHINFO_EXTENSION);
+                        $newName = 'pic_' . uniqid() . time() . '.' . $ext;
+                        $destDir = Yii::getAlias('@frontend/web/files/content-plant');
+                        \yii\helpers\FileHelper::createDirectory($destDir);
+                        if (copy($sourcePath, $destDir . '/' . $newName)) {
+                            $model->picture_path = $newName;
+                        } else {
+                            $model->picture_path = '';
+                            $case_error[] = "พบข้อผิดพลาดขณะคัดลอกไฟล์รูปภาพ";
                         }
+                    } else {
+                        $model->picture_path = '';
                     }
+                } else if ($model->picture_path !== '') {
+                    $model->picture_path = '';
                 }
 
                 
@@ -360,25 +366,27 @@ class ContentPlantController extends Controller
                     $del = $_POST['deletePic'];
                 }
 
-                if (!empty($post['filecenter_picture_path'])) {
-                    $model->picture_path = $post['filecenter_picture_path'];
-                } else {
-                    $mainPicture = Upload::uploadPictureNoPermission($model, 'content-plant', $modelOld->getOldAttribute('picture_path'), $del, 'picture_path');
-
-            
-                    if (!empty($mainPicture)) {
-        
-                        if (!empty($mainPicture)) {
-                            if ($mainPicture == 'error') {
-                                $error[] = "อัพโหลดรูปภาพไม่สำเร็จ";
-                                $checkUpdate = false;
-                            }else if($mainPicture == 'remove'){
-                                $model->picture_path = '';
-                            }else{
-                                $model->picture_path = $mainPicture;
-                            }
+                if (!empty($model->picture_path) && strpos($model->picture_path, '/uploads/filecenter/') !== false) {
+                    $sourcePath = Yii::getAlias('@frontend/web') . $model->picture_path;
+                    if (file_exists($sourcePath)) {
+                        $ext = pathinfo($sourcePath, PATHINFO_EXTENSION);
+                        $newName = 'pic_' . uniqid() . time() . '.' . $ext;
+                        $destDir = Yii::getAlias('@frontend/web/files/content-plant');
+                        \yii\helpers\FileHelper::createDirectory($destDir);
+                        if (copy($sourcePath, $destDir . '/' . $newName)) {
+                            $model->picture_path = $newName;
+                        } else {
+                            $model->picture_path = $modelOld->getOldAttribute('picture_path');
+                            $case_error[] = "พบข้อผิดพลาดขณะคัดลอกไฟล์รูปภาพ";
+                            $checkUpdate = false;
                         }
+                    } else {
+                        $model->picture_path = $modelOld->getOldAttribute('picture_path');
                     }
+                } else if ($model->picture_path === '' || $del == 1) {
+                    $model->picture_path = '';
+                } else {
+                    $model->picture_path = $modelOld->getOldAttribute('picture_path');
                 }
 
                 if($model->status == 'approved'){
