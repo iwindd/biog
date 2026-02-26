@@ -133,6 +133,49 @@ return [
         // 'meta' => [
         //     'class' => 'frontend\components\MetaComponent',
         // ],
+        'assetManager' => [
+            'appendTimestamp' => true,
+            'bundles' => [
+                'yii\web\JqueryAsset' => [
+                    'js' => [
+                        YII_ENV_DEV ? 'jquery.js' : 'jquery.min.js'
+                    ]
+                ],
+                'yii\bootstrap\BootstrapAsset' => [
+                    'css' => [
+                        YII_ENV_DEV ? 'css/bootstrap.css' : 'css/bootstrap.min.css',
+                    ]
+                ],
+                'yii\bootstrap\BootstrapPluginAsset' => [
+                    'js' => [
+                        YII_ENV_DEV ? 'js/bootstrap.js' : 'js/bootstrap.min.js',
+                    ]
+                ],
+                'kartik\select2\ThemeKrajeeAsset' => [
+                    'css' => [
+                        'css/select2-krajee.min.css'
+                    ]
+                ],
+                'kartik\select2\Select2Asset' => [
+                    'css' => [
+                        'css/select2.min.css'
+                    ],
+                    'js' => [
+                        'js/select2.full.min.js'
+                    ]
+                ],
+                'yii2jodit\JoditAsset' => [
+                    'js' => [
+                        'jodit.min.js'
+                    ],
+                    'css' => [
+                        'jodit.min.css'
+                    ]
+                ]
+            ],
+            // กำหนดให้ใช้ไฟล์ .min.js / .min.css เสมอ ถึงแม้จะอยู่ในโหมด YII_ENV_DEV เพื่อหลีกเลี่ยงไฟล์เต็มที่พัง
+            'linkAssets' => false,
+        ],
     ],
     'modules' => [
         'user' => [
