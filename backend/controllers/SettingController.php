@@ -8,6 +8,8 @@ use yii\data\ActiveDataProvider;
 use yii\web\Controller;
 use yii\web\NotFoundHttpException;
 use yii\filters\VerbFilter;
+use yii\web\UploadedFile;
+use yii\helpers\FileHelper;
 
 use common\components\Helper;
 use backend\models\Users;
@@ -37,7 +39,7 @@ class SettingController extends Controller
                 'rules' => [
                     //dashboard_view
                     [
-                        'actions' => ['index', 'expert', 'data-protection'],
+                        'actions' => ['index', 'expert', 'data-protection', 'delete-protection-pdf'],
                         'allow' => true,
                         'matchCallback' => function ($rule, $action) 
                         {
@@ -45,6 +47,7 @@ class SettingController extends Controller
                                 case 'index':
                                 case 'expert':
                                 case 'data-protection':
+                                case 'delete-protection-pdf':
                                     return PermissionAccess::BackendAccess('setting_view', 'controller');
                                 break;
 
@@ -62,6 +65,7 @@ class SettingController extends Controller
                 'class' => VerbFilter::className(),
                 'actions' => [
                     'delete' => ['POST'],
+                    'delete-protection-pdf' => ['POST'],
                 ],
             ],
         ];
@@ -116,32 +120,110 @@ class SettingController extends Controller
 
     public function actionDataProtection()
     {
+        $model = new Variables();
+        $query = Variables::find()->where(['key' => "data_protection"])->one();
+        $model->data_protection = $query->value;
 
+        // Load current PDF path
+        $pdfRecord = Variables::find()->where(['key' => 'data_protection_pdf'])->one();
+        $currentPdf = !empty($pdfRecord) ? $pdfRecord->value : '';
 
-        $model= new Variables();
-        $query=Variables::find()->where(['key' =>"data_protection"])->one();
-        $model->data_protection=$query->value;
-       
-
-
-        if (Yii::$app->request->post()){
-            $post=Yii::$app->request->post();
+        if (Yii::$app->request->post()) {
+            $post = Yii::$app->request->post();
             Yii::$app->db->createCommand()
-            ->update('variables', ['value' => $post['Variables']['data_protection']], ['key' =>"data_protection"])
-            ->execute();
+                ->update('variables', ['value' => $post['Variables']['data_protection']], ['key' => "data_protection"])
+                ->execute();
 
+            // Handle PDF upload
+            $pdfFile = UploadedFile::getInstance($model, 'data_protection_pdf');
+            if ($pdfFile) {
+                // Validate extension
+                if (strtolower($pdfFile->extension) !== 'pdf') {
+                    Yii::$app->getSession()->setFlash('alert', [
+                        'body' => 'อนุญาตเฉพาะไฟล์ PDF เท่านั้น',
+                        'options' => ['class' => 'alert-danger']
+                    ]);
+                    return $this->redirect(['/setting/data-protection']);
+                }
 
-            Yii::$app->getSession()->setFlash('alert',[
-                'body'=>'บันทึกข้อมูลเสร็จเรียบร้อยแล้ว',
-                'options'=>['class'=>'alert-success']
+                // Validate size (max 10MB)
+                if ($pdfFile->size > 10 * 1024 * 1024) {
+                    Yii::$app->getSession()->setFlash('alert', [
+                        'body' => 'ขนาดไฟล์เกินกำหนด (สูงสุด 10 MB)',
+                        'options' => ['class' => 'alert-danger']
+                    ]);
+                    return $this->redirect(['/setting/data-protection']);
+                }
+
+                $uploadDir = Yii::getAlias('@frontend/web/uploads/data-protection');
+                if (!is_dir($uploadDir)) {
+                    FileHelper::createDirectory($uploadDir);
+                }
+
+                // Delete old file if exists
+                if (!empty($currentPdf)) {
+                    $oldFilePath = Yii::getAlias('@frontend/web') . $currentPdf;
+                    if (file_exists($oldFilePath)) {
+                        @unlink($oldFilePath);
+                    }
+                }
+
+                $fileName = time() . '_' . preg_replace('/[^a-zA-Z0-9_\-\.]/', '', $pdfFile->name);
+                $filePath = $uploadDir . '/' . $fileName;
+                $relativePath = '/uploads/data-protection/' . $fileName;
+
+                if ($pdfFile->saveAs($filePath)) {
+                    // Upsert the PDF path
+                    if (!empty($pdfRecord)) {
+                        Yii::$app->db->createCommand()
+                            ->update('variables', ['value' => $relativePath], ['key' => 'data_protection_pdf'])
+                            ->execute();
+                    } else {
+                        Yii::$app->db->createCommand()
+                            ->insert('variables', ['key' => 'data_protection_pdf', 'value' => $relativePath])
+                            ->execute();
+                    }
+                }
+            }
+
+            Yii::$app->getSession()->setFlash('alert', [
+                'body' => 'บันทึกข้อมูลเสร็จเรียบร้อยแล้ว',
+                'options' => ['class' => 'alert-success']
             ]);
 
             return $this->redirect(['/setting/data-protection']);
         }
+
         return $this->render('data-protection', [
             'model' => $model,
+            'currentPdf' => $currentPdf,
         ]);
-        
+    }
+
+    /**
+     * Delete the data protection PDF file
+     */
+    public function actionDeleteProtectionPdf()
+    {
+        $pdfRecord = Variables::find()->where(['key' => 'data_protection_pdf'])->one();
+        if (!empty($pdfRecord) && !empty($pdfRecord->value)) {
+            // Delete file from disk
+            $filePath = Yii::getAlias('@frontend/web') . $pdfRecord->value;
+            if (file_exists($filePath)) {
+                @unlink($filePath);
+            }
+            // Clear value in DB
+            Yii::$app->db->createCommand()
+                ->update('variables', ['value' => ''], ['key' => 'data_protection_pdf'])
+                ->execute();
+        }
+
+        Yii::$app->getSession()->setFlash('alert', [
+            'body' => 'ลบไฟล์ PDF เสร็จเรียบร้อยแล้ว',
+            'options' => ['class' => 'alert-success']
+        ]);
+
+        return $this->redirect(['/setting/data-protection']);
     }
 
     public function actionExpert()

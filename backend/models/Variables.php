@@ -15,6 +15,7 @@ class Variables extends \yii\db\ActiveRecord
 {
     public $sender_mail;
     public $data_protection;
+    public $data_protection_pdf;
     public $email_info;
     public $phone_info;
     public $expert;
@@ -43,6 +44,7 @@ class Variables extends \yii\db\ActiveRecord
         return [
             [['value', 'sender_mail', 'about2', 'email_info', 'phone_info', 'data_protection'], 'string'],
             ['expert', 'safe'],
+            ['data_protection_pdf', 'safe'],
             [['key'], 'string', 'max' => 100],
         ];
     }

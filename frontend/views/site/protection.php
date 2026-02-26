@@ -53,6 +53,23 @@ $banner = Banner::find()->where(['slug_url' => 'Protection-Policy'])->one();
                             ?>
                             
                         </div>
+
+                        <?php 
+                            $data_protection_pdf = Variables::find()->where(['key' => 'data_protection_pdf'])->one();
+                            if (!empty($data_protection_pdf) && !empty($data_protection_pdf['value'])):
+                        ?>
+                        <div class="pdf-section" style="margin-top: 30px;">
+                            <h4 style="margin-bottom: 15px;"><i class="fa fa-file-pdf-o" style="color: #e74c3c;"></i> เอกสาร PDF</h4>
+                            <div style="margin-bottom: 15px;">
+                                <a href="<?= $data_protection_pdf['value'] ?>" target="_blank" class="btn btn-primary">
+                                    <i class="fa fa-download"></i> ดาวน์โหลดเอกสาร PDF
+                                </a>
+                            </div>
+                            <div style="border: 1px solid #ddd; border-radius: 4px; overflow: hidden;">
+                                <iframe src="<?= $data_protection_pdf['value'] ?>" width="100%" height="600px" style="border: none;" title="เอกสาร PDF คุ้มครองข้อมูลส่วนบุคคล"></iframe>
+                            </div>
+                        </div>
+                        <?php endif; ?>
                     </div>
 
                 </div>
