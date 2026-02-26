@@ -84,9 +84,9 @@ $longitude = $model->longitude ?? '';
         <i class="fa fa-spinner"></i> กำลังค้นหาตำแหน่งปัจจุบัน...
     </div>
     <?php else: ?>
-    <!-- Hidden inputs for view mode -->
-    <input id="content-latitude" value="<?= htmlspecialchars($latitude) ?>t">
-    <input id="content-longitude" value="<?= htmlspecialchars($longitude) ?>t">
+        <!-- Hidden inputs for view mode -->
+        <input id="content-latitude" type="hidden" value="<?= htmlspecialchars($latitude) ?>">
+        <input id="content-longitude" type="hidden" value="<?= htmlspecialchars($longitude) ?>">
     <?php endif; ?>
 
     <!-- Google Map -->

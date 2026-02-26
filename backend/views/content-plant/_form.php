@@ -55,10 +55,6 @@ if (!empty($model['subdistrict_id'])) {
 
 $licenseList = ArrayHelper::map(License::find()->all(), 'id', 'name');
 
-// debug validation error
-if (!empty($case_error)) {
-    dd($case_error);
-}
 ?>
 
 <div class="content-form">
