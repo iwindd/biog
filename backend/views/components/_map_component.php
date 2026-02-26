@@ -94,4 +94,14 @@ $longitude = $model->longitude ?? '';
          class="map-component-map"
          data-readonly="<?= $readonly ? 'true' : 'false' ?>">
     </div>
+
+    <?php if (!$readonly): ?>
+    <!-- Sync address from pin -->
+    <div class="map-sync-address" style="margin-top: 10px;">
+        <button type="button" id="btn-sync-address" class="btn btn-info btn-sm" title="ดึงที่อยู่จากตำแหน่ง pin บนแผนที่">
+            <i class="fa fa-map-pin"></i> ดึงที่อยู่จากพิกัด
+        </button>
+        <span id="sync-address-status" style="margin-left: 8px; display: none;"></span>
+    </div>
+    <?php endif; ?>
 </div>

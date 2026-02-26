@@ -436,6 +436,110 @@ class ApiController extends \yii\web\Controller
         $this->_response(200, 'success', $data);
     }
 
+    /**
+     * Reverse geocode: match Thai address names to DB IDs
+     * GET /api/reverse-geocode?province=X&district=Y&subdistrict=Z&zipcode=W
+     */
+    public function actionReverseGeocode()
+    {
+        $request = Yii::$app->request;
+        $provinceName = trim($request->get('province', ''));
+        $districtName = trim($request->get('district', ''));
+        $subdistrictName = trim($request->get('subdistrict', ''));
+        $zipcodeValue = trim($request->get('zipcode', ''));
+
+        $result = [
+            'region_id' => null,
+            'province_id' => null,
+            'district_id' => null,
+            'subdistrict_id' => null,
+            'zipcode_id' => null,
+        ];
+
+        // Strip common Thai prefixes for fuzzy matching
+        $stripPrefixes = function ($name) {
+            $prefixes = ['จังหวัด', 'อำเภอ', 'เขต', 'แขวง', 'ตำบล'];
+            foreach ($prefixes as $prefix) {
+                if (mb_strpos($name, $prefix) === 0) {
+                    $name = mb_substr($name, mb_strlen($prefix));
+                }
+            }
+            return trim($name);
+        };
+
+        // Match province
+        if (!empty($provinceName)) {
+            $cleanName = $stripPrefixes($provinceName);
+            $province = Province::find()
+                ->where(['or',
+                    ['like', 'name_th', $cleanName],
+                    ['like', 'name_en', $provinceName],
+                ])
+                ->one();
+            if ($province) {
+                $result['province_id'] = (int) $province->id;
+                $result['region_id'] = (int) $province->region_id;
+            }
+        }
+
+        // Match district (scoped to province if found)
+        if (!empty($districtName)) {
+            $cleanName = $stripPrefixes($districtName);
+            $districtQuery = District::find()
+                ->where(['or',
+                    ['like', 'name_th', $cleanName],
+                    ['like', 'name_en', $districtName],
+                ]);
+            if ($result['province_id']) {
+                $districtQuery->andWhere(['province_id' => $result['province_id']]);
+            }
+            $district = $districtQuery->one();
+            if ($district) {
+                $result['district_id'] = (int) $district->id;
+                // Also set province from district if not yet found
+                if (!$result['province_id']) {
+                    $result['province_id'] = (int) $district->province_id;
+                    $province = Province::findOne($district->province_id);
+                    if ($province) {
+                        $result['region_id'] = (int) $province->region_id;
+                    }
+                }
+            }
+        }
+
+        // Match subdistrict (scoped to district if found)
+        if (!empty($subdistrictName)) {
+            $cleanName = $stripPrefixes($subdistrictName);
+            $subdistrictQuery = Subdistrict::find()
+                ->where(['or',
+                    ['like', 'name_th', $cleanName],
+                    ['like', 'name_en', $subdistrictName],
+                ]);
+            if ($result['district_id']) {
+                $subdistrictQuery->andWhere(['district_id' => $result['district_id']]);
+            }
+            $subdistrict = $subdistrictQuery->one();
+            if ($subdistrict) {
+                $result['subdistrict_id'] = (int) $subdistrict->id;
+            }
+        }
+
+        // Match zipcode (scoped to subdistrict if found)
+        if (!empty($zipcodeValue)) {
+            $zipcodeQuery = Zipcode::find()->where(['zipcode' => $zipcodeValue]);
+            if ($result['subdistrict_id']) {
+                $zipcodeQuery->andWhere(['subdistrict_id' => $result['subdistrict_id']]);
+            }
+            $zipcode = $zipcodeQuery->one();
+            if ($zipcode) {
+                $result['zipcode_id'] = (int) $zipcode->id;
+            }
+        }
+
+        $this->_response(200, 'success', $result);
+    }
+
+
     public function actionTeacher(){
         if (!empty(Yii::$app->user->identity->id)) {
             $data = Users::find()

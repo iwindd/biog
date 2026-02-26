@@ -205,6 +205,8 @@
                 var clickLng = e.latLng.lng();
                 addOrMoveMarker(clickLat, clickLng);
                 updateInputsFromLatLng(clickLat, clickLng);
+                // Auto-sync address
+                syncAddressFromPin();
             });
         }
     }
@@ -225,6 +227,8 @@
                     var dragLat = e.latLng.lat();
                     var dragLng = e.latLng.lng();
                     updateInputsFromLatLng(dragLat, dragLng);
+                    // Auto-sync address
+                    syncAddressFromPin();
                 });
             }
         }
@@ -377,18 +381,168 @@
         });
     }
 
+    var syncInProgress = false;
+
+    // ==========================
+    // Sync address from map pin
+    // ==========================
+    function syncAddressFromPin() {
+        if (syncInProgress) return;
+
+        var statusEl = document.getElementById('sync-address-status');
+        var btn = document.getElementById('btn-sync-address');
+
+        if (!marker) {
+            if (statusEl) {
+                statusEl.style.display = 'inline';
+                statusEl.innerHTML = '<span style="color:#d9534f"><i class="fa fa-exclamation-circle"></i> กรุณาปักหมุดบนแผนที่ก่อน</span>';
+                setTimeout(function () { statusEl.style.display = 'none'; }, 3000);
+            }
+            return;
+        }
+
+        var lat = marker.getPosition().lat();
+        var lng = marker.getPosition().lng();
+
+        // Show loading state
+        syncInProgress = true;
+        if (btn) btn.disabled = true;
+        if (statusEl) {
+            statusEl.style.display = 'inline';
+            statusEl.innerHTML = '<i class="fa fa-spinner fa-spin"></i> กำลังค้นหาที่อยู่...';
+        }
+
+        var geocoder = new google.maps.Geocoder();
+        geocoder.geocode({ location: { lat: lat, lng: lng }, language: 'th' }, function (results, status) {
+            if (status !== 'OK' || !results || !results.length) {
+                if (statusEl) {
+                    statusEl.innerHTML = '<span style="color:#d9534f"><i class="fa fa-exclamation-circle"></i> ไม่พบที่อยู่จากพิกัดนี้</span>';
+                    setTimeout(function () { statusEl.style.display = 'none'; }, 3000);
+                }
+                if (btn) btn.disabled = false;
+                syncInProgress = false;
+                return;
+            }
+
+            // Extract address components from first result
+            var components = results[0].address_components;
+            var province = '';
+            var district = '';
+            var subdistrict = '';
+            var zipcode = '';
+
+            for (var i = 0; i < components.length; i++) {
+                var types = components[i].types;
+                var longName = components[i].long_name;
+
+                if (types.indexOf('administrative_area_level_1') !== -1) {
+                    province = longName;
+                } else if (types.indexOf('administrative_area_level_2') !== -1) {
+                    district = longName;
+                } else if (types.indexOf('sublocality_level_1') !== -1 || types.indexOf('sublocality') !== -1) {
+                    subdistrict = longName;
+                } else if (types.indexOf('locality') !== -1 && !subdistrict) {
+                    // Some areas return locality instead of sublocality
+                    subdistrict = longName;
+                } else if (types.indexOf('postal_code') !== -1) {
+                    zipcode = longName;
+                }
+            }
+
+            // If no subdistrict from sublocality, try from route or neighborhood
+            if (!subdistrict) {
+                for (var j = 0; j < components.length; j++) {
+                    if (components[j].types.indexOf('neighborhood') !== -1) {
+                        subdistrict = components[j].long_name;
+                        break;
+                    }
+                }
+            }
+
+            console.log('[map-sync] Geocoded:', { province: province, district: district, subdistrict: subdistrict, zipcode: zipcode });
+
+            // Check if we're in Thailand
+            var country = '';
+            for (var k = 0; k < components.length; k++) {
+                if (components[k].types.indexOf('country') !== -1) {
+                    country = components[k].short_name;
+                }
+            }
+            if (country !== 'TH') {
+                if (statusEl) {
+                    statusEl.innerHTML = '<span style="color:#d9534f"><i class="fa fa-exclamation-circle"></i> ตำแหน่งนี้ไม่อยู่ในประเทศไทย</span>';
+                    setTimeout(function () { statusEl.style.display = 'none'; }, 3000);
+                }
+                if (btn) btn.disabled = false;
+                return;
+            }
+
+            // Call backend to match names to DB IDs
+            var apiUrl = (typeof appBaseUrl !== 'undefined' ? appBaseUrl : '') + '/api/reverse-geocode';
+            $.ajax({
+                method: 'GET',
+                url: apiUrl,
+                data: {
+                    province: province,
+                    district: district,
+                    subdistrict: subdistrict,
+                    zipcode: zipcode
+                },
+                cache: false,
+                dataType: 'json',
+                success: function (response) {
+                    if (response.data) {
+                        var d = response.data;
+                        console.log('[map-sync] Matched IDs:', d);
+
+                        // Use setLocationChain from location.js if available
+                        if (typeof setLocationChain === 'function') {
+                            setLocationChain('#content', d);
+                        }
+
+                        if (statusEl) {
+                            statusEl.innerHTML = '<span style="color:#5cb85c"><i class="fa fa-check-circle"></i> ดึงที่อยู่สำเร็จ</span>';
+                            setTimeout(function () { statusEl.style.display = 'none'; }, 3000);
+                        }
+                    }
+                    if (btn) btn.disabled = false;
+                    syncInProgress = false;
+                },
+                error: function () {
+                    if (statusEl) {
+                        statusEl.innerHTML = '<span style="color:#d9534f"><i class="fa fa-exclamation-circle"></i> เกิดข้อผิดพลาด</span>';
+                        setTimeout(function () { statusEl.style.display = 'none'; }, 3000);
+                    }
+                    if (btn) btn.disabled = false;
+                    syncInProgress = false;
+                }
+            });
+        });
+    }
+
+    function bindSyncButton() {
+        var btn = document.getElementById('btn-sync-address');
+        if (btn) {
+            $(btn).on('click', function () {
+                syncAddressFromPin();
+            });
+        }
+    }
+
     // ==========================
     // Google Maps callback
     // ==========================
     // The Google Maps API script uses callback=initialMap
     window.initialMap = function () {
         initMapComponent();
+        bindSyncButton();
     };
 
     // Also support pages that load maps script before this file
     if (typeof google !== 'undefined' && google.maps) {
         $(document).ready(function () {
             initMapComponent();
+            bindSyncButton();
         });
     }
 

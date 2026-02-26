@@ -146,6 +146,116 @@ function showZipcode(t) {
     });
 }
 
+/**
+ * Set location dropdowns from reverse-geocoded data
+ * Called by map-component.js syncAddressFromPin()
+ *
+ * @param {string} prefix - selector prefix e.g. "#content", "#profile", "#school"
+ * @param {object} data - { region_id, province_id, district_id, subdistrict_id, zipcode_id }
+ */
+function setLocationChain(prefix, data) {
+    // Step 1: Set region
+    if (data.region_id) {
+        $(prefix + '-region_id').val(data.region_id);
+    }
+
+    // Step 2: Load provinces for this region, then set province
+    if (data.region_id && data.province_id) {
+        $.ajax({
+            method: 'GET',
+            url: host + '/api/province',
+            data: { region_id: data.region_id },
+            cache: false,
+            dataType: 'json',
+            success: function (res) {
+                var $province = $(prefix + '-province_id');
+                $province.empty().append('<option value="">กรุณาเลือกจังหวัด</option>');
+                if (res.data) {
+                    for (var i = 0; i < res.data.length; i++) {
+                        $province.append('<option value="' + res.data[i].id + '">' + res.data[i].name + '</option>');
+                    }
+                }
+                $province.val(data.province_id);
+
+                // Step 3: Load districts
+                if (data.district_id) {
+                    loadDistrictChain(prefix, data);
+                }
+            }
+        });
+    }
+
+    function loadDistrictChain(prefix, data) {
+        $.ajax({
+            method: 'GET',
+            url: host + '/api/district',
+            data: { province_id: data.province_id },
+            cache: false,
+            dataType: 'json',
+            success: function (res) {
+                var $district = $(prefix + '-district_id');
+                $district.empty().append('<option value="">กรุณาเลือกอำเภอ</option>');
+                if (res.data) {
+                    for (var i = 0; i < res.data.length; i++) {
+                        $district.append('<option value="' + res.data[i].id + '">' + res.data[i].name + '</option>');
+                    }
+                }
+                $district.val(data.district_id);
+
+                // Step 4: Load subdistricts
+                if (data.subdistrict_id) {
+                    loadSubdistrictChain(prefix, data);
+                }
+            }
+        });
+    }
+
+    function loadSubdistrictChain(prefix, data) {
+        $.ajax({
+            method: 'GET',
+            url: host + '/api/subdistrict',
+            data: { district_id: data.district_id },
+            cache: false,
+            dataType: 'json',
+            success: function (res) {
+                var $subdistrict = $(prefix + '-subdistrict_id');
+                $subdistrict.empty().append('<option value="">กรุณาเลือกตำบล</option>');
+                if (res.data) {
+                    for (var i = 0; i < res.data.length; i++) {
+                        $subdistrict.append('<option value="' + res.data[i].id + '">' + res.data[i].name + '</option>');
+                    }
+                }
+                $subdistrict.val(data.subdistrict_id);
+
+                // Step 5: Load zipcodes
+                if (data.zipcode_id) {
+                    loadZipcodeChain(prefix, data);
+                }
+            }
+        });
+    }
+
+    function loadZipcodeChain(prefix, data) {
+        $.ajax({
+            method: 'GET',
+            url: host + '/api/zipcode',
+            data: { subdistrict_id: data.subdistrict_id },
+            cache: false,
+            dataType: 'json',
+            success: function (res) {
+                var $zipcode = $(prefix + '-zipcode_id');
+                $zipcode.empty().append('<option value="">กรุณาเลือกรหัสไปรษณีย์</option>');
+                if (res.data) {
+                    for (var i = 0; i < res.data.length; i++) {
+                        $zipcode.append('<option value="' + res.data[i].id + '">' + res.data[i].zipcode + '</option>');
+                    }
+                }
+                $zipcode.val(data.zipcode_id);
+            }
+        });
+    }
+}
+
 // Bind change events when DOM is ready
 $(document).ready(function () {
     // Content forms (content-plant, content-animal, content-fungi, etc.)
