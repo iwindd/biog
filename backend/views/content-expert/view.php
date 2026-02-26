@@ -136,19 +136,66 @@ $this->params['breadcrumbs'][] = $this->title;
                 }
             ],
             [
-                'format' => 'raw',
                 'attribute' => 'photo_credit',
+                'label' => 'แหล่งที่มาของภาพ',
+                'format' => 'raw',
                 'value' => function ($model) {
-                    return FrontendHelper::getSourceInformation($model['photo_credit']);
-                }
+                    if (empty($model->contentImageSources)) {
+                        return '-';
+                    }
+                    $sources = [];
+                    foreach ($model->contentImageSources as $source) {
+                        $formattedItems = [];
+                        if (!empty($source->source_name)) {
+                            $formattedItems[] = $source->source_name;
+                        }
+                        if (!empty($source->author)) {
+                            $formattedItems[] = 'ผู้จัดทำ: ' . $source->author;
+                        }
+                        if (!empty($source->published_date)) {
+                            $formattedItems[] = 'วันที่เผยแพร่: ' . date('d/m/Y', strtotime($source->published_date));
+                        }
+                        if (!empty($source->reference_url)) {
+                            $formattedItems[] = 'URL: <a href="' . $source->reference_url . '" target="_blank">' . $source->reference_url . '</a>';
+                        }
+                        
+                        if (!empty($formattedItems)) {
+                            $sources[] = '<li>' . implode(', ', $formattedItems) . '</li>';
+                        }
+                    }
+                    return !empty($sources) ? '<ul style="padding-left: 20px; margin-bottom: 0;">' . implode('', $sources) . '</ul>' : '-';
+                },
             ],
             [
-                'format' => 'raw',
                 'attribute' => 'source_information',
+                'format' => 'raw',
                 'label' => 'แหล่งที่มาของข้อมูล',
                 'value' => function ($model) {
-                    return FrontendHelper::getSourceInformation($model['source_information']);
-                }
+                    if (empty($model->contentDataSources)) {
+                        return '-';
+                    }
+                    $sources = [];
+                    foreach ($model->contentDataSources as $source) {
+                        $formattedItems = [];
+                        if (!empty($source->source_name)) {
+                            $formattedItems[] = $source->source_name;
+                        }
+                        if (!empty($source->author)) {
+                            $formattedItems[] = 'ผู้จัดทำ: ' . $source->author;
+                        }
+                        if (!empty($source->published_date)) {
+                            $formattedItems[] = 'วันที่เผยแพร่: ' . date('d/m/Y', strtotime($source->published_date));
+                        }
+                        if (!empty($source->reference_url)) {
+                            $formattedItems[] = 'URL: <a href="' . $source->reference_url . '" target="_blank">' . $source->reference_url . '</a>';
+                        }
+
+                        if (!empty($formattedItems)) {
+                            $sources[] = '<li>' . implode(', ', $formattedItems) . '</li>';
+                        }
+                    }
+                    return !empty($sources) ? '<ul style="padding-left: 20px; margin-bottom: 0;">' . implode('', $sources) . '</ul>' : '-';
+                },
             ],
             [
                 'attribute' => 'approved_by_user_id',

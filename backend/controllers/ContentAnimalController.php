@@ -5,6 +5,8 @@ namespace backend\controllers;
 use Yii;
 use backend\models\Content;
 use backend\models\Picture;
+use backend\models\ContentImageSource;
+use backend\models\ContentDataSource;
 use backend\models\ContentAnimal;
 use backend\models\ContentAnimalSearch;
 use backend\models\ContentTaxonomy;
@@ -181,9 +183,13 @@ class ContentAnimalController extends Controller
     public function actionView($id)
     {   
         $modelContent=ContentAnimal::find()->where(['content_id'=>$id])->one();
+        $modelImageSource = ContentImageSource::find()->where(['content_id' => $id])->all();
+        $modelDataSource = ContentDataSource::find()->where(['content_id' => $id])->all();
         return $this->render('view', [
             'model' => $this->findModel($id),
             'modelContent'=>$modelContent,
+            'modelImageSource' => $modelImageSource,
+            'modelDataSource' => $modelDataSource,
         ]);
     }
 
@@ -198,10 +204,17 @@ class ContentAnimalController extends Controller
         $model->type_id = 2;
         $modelAnimal = new ContentAnimal();
         $mediaModel = array();
+        $modelImageSource = [new ContentImageSource()];
+        $modelDataSource = [new ContentDataSource()];
 
         $case_error = array();
 
         if ($model->load(Yii::$app->request->post()) && $modelAnimal->load(Yii::$app->request->post())) {
+            $modelImageSource = \backend\base\Model::createMultiple(ContentImageSource::classname());
+            \backend\base\Model::loadMultiple($modelImageSource, Yii::$app->request->post());
+
+            $modelDataSource = \backend\base\Model::createMultiple(ContentDataSource::classname());
+            \backend\base\Model::loadMultiple($modelDataSource, Yii::$app->request->post());
             $transaction = \Yii::$app->db->beginTransaction();
             try {
                 $model->active = 1;
@@ -290,6 +303,35 @@ class ContentAnimalController extends Controller
                         }
                     }
 
+                    foreach ($modelImageSource as $imgSrc) {
+                        $newImgSrc = new ContentImageSource();
+                        $newImgSrc->content_id = $model->id;
+                        $newImgSrc->source_name = $imgSrc->source_name;
+                        $newImgSrc->author = $imgSrc->author;
+                        $newImgSrc->published_date = $imgSrc->published_date;
+                        $newImgSrc->reference_url = $imgSrc->reference_url;
+
+                        if (!empty($newImgSrc->source_name) || !empty($newImgSrc->author) || !empty($newImgSrc->published_date) || !empty($newImgSrc->reference_url)) {
+                            if (!$newImgSrc->save(false)) {
+                                $checkUpdate = false;
+                            }
+                        }
+                    }
+
+                    foreach ($modelDataSource as $dataSource) {
+                        $newDataSource = new ContentDataSource();
+                        $newDataSource->content_id = $model->id;
+                        $newDataSource->source_name = $dataSource->source_name;
+                        $newDataSource->author = $dataSource->author;
+                        $newDataSource->published_date = $dataSource->published_date;
+                        $newDataSource->reference_url = $dataSource->reference_url;
+
+                        if (!empty($newDataSource->source_name) || !empty($newDataSource->author) || !empty($newDataSource->published_date) || !empty($newDataSource->reference_url)) {
+                            if (!$newDataSource->save(false)) {
+                                $checkUpdate = false;
+                            }
+                        }
+                    }
                     $modelAnimal->content_id = $model->id;
                     $modelAnimal->created_at = date("Y-m-d H:i:s");
                     $modelAnimal->updated_at = date("Y-m-d H:i:s");
@@ -317,6 +359,8 @@ class ContentAnimalController extends Controller
             'model' => $model,
             'modelAnimal' => $modelAnimal,
             'mediaModel' => $mediaModel,
+            'modelImageSource' => $modelImageSource,
+            'modelDataSource' => $modelDataSource,
             'case_error' => $case_error
         ]);
     }
@@ -341,6 +385,12 @@ class ContentAnimalController extends Controller
 
         $mediaModelOld = Picture::find()->where(['content_id' => $id])->all();
         $mediaModel = new Picture();
+
+        $modelImageSourceOld = ContentImageSource::find()->where(['content_id' => $id])->all();
+        $modelImageSource = (empty($modelImageSourceOld)) ? [new ContentImageSource()] : $modelImageSourceOld;
+
+        $modelDataSourceOld = ContentDataSource::find()->where(['content_id' => $id])->all();
+        $modelDataSource = (empty($modelDataSourceOld)) ? [new ContentDataSource()] : $modelDataSourceOld;
 
         $case_error = array();
 
@@ -372,6 +422,14 @@ class ContentAnimalController extends Controller
                 Content::updateAll(['active' => '0'], ['id' => $model->content_root_id]);
 
                 $model->content_source_id = $latestContentId;
+
+                $modelImageSourceTemp = \backend\base\Model::createMultiple(ContentImageSource::classname(), $modelImageSourceOld);
+                \backend\base\Model::loadMultiple($modelImageSourceTemp, Yii::$app->request->post());
+                $modelImageSource = $modelImageSourceTemp;
+
+                $modelDataSourceTemp = \backend\base\Model::createMultiple(ContentDataSource::classname(), $modelDataSourceOld);
+                \backend\base\Model::loadMultiple($modelDataSourceTemp, Yii::$app->request->post());
+                $modelDataSource = $modelDataSourceTemp;
 
                 $model->created_by_user_id = $modelOldLatest->created_by_user_id;
                 $model->updated_by_user_id = Yii::$app->user->identity->id;
@@ -519,6 +577,36 @@ class ContentAnimalController extends Controller
                     $modelAnimal->updated_at = date("Y-m-d H:i:s");
                     if ($modelAnimal->save()) {
 
+                        foreach ($modelImageSource as $imgSrc) {
+                            $newImgSrc = new ContentImageSource();
+                            $newImgSrc->content_id = $newContentId;
+                            $newImgSrc->source_name = $imgSrc->source_name;
+                            $newImgSrc->author = $imgSrc->author;
+                            $newImgSrc->published_date = $imgSrc->published_date;
+                            $newImgSrc->reference_url = $imgSrc->reference_url;
+
+                            if (!empty($newImgSrc->source_name) || !empty($newImgSrc->author) || !empty($newImgSrc->published_date) || !empty($newImgSrc->reference_url)) {
+                                if (!$newImgSrc->save(false)) {
+                                    $checkUpdate = false;
+                                }
+                            }
+                        }
+
+                        foreach ($modelDataSource as $dataSource) {
+                            $newDataSource = new ContentDataSource();
+                            $newDataSource->content_id = $newContentId;
+                            $newDataSource->source_name = $dataSource->source_name;
+                            $newDataSource->author = $dataSource->author;
+                            $newDataSource->published_date = $dataSource->published_date;
+                            $newDataSource->reference_url = $dataSource->reference_url;
+
+                            if (!empty($newDataSource->source_name) || !empty($newDataSource->author) || !empty($newDataSource->published_date) || !empty($newDataSource->reference_url)) {
+                                if (!$newDataSource->save(false)) {
+                                    $checkUpdate = false;
+                                }
+                            }
+                        }
+
                         if ($checkUpdate) {
                             $transaction->commit();
                             
@@ -545,7 +633,9 @@ class ContentAnimalController extends Controller
             'model' => $modelOld,
             'modelAnimal' => $modelAnimalOld,
             'mediaModel' => $mediaModelOld,
-            'case_error' => $case_error
+            'case_error' => $case_error,
+            'modelImageSource' => $modelImageSource,
+            'modelDataSource' => $modelDataSource,
         ]);
 
 

@@ -18,6 +18,8 @@ $this->params['breadcrumbs'][] = 'Update';
         'model' => $model,
         'modelAnimal' => $modelAnimal,
         'mediaModel' => $mediaModel,
+        'modelImageSource' => $modelImageSource,
+        'modelDataSource' => $modelDataSource,
         'case_error' => $case_error
     ]) ?>
 

@@ -17,6 +17,8 @@ $this->params['breadcrumbs'][] = $this->title;
         'model' => $model,
         'modelFungi' => $modelFungi,
         'mediaModel' => $mediaModel,
+        'modelImageSource' => $modelImageSource,
+        'modelDataSource' => $modelDataSource,
         'case_error' => $case_error
     ]) ?>
 

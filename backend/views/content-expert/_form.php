@@ -150,7 +150,23 @@ $licenseList = ArrayHelper::map(License::find()->all(), 'id', 'name');
                                                                                                                                                                                 */
             ?>
 
-            <?= $form->field($model, 'other_information')->textarea(['rows' => '6', 'class' => 'summernote-other_information']) ?>
+            <div class="row">
+                <div class="col-md-12">
+                    <?= $this->render('../components/_image_source_dynamic_form', [
+                        'form' => $form,
+                        'modelImageSource' => $modelImageSource,
+                    ]) ?>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-12">
+                    <?= $this->render('../components/_data_source_dynamic_form', [
+                        'form' => $form,
+                        'modelDataSource' => $modelDataSource,
+                    ]) ?>
+                </div>
+            </div>
 
             <?php  /*
                                                                                                                                                                         * <?= $form->field($model, 'source_information')->widget(\yii2jodit\JoditWidget::className(), [
@@ -303,9 +319,7 @@ $licenseList = ArrayHelper::map(License::find()->all(), 'id', 'name');
 
             <input type="hidden" name="removeTaxonomy" id="removeTaxonomy">
 
-            <?= $form->field($model, 'photo_credit')->textInput(['maxlength' => true]) ?>
 
-            <?= $form->field($model, 'source_information')->textarea(['rows' => '3'], 'รายละเอียด'); ?>
 
             
             <?= $form->field($model, 'note')->textInput(['maxlength' => true]) ?>

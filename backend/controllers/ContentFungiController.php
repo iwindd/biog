@@ -11,6 +11,8 @@ use backend\models\ContentTaxonomy;
 use backend\models\Taxonomy;
 use backend\models\Comment;
 use backend\models\ContentStatistics;
+use backend\models\ContentImageSource;
+use backend\models\ContentDataSource;
 use yii\web\Controller;
 use yii\web\NotFoundHttpException;
 use yii\filters\VerbFilter;
@@ -130,9 +132,18 @@ class ContentFungiController extends Controller
         $modelFungi = new ContentFungi();
         $mediaModel = array();
 
+        $modelImageSource = [new \backend\models\ContentImageSource()];
+        $modelDataSource = [new \backend\models\ContentDataSource()];
+
         $case_error = array();
 
         if ($model->load(Yii::$app->request->post()) && $modelFungi->load(Yii::$app->request->post())) {
+            $modelImageSource = \backend\base\Model::createMultiple(\backend\models\ContentImageSource::classname());
+            \backend\base\Model::loadMultiple($modelImageSource, Yii::$app->request->post());
+
+            $modelDataSource = \backend\base\Model::createMultiple(\backend\models\ContentDataSource::classname());
+            \backend\base\Model::loadMultiple($modelDataSource, Yii::$app->request->post());
+
             $transaction = \Yii::$app->db->beginTransaction();
             try {
                 $model->active = 1;
@@ -213,6 +224,36 @@ class ContentFungiController extends Controller
                         }
                     }
 
+                    foreach ($modelImageSource as $imgSrc) {
+                        $newImgSrc = new \backend\models\ContentImageSource();
+                        $newImgSrc->content_id = $model->id;
+                        $newImgSrc->source_name = $imgSrc->source_name;
+                        $newImgSrc->author = $imgSrc->author;
+                        $newImgSrc->published_date = $imgSrc->published_date;
+                        $newImgSrc->reference_url = $imgSrc->reference_url;
+
+                        if (!empty($newImgSrc->source_name) || !empty($newImgSrc->author) || !empty($newImgSrc->published_date) || !empty($newImgSrc->reference_url)) {
+                            if (!$newImgSrc->save(false)) {
+                                $checkUpdate = false;
+                            }
+                        }
+                    }
+
+                    foreach ($modelDataSource as $dataSource) {
+                        $newDataSource = new \backend\models\ContentDataSource();
+                        $newDataSource->content_id = $model->id;
+                        $newDataSource->source_name = $dataSource->source_name;
+                        $newDataSource->author = $dataSource->author;
+                        $newDataSource->published_date = $dataSource->published_date;
+                        $newDataSource->reference_url = $dataSource->reference_url;
+
+                        if (!empty($newDataSource->source_name) || !empty($newDataSource->author) || !empty($newDataSource->published_date) || !empty($newDataSource->reference_url)) {
+                            if (!$newDataSource->save(false)) {
+                                $checkUpdate = false;
+                            }
+                        }
+                    }
+
                     $modelFungi->content_id = $model->id;
                     $modelFungi->created_at = date("Y-m-d H:i:s");
                     $modelFungi->updated_at = date("Y-m-d H:i:s");
@@ -238,6 +279,8 @@ class ContentFungiController extends Controller
         return $this->render('create', [
             'model' => $model,
             'modelFungi' => $modelFungi,
+            'modelImageSource' => $modelImageSource,
+            'modelDataSource' => $modelDataSource,
             'mediaModel' => $mediaModel,
             'case_error' => $case_error
         ]);
@@ -261,12 +304,25 @@ class ContentFungiController extends Controller
         $modelFungiOld = ContentFungi::find()->where(['content_id' => $id])->one();
         $modelFungi = new ContentFungi();
 
+        $modelImageSourceOld = \backend\models\ContentImageSource::find()->where(['content_id' => $id])->all();
+        $modelImageSource = (empty($modelImageSourceOld)) ? [new \backend\models\ContentImageSource()] : $modelImageSourceOld;
+
+        $modelDataSourceOld = \backend\models\ContentDataSource::find()->where(['content_id' => $id])->all();
+        $modelDataSource = (empty($modelDataSourceOld)) ? [new \backend\models\ContentDataSource()] : $modelDataSourceOld;
+        
         $mediaModelOld = Picture::find()->where(['content_id' => $id])->all();
         $mediaModel = new Picture();
 
         $case_error = array();
 
         if ($model->load(Yii::$app->request->post()) && $modelFungi->load(Yii::$app->request->post())) {
+            $modelImageSourceTemp = \backend\base\Model::createMultiple(\backend\models\ContentImageSource::classname(), $modelImageSourceOld);
+            \backend\base\Model::loadMultiple($modelImageSourceTemp, Yii::$app->request->post());
+            $modelImageSource = $modelImageSourceTemp;
+
+            $modelDataSourceTemp = \backend\base\Model::createMultiple(\backend\models\ContentDataSource::classname(), $modelDataSourceOld);
+            \backend\base\Model::loadMultiple($modelDataSourceTemp, Yii::$app->request->post());
+            $modelDataSource = $modelDataSourceTemp;
   
             $transaction = \Yii::$app->db->beginTransaction();
             try {
@@ -441,6 +497,36 @@ class ContentFungiController extends Controller
                     $modelFungi->updated_at = date("Y-m-d H:i:s");
                     if ($modelFungi->save()) {
 
+                        foreach ($modelImageSource as $imgSrc) {
+                            $newImgSrc = new \backend\models\ContentImageSource();
+                            $newImgSrc->content_id = $newContentId;
+                            $newImgSrc->source_name = $imgSrc->source_name;
+                            $newImgSrc->author = $imgSrc->author;
+                            $newImgSrc->published_date = $imgSrc->published_date;
+                            $newImgSrc->reference_url = $imgSrc->reference_url;
+
+                            if (!empty($newImgSrc->source_name) || !empty($newImgSrc->author) || !empty($newImgSrc->published_date) || !empty($newImgSrc->reference_url)) {
+                                if (!$newImgSrc->save(false)) {
+                                    $checkUpdate = false;
+                                }
+                            }
+                        }
+
+                        foreach ($modelDataSource as $dataSource) {
+                            $newDataSource = new \backend\models\ContentDataSource();
+                            $newDataSource->content_id = $newContentId;
+                            $newDataSource->source_name = $dataSource->source_name;
+                            $newDataSource->author = $dataSource->author;
+                            $newDataSource->published_date = $dataSource->published_date;
+                            $newDataSource->reference_url = $dataSource->reference_url;
+
+                            if (!empty($newDataSource->source_name) || !empty($newDataSource->author) || !empty($newDataSource->published_date) || !empty($newDataSource->reference_url)) {
+                                if (!$newDataSource->save(false)) {
+                                    $checkUpdate = false;
+                                }
+                            }
+                        }
+
                         if ($checkUpdate) {
                             $transaction->commit();
 
@@ -467,6 +553,8 @@ class ContentFungiController extends Controller
             'model' => $modelOld,
             'modelFungi' => $modelFungiOld,
             'mediaModel' => $mediaModelOld,
+            'modelImageSource' => $modelImageSource,
+            'modelDataSource' => $modelDataSource,
             'case_error' => $case_error
         ]);
 

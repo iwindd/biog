@@ -372,10 +372,25 @@ echo $form->field($model, 'taxonomy')->widget(Select2::classname(), [
 ?>
 
             <input type="hidden" name="removeTaxonomy" id="removeTaxonomy">
+            
+            <div class="row">
+                <div class="col-md-12">
+                    <?= $this->render('../components/_image_source_dynamic_form', [
+                        'form' => $form,
+                        'modelImageSource' => $modelImageSource,
+                    ]) ?>
+                </div>
+            </div>
 
-            <?= $form->field($model, 'photo_credit')->textInput(['maxlength' => true]) ?>
+            <div class="row">
+                <div class="col-md-12">
+                    <?= $this->render('../components/_data_source_dynamic_form', [
+                        'form' => $form,
+                        'modelDataSource' => $modelDataSource,
+                    ]) ?>
+                </div>
+            </div>
 
-            <?= $form->field($model, 'source_information')->textarea(['rows' => '3'], 'รายละเอียด'); ?>
             
             <?= $form->field($model, 'note')->textInput(['maxlength' => true]) ?>
 

@@ -4,6 +4,8 @@ namespace backend\controllers;
 
 use Yii;
 use backend\models\Content;
+use backend\models\ContentImageSource;
+use backend\models\ContentDataSource;
 use backend\models\Picture;
 use backend\models\ContentExpert;
 use backend\models\ContentExpertSearch;
@@ -130,9 +132,17 @@ class ContentExpertController extends Controller
         $modelExpert = new ContentExpert();
         $mediaModel = array();
 
+        $modelImageSource = [new \backend\models\ContentImageSource()];
+        $modelDataSource = [new \backend\models\ContentDataSource()];
+
         $case_error = array();
 
         if ($model->load(Yii::$app->request->post()) && $modelExpert->load(Yii::$app->request->post())) {
+            $modelImageSource = \backend\base\Model::createMultiple(\backend\models\ContentImageSource::classname());
+            \backend\base\Model::loadMultiple($modelImageSource, Yii::$app->request->post());
+
+            $modelDataSource = \backend\base\Model::createMultiple(\backend\models\ContentDataSource::classname());
+            \backend\base\Model::loadMultiple($modelDataSource, Yii::$app->request->post());
             $transaction = \Yii::$app->db->beginTransaction();
             try {
                 $model->active = 1;
@@ -209,6 +219,35 @@ class ContentExpertController extends Controller
                             }
                         }
                     }
+                    foreach ($modelImageSource as $imgSrc) {
+                        $newImgSrc = new \backend\models\ContentImageSource();
+                        $newImgSrc->content_id = $model->id;
+                        $newImgSrc->source_name = $imgSrc->source_name;
+                        $newImgSrc->author = $imgSrc->author;
+                        $newImgSrc->published_date = $imgSrc->published_date;
+                        $newImgSrc->reference_url = $imgSrc->reference_url;
+
+                        if (!empty($newImgSrc->source_name) || !empty($newImgSrc->author) || !empty($newImgSrc->published_date) || !empty($newImgSrc->reference_url)) {
+                            if (!$newImgSrc->save(false)) {
+                                $checkUpdate = false;
+                            }
+                        }
+                    }
+
+                    foreach ($modelDataSource as $dataSource) {
+                        $newDataSource = new \backend\models\ContentDataSource();
+                        $newDataSource->content_id = $model->id;
+                        $newDataSource->source_name = $dataSource->source_name;
+                        $newDataSource->author = $dataSource->author;
+                        $newDataSource->published_date = $dataSource->published_date;
+                        $newDataSource->reference_url = $dataSource->reference_url;
+
+                        if (!empty($newDataSource->source_name) || !empty($newDataSource->author) || !empty($newDataSource->published_date) || !empty($newDataSource->reference_url)) {
+                            if (!$newDataSource->save(false)) {
+                                $checkUpdate = false;
+                            }
+                        }
+                    }
                     $modelExpert->content_id = $model->id;
                     $modelExpert->created_at = date("Y-m-d H:i:s");
                     $modelExpert->updated_at = date("Y-m-d H:i:s");
@@ -234,6 +273,8 @@ class ContentExpertController extends Controller
         return $this->render('create', [
             'model' => $model,
             'modelExpert' => $modelExpert,
+            'modelImageSource' => $modelImageSource,
+            'modelDataSource' => $modelDataSource,
             'mediaModel' => $mediaModel,
             'case_error' => $case_error
         ]);
@@ -257,6 +298,11 @@ class ContentExpertController extends Controller
         $modelExpertOld = ContentExpert::find()->where(['content_id' => $id])->one();
         $modelExpert = new ContentExpert();
 
+        $modelImageSourceOld = \backend\models\ContentImageSource::find()->where(['content_id' => $id])->all();
+        $modelImageSource = (empty($modelImageSourceOld)) ? [new \backend\models\ContentImageSource()] : $modelImageSourceOld;
+
+        $modelDataSourceOld = \backend\models\ContentDataSource::find()->where(['content_id' => $id])->all();
+        $modelDataSource = (empty($modelDataSourceOld)) ? [new \backend\models\ContentDataSource()] : $modelDataSourceOld;
         $mediaModelOld = Picture::find()->where(['content_id' => $id])->all();
         $mediaModel = new Picture();
 
@@ -291,6 +337,13 @@ class ContentExpertController extends Controller
 
                 $model->content_source_id = $latestContentId;
 
+                $modelImageSourceTemp = \backend\base\Model::createMultiple(\backend\models\ContentImageSource::classname(), $modelImageSourceOld);
+                \backend\base\Model::loadMultiple($modelImageSourceTemp, Yii::$app->request->post());
+                $modelImageSource = $modelImageSourceTemp;
+
+                $modelDataSourceTemp = \backend\base\Model::createMultiple(\backend\models\ContentDataSource::classname(), $modelDataSourceOld);
+                \backend\base\Model::loadMultiple($modelDataSourceTemp, Yii::$app->request->post());
+                $modelDataSource = $modelDataSourceTemp;
                 $model->created_by_user_id = $modelOldLatest->created_by_user_id;
                 $model->updated_by_user_id = Yii::$app->user->identity->id;
                 $model->created_at = $modelOldLatest->created_at;
@@ -435,6 +488,36 @@ class ContentExpertController extends Controller
                     $modelExpert->updated_at = date("Y-m-d H:i:s");
                     if ($modelExpert->save()) {
 
+                        foreach ($modelImageSource as $imgSrc) {
+                            $newImgSrc = new \backend\models\ContentImageSource();
+                            $newImgSrc->content_id = $newContentId;
+                            $newImgSrc->source_name = $imgSrc->source_name;
+                            $newImgSrc->author = $imgSrc->author;
+                            $newImgSrc->published_date = $imgSrc->published_date;
+                            $newImgSrc->reference_url = $imgSrc->reference_url;
+
+                            if (!empty($newImgSrc->source_name) || !empty($newImgSrc->author) || !empty($newImgSrc->published_date) || !empty($newImgSrc->reference_url)) {
+                                if (!$newImgSrc->save(false)) {
+                                    $checkUpdate = false;
+                                }
+                            }
+                        }
+
+                        foreach ($modelDataSource as $dataSource) {
+                            $newDataSource = new \backend\models\ContentDataSource();
+                            $newDataSource->content_id = $newContentId;
+                            $newDataSource->source_name = $dataSource->source_name;
+                            $newDataSource->author = $dataSource->author;
+                            $newDataSource->published_date = $dataSource->published_date;
+                            $newDataSource->reference_url = $dataSource->reference_url;
+
+                            if (!empty($newDataSource->source_name) || !empty($newDataSource->author) || !empty($newDataSource->published_date) || !empty($newDataSource->reference_url)) {
+                                if (!$newDataSource->save(false)) {
+                                    $checkUpdate = false;
+                                }
+                            }
+                        }
+
                         if ($checkUpdate) {
                             $transaction->commit();
 
@@ -461,6 +544,8 @@ class ContentExpertController extends Controller
             'model' => $modelOld,
             'modelExpert' => $modelExpertOld,
             'mediaModel' => $mediaModelOld,
+            'modelImageSource' => $modelImageSource,
+            'modelDataSource' => $modelDataSource,
             'case_error' => $case_error
         ]);
 
