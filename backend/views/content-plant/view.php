@@ -142,9 +142,26 @@ $this->params['breadcrumbs'][] = $this->title;
             ],
             [
                 'format' => 'raw',
-                'attribute' => 'photo_credit',
+                'label' => 'แหล่งที่มาของภาพ',
                 'value' => function ($model) {
-                    return FrontendHelper::getSourceInformation($model['photo_credit']);
+                    if (!empty($model->contentImageSources)) {
+                        $htmlList = [];
+                        foreach ($model->contentImageSources as $source) {
+                            $formatted = FrontendHelper::formatImageSource(
+                                $source->source_name,
+                                $source->author,
+                                $source->published_date,
+                                $source->reference_url
+                            );
+                            if (!empty(trim(strip_tags($formatted)))) {
+                                $htmlList[] = '<li>' . $formatted . '</li>';
+                            }
+                        }
+                        if (!empty($htmlList)) {
+                            return '<ul style="padding-left: 20px; margin-bottom: 0;">' . implode('', $htmlList) . '</ul>';
+                        }
+                    }
+                    return '-';
                 }
             ],
             [

@@ -3,6 +3,7 @@
 namespace frontend\models;
 
 use Yii;
+use frontend\models\content\ContentImageSource;
 
 /**
  * This is the model class for table "content".
@@ -127,5 +128,10 @@ class Content extends \yii\db\ActiveRecord
     public function getLicense()
     {
         return $this->hasOne(License::className(), ['id' => 'license_id']);
+    }
+
+    public function getContentImageSources()
+    {
+        return $this->hasMany(ContentImageSource::className(), ['content_id' => 'id']);
     }
 }

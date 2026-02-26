@@ -140,4 +140,14 @@ class Content extends \yii\db\ActiveRecord
     {
         return $this->hasOne(License::className(), ['id' => 'license_id']);
     }
+
+    /**
+     * Gets query for [[ContentImageSources]].
+     *
+     * @return \yii\db\ActiveQuery
+     */
+    public function getContentImageSources()
+    {
+        return $this->hasMany(ContentImageSource::className(), ['content_id' => 'id']);
+    }
 }

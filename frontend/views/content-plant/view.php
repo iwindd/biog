@@ -165,9 +165,23 @@ if (!function_exists('shortDescription')) {
                                         <?php echo FrontendHelper::getAddress($content['province_id'], $content['district_id'], $content['subdistrict_id'], $content['zipcode_id']); ?>
                                     </p>
                                 <?php endif; ?>
-
-                                <?php if (!empty($content['photo_credit'])): ?>
-                                    <p class="detail-title"><span>แหล่งที่มาของภาพ:</span> <?php echo FrontendHelper::getSourceInformation($content['photo_credit']); ?></p>
+                                <?php if (!empty($content->contentImageSources)): ?>
+                                    <p class="detail-title"><span>แหล่งที่มาของภาพ:</span>
+                                        <ul style="padding-left: 20px; margin-bottom: 0;">
+                                            <?php foreach ($content->contentImageSources as $source): ?>
+                                                <?php
+                                                $formatted = FrontendHelper::formatImageSource(
+                                                    $source->source_name,
+                                                    $source->author,
+                                                    $source->published_date,
+                                                    $source->reference_url
+                                                );
+                                                if (!empty(trim(strip_tags($formatted)))): ?>
+                                                    <li><?php echo $formatted; ?></li>
+                                                <?php endif; ?>
+                                            <?php endforeach; ?>
+                                        </ul>
+                                    </p>
                                 <?php endif; ?>
 
                                 <?php if (!empty($content['source_information'])): ?>

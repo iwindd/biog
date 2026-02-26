@@ -130,10 +130,15 @@ class ContentPlantController extends Controller
         $model->type_id = 1;
         $modelPlant = new ContentPlant();
         $mediaModel = array();
+        $modelImageSource = [new \backend\models\ContentImageSource()];
 
         $case_error = array();
 
         if ($model->load(Yii::$app->request->post()) && $modelPlant->load(Yii::$app->request->post())) {
+        
+            $modelImageSource = \backend\base\Model::createMultiple(\backend\models\ContentImageSource::classname());
+            \backend\base\Model::loadMultiple($modelImageSource, Yii::$app->request->post());
+
             $transaction = \Yii::$app->db->beginTransaction();
             try {
                 $model->active = 1;
@@ -223,6 +228,15 @@ class ContentPlantController extends Controller
                     $modelPlant->updated_at = date("Y-m-d H:i:s");
                     if ($modelPlant->save()) {
 
+                        foreach ($modelImageSource as $imgSrc) {
+                            $imgSrc->content_id = $model->id;
+                            if (!empty($imgSrc->source_name) || !empty($imgSrc->author) || !empty($imgSrc->published_date) || !empty($imgSrc->reference_url)) {
+                                if (!$imgSrc->save(false)) {
+                                    $checkUpdate = false;
+                                }
+                            }
+                        }
+
                         if ($checkUpdate) {
                             $transaction->commit();
 
@@ -244,6 +258,7 @@ class ContentPlantController extends Controller
             'model' => $model,
             'modelPlant' => $modelPlant,
             'mediaModel' => $mediaModel,
+            'modelImageSource' => $modelImageSource,
             'case_error' => $case_error
         ]);
     }
@@ -269,10 +284,17 @@ class ContentPlantController extends Controller
         $mediaModelOld = Picture::find()->where(['content_id' => $id])->all();
         $mediaModel = new Picture();
 
+        $modelImageSourceOld = \backend\models\ContentImageSource::find()->where(['content_id' => $id])->all();
+        $modelImageSource = (empty($modelImageSourceOld)) ? [new \backend\models\ContentImageSource()] : $modelImageSourceOld;
+
         $case_error = array();
 
         if ($model->load(Yii::$app->request->post()) && $modelPlant->load(Yii::$app->request->post())) {
             
+            $modelImageSourceTemp = \backend\base\Model::createMultiple(\backend\models\ContentImageSource::classname(), $modelImageSourceOld);
+            \backend\base\Model::loadMultiple($modelImageSourceTemp, Yii::$app->request->post());
+            $modelImageSource = $modelImageSourceTemp;
+
             // print '<pre>';
             // print_r($model);
             // print '</pre>';
@@ -491,6 +513,23 @@ class ContentPlantController extends Controller
                     $modelPlant->updated_at = date("Y-m-d H:i:s");
                     if ($modelPlant->save()) {
 
+                        foreach ($modelImageSource as $imgSrc) {
+                            // Note: We create new records because the Update flow creates a new revision 
+                            // of Content with a new ID
+                            $newImgSrc = new \backend\models\ContentImageSource();
+                            $newImgSrc->content_id = $model->id;
+                            $newImgSrc->source_name = $imgSrc->source_name;
+                            $newImgSrc->author = $imgSrc->author;
+                            $newImgSrc->published_date = $imgSrc->published_date;
+                            $newImgSrc->reference_url = $imgSrc->reference_url;
+
+                            if (!empty($newImgSrc->source_name) || !empty($newImgSrc->author) || !empty($newImgSrc->published_date) || !empty($newImgSrc->reference_url)) {
+                                if (!$newImgSrc->save(false)) {
+                                    $checkUpdate = false;
+                                }
+                            }
+                        }
+
                         if ($checkUpdate) {
                             $transaction->commit();
 
@@ -517,6 +556,7 @@ class ContentPlantController extends Controller
             'model' => $modelOld,
             'modelPlant' => $modelPlantOld,
             'mediaModel' => $mediaModelOld,
+            'modelImageSource' => $modelImageSource,
             'case_error' => $case_error
         ]);
 

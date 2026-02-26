@@ -1312,4 +1312,47 @@ class FrontendHelper
             return $text;
         }
     }
+
+    /**
+     * Formats the image source details into a single string.
+     */
+    public static function formatImageSource($sourceName, $author, $publishedDate, $url)
+    {
+        $sourceName = trim($sourceName);
+        $author = trim($author);
+        $publishedDate = trim($publishedDate);
+        $url = trim($url);
+
+        if (empty($sourceName) && !empty($url)) {
+            $host = parse_url($url, PHP_URL_HOST);
+            if ($host) {
+                $host = str_replace('www.', '', $host);
+                $hostParts = explode('.', $host);
+                if (count($hostParts) > 0) {
+                    $sourceName = ucfirst($hostParts[0]);
+                } else {
+                    $sourceName = ucfirst($host);
+                }
+            }
+        }
+
+        $parts = [];
+        if (!empty($sourceName)) {
+            $parts[] = Html::encode($sourceName) . '.';
+        }
+        
+        if (!empty($publishedDate)) {
+            $parts[] = '(' . Html::encode($publishedDate) . ').';
+        }
+        
+        if (!empty($author)) {
+            $parts[] = 'จัดทำโดย ' . Html::encode($author) . '.';
+        }
+        
+        if (!empty($url)) {
+            $parts[] = Html::a(Html::encode($url), $url, ['target' => '_blank']);
+        }
+
+        return implode(' ', $parts);
+    }
 }
