@@ -184,6 +184,41 @@ class ContentPlantController extends Controller
 
                 if ($model->save()) {
                     // upload multiple image
+                    $filesPaths = Yii::$app->request->post('Content')['files'] ?? '';
+                    if (!empty($filesPaths)) {
+                        $filesArray = explode(',', $filesPaths);
+                        foreach ($filesArray as $fcPath) {
+                            if (strpos($fcPath, '/uploads/filecenter/') !== false) {
+                                $sourcePath = Yii::getAlias('@frontend/web') . $fcPath;
+                                if (file_exists($sourcePath)) {
+                                    $ext = pathinfo($sourcePath, PATHINFO_EXTENSION);
+                                    $newName = 'pic_' . uniqid() . time() . '.' . $ext;
+                                    $destDir = Yii::getAlias('@frontend/web/files/content-plant');
+                                    \yii\helpers\FileHelper::createDirectory($destDir);
+                                    
+                                    if (copy($sourcePath, $destDir . '/' . $newName)) {
+                                        $mediaModel = new Picture();
+                                        $mediaModel->content_id = $model->id;
+                                        $mediaModel->name = basename($fcPath); // Store original filename as name
+                                        $mediaModel->path = $newName;
+                                        $mediaModel->created_by_user_id = Yii::$app->user->identity->id;
+                                        $mediaModel->updated_by_user_id = Yii::$app->user->identity->id;
+                                        $mediaModel->created_at = date("Y-m-d H:i:s");
+                                        $mediaModel->updated_at = date("Y-m-d H:i:s");
+                                        if (!$mediaModel->save()) {
+                                            $checkUpdate = false;
+                                            $case_error[] = array("message" => "ไฟล์รูปประกอบ " . basename($fcPath) . " บันทึกไม่สำเร็จ");
+                                        }
+                                    } else {
+                                        $checkUpdate = false;
+                                        $case_error[] = array("message" => "ไฟล์รูปประกอบ " . basename($fcPath) . " คัดลอกไม่สำเร็จ");
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Fallback for native file uploads if somehow used
                     $files = Upload::uploadsNoPermimission($model, 'content-plant');
                     if (!empty($files)) {
                         if ($files['success_upload'] == 1) {
@@ -413,6 +448,39 @@ class ContentPlantController extends Controller
                             }
                         }
                     } */
+
+                    // handle FileCenter gallery paths
+                    $filesPaths = Yii::$app->request->post('Content')['files'] ?? '';
+                    if (!empty($filesPaths)) {
+                        $filesArray = explode(',', $filesPaths);
+                        foreach ($filesArray as $fcPath) {
+                            if (strpos($fcPath, '/uploads/filecenter/') !== false) {
+                                $sourcePath = Yii::getAlias('@frontend/web') . $fcPath;
+                                if (file_exists($sourcePath)) {
+                                    $ext = pathinfo($sourcePath, PATHINFO_EXTENSION);
+                                    $newName = 'pic_' . uniqid() . time() . '.' . $ext;
+                                    $destDir = Yii::getAlias('@frontend/web/files/content-plant');
+                                    \yii\helpers\FileHelper::createDirectory($destDir);
+                                    
+                                    if (copy($sourcePath, $destDir . '/' . $newName)) {
+                                        $value = [
+                                            'file_display_name' => basename($fcPath),
+                                            'file_key' => $newName,
+                                            'created_by_user_id' => Yii::$app->user->identity->id
+                                        ];
+                                        $newRecordPicture = $this->savePicture($newContentId, $value);
+                                        if($newRecordPicture == false){
+                                            $checkUpdate = false;
+                                            $case_error[] = array("message" => "ไฟล์รูปประกอบ " . basename($fcPath) . " บันทึกไม่สำเร็จ");
+                                        }
+                                    } else {
+                                        $checkUpdate = false;
+                                        $case_error[] = array("message" => "ไฟล์รูปประกอบ " . basename($fcPath) . " คัดลอกไม่สำเร็จ");
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     // upload multiple image
                     $files = Upload::uploadsNoPermimission($model, 'content-plant');

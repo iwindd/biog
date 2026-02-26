@@ -166,23 +166,20 @@ $licenseList = ArrayHelper::map(License::find()->all(), 'id', 'name');
             <?php
             }
             ?>
-            <?=
-            $form->field($model, 'files', [
-                'template' => "{label}\n{input}\n<div> รูปภาพมีขนาดไม่เกิน 5 MB และต้องเป็นไฟล์นามสกุล jpg, jpeg, png หรือ gif เท่านั้น </div>\n{hint}\n{error}",
+            <?php
+            $filesInputId = Html::getInputId($model, 'files');
+            echo $form->field($model, 'files', [
+                'template' => "{label}\n{input}\n<div id=\"{$filesInputId}-preview\" style=\"margin-top: 15px; margin-bottom: 15px;\"></div>\n<div> รูปภาพมีขนาดไม่เกิน 5 MB และต้องเป็นไฟล์นามสกุล jpg, jpeg, png หรือ gif เท่านั้น </div>\n{hint}\n{error}",
                 'labelOptions' => ['class' => 'control-label']
-            ])->widget(FileInput::classname(), [
-                'options' => [
-                    // 'accept' => 'image/*',
-                    'class' => 'caractboxes-img',
-                    'multiple' => true
-                ],
-                'pluginOptions' => [
-                    'allowedFileExtensions' => ['jpg', 'jpeg', 'png', 'gif'],
-                    'showPreview' => true,
-                    'showRemove' => true,
-                    'showUpload' => false,
-                    'maxFileSize' => 5120
-                ]
+            ])->hiddenInput();
+            
+            echo \backend\components\FileCenterPickerWidget::widget([
+                'inputId' => $filesInputId,
+                'buttonText' => '<i class="fa fa-folder-open"></i> เลือกรูปภาพประกอบจาก FileCenter',
+                'extensions' => ['jpg', 'jpeg', 'png', 'gif'],
+                'clearable' => true,
+                'maxSize' => 5120 * 1024,
+                'multiple' => true,
             ]);
             ?>
             <!-- end multi image -->

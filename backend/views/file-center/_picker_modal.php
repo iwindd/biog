@@ -133,8 +133,36 @@ window.selectedFiles = [];
 // API to open the picker
 window.openFileCenterPicker = function(config) {
     window.currentFilePickerConfig = config;
-    window.selectedFiles = []; // Reset selection
     
+    // Parse existing selections from input
+    window.selectedFiles = [];
+    var existingVal = $('#' + config.inputId).val();
+    if (existingVal) {
+        var paths = existingVal.split(',');
+        paths.forEach(function(path) {
+            if (path.trim() !== '') {
+                // Determine name from path
+                var nameParts = path.split('/');
+                var fileName = nameParts[nameParts.length - 1];
+                var url = path; 
+                if (!path.startsWith('http')) {
+                    if (typeof urlWebBiog !== 'undefined') {
+                        url = urlWebBiog + path;
+                    } else {
+                        url = path; // fallback
+                    }
+                }
+                
+                window.selectedFiles.push({
+                    id: path, // Use path as ID for previously selected items where actual DB ID is unknown
+                    path: path,
+                    name: fileName,
+                    url: url
+                });
+            }
+        });
+    }
+
     // Setup UI based on config
     var hintText = 'อัพโหลดไฟล์ (';
     if (config.extensions && config.extensions.length > 0) {
@@ -208,7 +236,8 @@ document.addEventListener('DOMContentLoaded', function() {
             id: $(this).data('id'),
             path: $(this).data('path'),
             name: $(this).find('.fc-item-name').text(),
-            url: $(this).find('img').attr('src')
+            url: $(this).find('img').attr('src'),
+            sizeText: $(this).data('size')
         };
         
         var cfg = window.currentFilePickerConfig;
@@ -219,7 +248,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (cfg.multiple) {
             if (isSelected) {
                 $(this).removeClass('selected');
-                window.selectedFiles = window.selectedFiles.filter(function(f) { return f.id !== fileData.id; });
+                window.selectedFiles = window.selectedFiles.filter(function(f) { return f.path !== fileData.path; });
             } else {
                 if (cfg.maxImages > 0 && window.selectedFiles.length >= cfg.maxImages) {
                     alert('คุณสามารถเลือกได้สูงสุดแค่ ' + cfg.maxImages + ' ไฟล์');
@@ -261,11 +290,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     response.data.forEach(function(file) {
                         var previewUrl = file.is_image ? file.file_url : '/images/default.png';
                         // check if already selected
-                        var isSelected = window.selectedFiles.some(function(f) { return f.id === file.id; });
+                        var isSelected = window.selectedFiles.some(function(f) { return f.path === file.file_path; });
                         var selectedClass = isSelected ? 'selected' : '';
+                        var sizeText = file.file_size_text ? file.file_size_text : '';
                         
                         html += '<div class="col-md-3 col-xs-6">';
-                        html += '<div class="fc-item ' + selectedClass + '" data-id="' + file.id + '" data-path="' + file.file_path + '">';
+                        html += '<div class="fc-item ' + selectedClass + '" data-id="' + file.id + '" data-path="' + file.file_path + '" data-size="' + sizeText + '">';
                         html += '<img src="' + previewUrl + '" alt="file">';
                         html += '<div class="fc-item-name" title="' + file.file_name + '">' + file.file_name + '</div>';
                         html += '</div></div>';
@@ -309,29 +339,59 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!cfg) return;
         
         var inputId = cfg.inputId;
+        var previewId = inputId + '-preview';
         
         if (cfg.multiple) {
             // we will join paths by comma
             var paths = window.selectedFiles.map(function(f) { return f.path; });
             $('#' + inputId).val(paths.join(','));
-            var previewId = inputId + '-preview';
+            
             if ($('#' + previewId).length) {
                 var imgs = '';
                 window.selectedFiles.forEach(function(f) {
-                    imgs += '<img src="' + f.url + '" class="img-responsive img-thumbnail" style="max-height: 150px; display:inline-block; margin-right:5px; margin-bottom:5px;" />';
+                    var displaySize = f.sizeText ? f.sizeText : '';
+                    var removeBtn = '<button type="button" class="btn btn-xs btn-danger" title="นำออก" style="position:absolute; top:5px; right:5px; padding:2px 5px; border-radius:3px;" onclick="window.removeFileCenterPreview(\'' + inputId + '\', \'' + f.path + '\', this)"><i class="fa fa-times"></i></button>';
+                    
+                    imgs += '<div class="fc-preview-item" style="display:inline-block; margin-right:15px; margin-bottom:15px; vertical-align:top; border:1px solid #ddd; padding:5px; border-radius:4px; position:relative; width: 150px; background:#f9f9f9;">';
+                    imgs += removeBtn;
+                    imgs += '<div style="height:120px; display:flex; align-items:center; justify-content:center; margin-bottom:5px; background:#fff;"><img src="' + f.url + '" class="img-responsive img-thumbnail" style="max-height: 110px; max-width: 100%; border:none; padding:0;" /></div>';
+                    imgs += '<div style="font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:center;" title="' + f.name + '">' + f.name + '</div>';
+                    if (displaySize) imgs += '<div style="font-size:11px; color:#888; text-align:center; margin-top:2px;">(' + displaySize + ')</div>';
+                    imgs += '</div>';
                 });
                 $('#' + previewId).html(imgs);
             }
         } else {
             var fileData = window.selectedFiles[0];
             $('#' + inputId).val(fileData.path);
-            var previewId = inputId + '-preview';
+            
             if ($('#' + previewId).length) {
-                $('#' + previewId).html('<img src="' + fileData.url + '" class="img-responsive img-thumbnail" style="max-height: 200px;" />');
+                var displaySize = fileData.sizeText ? fileData.sizeText : '';
+                var removeBtn = '<button type="button" class="btn btn-xs btn-danger" title="นำออก" style="position:absolute; top:5px; right:5px; padding:2px 5px; border-radius:3px;" onclick="window.removeFileCenterPreview(\'' + inputId + '\', \'' + fileData.path + '\', this)"><i class="fa fa-times"></i></button>';
+                
+                var imgs = '<div class="fc-preview-item" style="display:inline-block; border:1px solid #ddd; padding:5px; border-radius:4px; position:relative; width: 200px; background:#f9f9f9;">';
+                imgs += removeBtn;
+                imgs += '<div style="height:150px; display:flex; align-items:center; justify-content:center; margin-bottom:5px; background:#fff;"><img src="' + fileData.url + '" class="img-responsive img-thumbnail" style="max-height: 140px; max-width: 100%; border:none; padding:0;" /></div>';
+                imgs += '<div style="font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-align:center;" title="' + fileData.name + '">' + fileData.name + '</div>';
+                if (displaySize) imgs += '<div style="font-size:11px; color:#888; text-align:center; margin-top:2px;">(' + displaySize + ')</div>';
+                imgs += '</div>';
+                
+                $('#' + previewId).html(imgs);
             }
         }
         
         $('#fileCenterModal').modal('hide');
+    };
+    
+    window.removeFileCenterPreview = function(inputId, pathToRemove, btnElem) {
+        var inputObj = $('#' + inputId);
+        var existingVal = inputObj.val();
+        if (existingVal) {
+            var paths = existingVal.split(',');
+            paths = paths.filter(function(p) { return p !== pathToRemove; });
+            inputObj.val(paths.join(','));
+        }
+        $(btnElem).closest('.fc-preview-item').remove();
     };
     
     // --- UPLOAD PROCESS ---
@@ -438,7 +498,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             id: res.file.id,
                             path: res.file.path,
                             name: res.file.name,
-                            url: urlWebBiog + res.file.path // preview url
+                            url: urlWebBiog + res.file.path, // preview url
+                            sizeText: res.file.size_text
                         };
                         
                         if (cfg.multiple) {
