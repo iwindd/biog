@@ -24,6 +24,9 @@ if (Yii::$app->controller->action->id === 'login') {
 backend\assets\AppAsset::register($this);
     dmstr\web\AdminLteAsset::register($this);
 
+    // Global JS variable for base URL — used by location.js and other scripts
+    $this->registerJs("var appBaseUrl = " . json_encode(\yii\helpers\Url::base()) . ";", \yii\web\View::POS_HEAD);
+
     $directoryAsset = Yii::$app->assetManager->getPublishedUrl('@vendor/almasaeed2010/adminlte/dist');
     ?>
     <?php $this->beginPage() ?>
