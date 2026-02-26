@@ -1,0 +1,224 @@
+.content-detail {
+    .description {
+        margin-top: 1.5rem;
+        color: $dark-gray-2
+    }
+    .detail-title {
+        margin-bottom: .5rem;
+        span {
+            font-weight: 600;
+        }
+    }
+}
+
+.section-comment {
+    background-color: $gray;
+    color: $dark-gray;
+    margin-bottom: 1rem;
+    .comment-header {
+        padding: .1rem;
+        margin-bottom: 0;
+        background-color: #ededed;
+        border-bottom: 1px solid rgba(0,0,0,.125);
+        color: #595a5e;
+        padding: 1rem 1rem 1rem 1rem;
+        font-size: .85rem;
+        .post {
+            display: flex;
+        }
+        .viewer {
+            display: block;
+            margin-right: auto;
+        }
+        .like {
+            margin-left: 1rem;
+            margin-right: 1rem;
+            cursor: pointer;
+            display: block;
+            margin-right: auto;
+        }
+        .share {
+            cursor: pointer;
+            float: right;
+            display: block;
+            
+        }
+    }
+    .comment-form {
+        padding: 1.5rem 1rem 1rem;
+        border-bottom: 1px solid rgba(0,0,0,.125);
+        .comment-input {
+            border-radius: 1rem;
+            font-size: 1rem;
+            border: none;
+            outline: none;
+            padding: .5rem;
+            width: 100%;
+        }
+        .btn-post, .btn-content-post {
+            width: 105px;
+        }
+    }
+    .comment-list {
+        padding-top: 0;
+        padding-left: 1rem;
+        padding-right: 1rem;
+        padding-bottom: 1rem;
+        .profile-pic {
+            padding-left: .5rem;
+            padding-right: .5rem;
+            display: flex;
+        }
+        .profile-timestamp {
+            flex: 1;
+            flex-direction: column;
+            display: flex;
+
+            .title-user {
+                font-size: 1rem;
+                margin-top: .5rem;
+                margin-bottom: 0;
+                color: $black;
+            }
+            .post {
+                font-size: .8rem;
+                color: $dark-gray;
+            }
+            .message {
+                color: $dark-gray-2;
+                font-size: 1rem;
+                margin-bottom: 0rem;
+                display: -webkit-box;
+                -webkit-line-clamp: 3;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+                word-break: break-word;
+            }
+        }
+        
+    }
+    .block-comment {
+        padding-top: .75rem;
+        height: auto;
+        max-height: 500px;
+        overflow-y: scroll;
+        &.no-comment {
+            padding-top: 0;
+            overflow-y: unset;
+        }
+    }
+
+    .empty-data {
+        padding: 1rem;
+        p {
+            margin-bottom: 0;
+        }
+    }
+
+    
+}
+
+.swiper-container {
+    width: 100%;
+    height: 100%;
+  }
+
+  .swiper-slide {
+    text-align: center;
+    font-size: 1rem;
+    background: #fff;
+
+    /* Center slide text vertically */
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-pack: center;
+    -ms-flex-pack: center;
+    -webkit-justify-content: center;
+    justify-content: center;
+    -webkit-box-align: center;
+    -ms-flex-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+  }
+
+  .img-illustration {
+      margin-bottom: 1rem;
+      img {
+        width: 100%;
+        height: 350px;
+        object-fit: cover;
+      }
+      
+  }
+
+  @media(max-width: 768px) {
+    .sub-content {
+        .menu-sidebar {
+            max-width: 0;
+            position: unset;
+            width: 0;
+            padding-right: 0;
+            padding-left: 0;
+            margin-right: 0;
+            text-align: center;
+        }
+        .section-main {
+            width: 100%;
+        }
+    }
+  }
+
+  .option-comment {
+    cursor: pointer;
+    position: relative;
+    left: calc(100% - 1.5rem);
+    font-size: .75rem;
+  }
+
+  .wall-board-content .dropdown-wallboard {
+    display: none;
+    position: absolute;
+    background-color: #f1f1f1;
+    min-width: 5rem;
+    margin-top: 1rem;
+    width: 5rem;
+    overflow: auto;
+    box-shadow: 0 0.5rem 1rem 0 rgba(0,0,0,.2);
+    z-index: 1;
+    right: calc(0vw + 5rem);
+}
+
+.wall-board-content .show {display: block;}
+
+.wall-board-content {
+    a {
+        color: #595a5e;
+        padding: 3px 4px;
+        text-decoration: none;
+        display: block;
+        font-size: .75rem;
+        cursor: pointer;
+        &:hover {
+            background-color: #ddd;
+        }
+    }
+}
+
+.creator-post-block {
+    background-color: #ededed;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    .profile-pic {
+        padding-right: .5rem;
+    }
+    .title-user {
+        margin-top: .5rem;
+        margin-bottom: .25rem;
+    }
+    .post {
+        margin-bottom: 0;;
+    }
+
+}

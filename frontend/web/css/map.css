@@ -1,0 +1,260 @@
+.input-group-btn .field-map-subdistrict_id {}
+
+.block-filter-search-map {
+    background-color: #197B4F;
+    padding: 1rem;
+}
+
+.map-form label {
+    color: #FFF;
+    display: inline-block;
+    margin-bottom: 0.5rem;
+    height: calc(1.5em + 0.75rem + 2px);
+    padding-top: 8px;
+}
+
+.map-form .form-group {
+    display: block;
+    float: right;
+}
+
+/* .map-form .input-group-btn {
+    width: 90%;
+} */
+
+/* .map-form .form-group {
+    width: 65%;
+} */
+
+/* .map-form .form-group.field-map-region_id {
+    width: 75%;
+} */
+
+/* .map-form .input-group-btn .form-group {
+    width: 70%;
+} */
+
+.map-form .input-group-btn .form-group input {
+    float: left;
+    border-bottom-right-radius: 0;
+    border-top-right-radius: 0;
+}
+
+/* .btn.btn-search {
+    width: 30%;
+    float: right;
+    border-bottom-left-radius: 0;
+    border-top-left-radius: 0;
+    height: calc(1.5em + 0.75rem + 2px);
+    background-color: #1F76E8;
+} */
+
+#map-form {
+    margin-bottom: 2rem;
+}
+
+/* Customize the label (the container) */
+.check-content-type {
+    display: block;
+    position: relative;
+    padding-left: inherit;
+    margin-bottom: 12px;
+    cursor: pointer;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* Hide the browser's default checkbox */
+.check-content-type input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+.check-content-type label {
+    color: #fff;
+    cursor: pointer;
+}
+
+/* Create a custom checkbox */
+.checkmark {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 25px;
+    width: 25px;
+    background-color: transparent;
+    cursor: pointer;
+    color: #fff;
+    border-radius: 100%;
+    border: 3px solid #fff;
+}
+
+/* On mouse-over, add a grey background color */
+.check-content-type:hover input~.checkmark {
+    background-color: transparent;
+    border: solid #D0E33B;
+
+}
+
+/* When the checkbox is checked, add a blue background */
+.check-content-type input:checked~.checkmark {
+    border-radius: 100%;
+    background: transparent;
+    border: 3px solid #D0E33B;
+}
+
+/* Create the checkmark/indicator (hidden when not checked) */
+.checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+}
+
+/* Show the checkmark when checked */
+.check-content-type input:checked~.checkmark:after {
+    display: block;
+}
+
+/* Style the checkmark/indicator */
+.check-content-type .checkmark:after {
+    left: 6px;
+    top: 2px;
+    width: 7px;
+    height: 12px;
+    border: solid #D0E33B;
+    border-width: 0 3px 3px 0;
+    -webkit-transform: rotate(45deg);
+    -ms-transform: rotate(45deg);
+    transform: rotate(45deg);
+}
+
+.pull-left {
+    float: left;
+}
+
+.gm-style .gm-style-iw-d {
+    width: 250px !important;
+    overflow: hidden !important;
+}
+
+.block-detail-location {
+    width: 250px;
+    font-family: "Kanit",
+        sans-serif;
+    cursor: pointer;
+}
+
+.body-info {
+    overflow: auto;
+    max-height: 280px;
+    padding: 10px;
+}
+
+.body-info img,
+.head-picture img {
+    max-width: 100%;
+
+}
+
+.head-picture img {
+    width: 100%;
+    max-height: 120px;
+    object-fit: cover;
+}
+
+.firstHeading {
+    font-size: 1.2rem;
+    text-align: center;
+}
+
+.body-info p.address {
+    color: #1F76E8;
+}
+
+.body-info .detail {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-word;
+    text-decoration: none;
+    color: #000000;
+}
+
+.body-info .detail p {
+    overflow: hidden;
+}
+
+.info-type-count {
+    margin-bottom: 10px;
+}
+
+.info-type-count img {
+    background-color: #197B4F;
+    border-radius: 100%;
+    width: 40px;
+    margin-right: 15px;
+}
+
+.info-type-count span {
+    font-size: 1rem;
+}
+
+.gm-style .gm-style-iw-c {
+    padding: 0 !important;
+}
+
+.gm-style .gm-style-mtc label,
+.gm-style .gm-style-mtc div {
+    display: none !important;
+}
+
+.section-main .map {
+    height: 645px !important;
+}
+
+.item-name {
+    font-size: 1.2rem;
+}
+
+.item-address {
+    color: #1F76E8;
+}
+
+.item-detail {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-word;
+    text-decoration: none;
+    color: #000000;
+}
+
+.item-detail p {
+    overflow: hidden;
+}
+
+#show-list-item a {
+    color: inherit;
+}
+
+.list-item img {
+    max-width: 100%;
+}
+
+.list-item .image img {
+    height: 250px;
+    width: 100%;
+    object-fit: cover;
+}
+
+.btn.btn-read-more {
+    color: #FFF;
+    background-color: #623ab4;
+}

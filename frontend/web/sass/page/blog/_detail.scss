@@ -1,0 +1,81 @@
+
+
+.sub-content {
+    padding-top: 1.25rem;
+    padding-bottom: 1.25rem;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+    background-size: 100% !important;
+    // background: linear-gradient(rgb(98, 58, 179, 50%), rgba(98, 58, 179, 0.5)), url('/images/blossom-139356_1920.jpg');
+}
+
+@media(max-width: 768px) {
+    .sub-content {
+        padding-top: 1.25rem;
+        padding-bottom: 1.25rem;
+        background-position: center !important;
+        background-repeat: no-repeat !important;
+        background-size: unset !important;
+        // background: linear-gradient(rgb(98, 58, 179, 50%), rgba(98, 58, 179, 0.5)), url('/images/blossom-139356_1920.jpg');
+    }
+}
+
+.content-list {
+    padding-top: 1rem;
+    .title {
+        font-size: 1rem;
+        color: $purple;
+        margin-bottom: .5rem;
+        margin-top: 1rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        word-break: break-word;
+    }
+    .short-desc {
+        font-size: 0.85rem;
+    }
+    
+    .post {
+        font-size: .75rem;
+    }
+    .viewer {
+        font-size: 0.75rem;
+    }
+}
+
+.sub-content{
+    .section-main {
+        .address {
+            color: $white;
+        }
+        @media(max-width: 1200px) {
+            .address {
+                color: $white;
+                margin-top: 1rem;
+            }
+        }
+    }
+}
+
+#map {
+    height: 480px;
+}
+
+.btn-download {
+    border: solid $purple 2px;
+    color: $purple;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+
+    &:hover {
+        border: solid $purple 2px;
+        color: $white;
+        background-color: $purple;
+    }
+}
+
+.document-list{
+    margin-bottom: 10px;
+}

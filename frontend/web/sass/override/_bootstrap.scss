@@ -1,0 +1,119 @@
+$green: #197b4f;
+
+%border-radius {
+    border-radius: 50rem;
+}
+
+%cursor-pointer {
+    cursor: pointer;
+}
+
+// style
+
+.border-radius {
+    @extend %border-radius;
+}
+
+// button
+
+.btn {
+    @extend %border-radius;
+}
+
+// custom form
+
+.form-control {
+    @extend %border-radius;
+}
+
+.custom-checkbox {
+    .custom-control-label::before {
+        @extend %border-radius;
+    }
+}
+
+.custom-control-label {
+    @extend %cursor-pointer;
+}
+
+.btn-success {
+    background-color: $green;
+    border-color: $green;
+}
+
+textarea.form-control {
+    border-radius: 1rem;
+}
+
+/* =============== yii kartik =============== */
+// .input-group.date .kv-date-picker {
+//     border-top-right-radius: 50rem;
+//     border-bottom-right-radius: 50rem;
+// }
+
+.select2-container--krajee-bs4 .select2-selection {
+    border-radius: 50rem;
+}
+
+.select2-container--krajee-bs4.select2-container--open.select2-container--above .select2-selection {
+    border-radius: 1.2rem;
+}
+
+.select2-container--krajee-bs4.select2-container--open.select2-container--below .select2-selection {
+    border-radius: 1.2rem;
+}
+
+.select2-container--krajee-bs4 .select2-selection--multiple .select2-selection__rendered {
+    padding-left: 1.2rem;
+    padding-right: 1.2rem;
+}
+
+.select2-container--krajee-bs4 .select2-selection--multiple .select2-selection__choice {
+    color: #212529;
+    background-color: #fff;
+    padding-left: 0.8rem;
+    padding-right: 0.4rem;
+}
+
+.select2-container--krajee-bs4 .select2-selection--multiple .select2-selection__choice__remove {
+    font-size: 1.5rem;
+    opacity: 1;
+    padding-left: 0.5rem;
+    color: #212529;
+}
+
+span.select2-selection__choice__remove {
+    cursor: pointer;
+}
+/* =============== end yii kartik =============== */
+
+.btn-outline-success {
+    border-color: $soft-green;
+    color: $soft-green;
+    &:hover {
+        background-color: $soft-green;
+        border-color: $soft-green;
+    }
+    &:active {
+        color: $white;
+        background-color: $soft-green;
+        border-color: $soft-green;
+    }
+    &.active {
+        color: $white;
+        background-color: $soft-green;
+        border-color: $soft-green;
+    }
+}
+
+.btn-outline-success:not(:disabled):not(.disabled):active {
+    color: $white;
+    background-color: $soft-green;
+    border-color: $soft-green;
+}
+
+@media (min-width: 1400px) {
+    .container, .container-sm, .container-md, .container-lg, .container-xl {
+        max-width: 1340px;
+    }
+}

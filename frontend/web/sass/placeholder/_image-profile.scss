@@ -1,0 +1,31 @@
+$profile-gray-1: #dee2e6;
+$profile-gray-2: #5a6268;
+
+%profile-image {
+    .profile-image {
+        width: 180px;
+        height: 180px;
+        object-fit: cover;
+        border: 8px solid $profile-gray-1 !important;
+    }
+
+    .wrap-btn-upload {
+        margin-top: -45px;
+    }
+
+    .btn-upload-profile {
+        background-color: $profile-gray-1;
+        border-color: $profile-gray-1;
+        color: $profile-gray-2;
+        width: 45px;
+        height: 45px;
+        &:hover {
+            background-color: darken($profile-gray-1, 10%);
+            border-color: darken($profile-gray-1, 10%);
+        }
+
+        i {
+            font-size: 1.4rem;
+        }
+    }
+}

@@ -1,0 +1,6 @@
+RewriteEngine on
+# ถ้าเป็นไฟล์หรือโฟลเดอร์ที่มีอยู่จริง ให้ใช้ request นั้นตรงๆ
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+# นอกนั้นส่งไปที่ index.php เพื่อให้ Yii จัดการ pretty URL
+RewriteRule . index.php

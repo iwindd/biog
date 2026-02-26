@@ -1,0 +1,275 @@
+body {
+    font-family: $font-kanit;
+}
+
+.bg-purple {
+    background-color: $purple !important;
+}
+
+.fr-active{
+    z-index: 9999 !important;
+}
+.fr-quick-insert{
+    display: none;
+}
+.fr-sticky-on{
+    top: 6.6rem !important;
+}
+.fr-box{
+    .second-toolbar{
+        #logo{
+            display: none
+        }
+    }
+}
+
+#imageManager-1, #videoUpload-1, #imageManager-2, #videoUpload-2, #imageManager-3, #videoUpload-3, #imageManager-4, #videoUpload-4{
+    display: none !important;
+}
+.btn-purple {
+    width: 245px;
+    background-color: $purple !important;
+    border-color: $purple;
+    color: $white;
+    &:hover {
+        color: $white;
+    }
+    img {
+        position: relative;
+        top: 0;
+        margin-right: 1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .btn-purple {
+        width: 100%;
+        background-color: $purple !important;
+        border-color: $purple;
+        color: $white;
+        &:hover {
+            color: $white;
+        }
+        img {
+            position: relative;
+            top: 0;
+            margin-right: 1rem;
+        }
+    }
+}
+
+.icon-btn {
+    width: 26px;
+    position: relative;
+    top: -3px;
+    margin-right: 6px;
+}
+
+.main-breadcrumb {
+    background-color: $gray;
+}
+
+.breadcrumb {
+    li {
+        &.home {
+            a {
+                color: $dark-gray;
+            }
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    }
+    background-color: $gray;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+    display: inline-block;
+    padding-right: 0.5rem;
+    color: #6c757d;
+    content: '›';
+}
+
+.btn-outline-soft-green {
+    border-color: $soft-green;
+    color: $soft-green;
+    &:hover {
+        color: $white;
+        background-color: $soft-green;
+        border-color: $soft-green;
+    }
+    &:active {
+        color: $white;
+        background-color: $soft-green;
+        border-color: $soft-green;
+    }
+    &:focus {
+        outline: none;
+    }
+    &.active {
+        color: $white;
+        background-color: $soft-green;
+        border-color: $soft-green;
+    }
+}
+
+a {
+    text-decoration: none !important;
+}
+
+.text-green {
+    color: $green;
+}
+
+.text-gray {
+    color: $dark-gray !important;
+}
+.pagination li a,
+.pagin .pagination li span {
+    color: #ddd !important;
+    margin: 0 auto;
+    padding: 9px 14px;
+}
+
+.pagination {
+    justify-content: center;
+    display: -ms-flexbox;
+    display: flex;
+    padding-left: 0;
+    list-style: none;
+    border-radius: 0;
+    li {
+        left: 0;
+        width: 40px;
+        height: 40px;
+        border: none;
+        border-radius: 100%;
+        margin-left: 1rem;
+        background-color: $white;
+        text-align: center;
+        padding-top: 0.4rem;
+        &.prev {
+            left: 0;
+            width: 40px;
+            height: 40px;
+            border: 2px solid #ddd;
+            border-radius: 100%;
+            margin-left: 1rem;
+            background-color: $white;
+            text-align: center;
+            padding-top: 0.4rem;
+        }
+        &.active {
+            left: 0;
+            width: 40px;
+            height: 40px;
+            border: 1px solid #759f53;
+            border-radius: 100%;
+            margin-left: 1rem;
+            background-color: #759f53;
+            text-align: center;
+            padding-top: 0.4rem;
+        }
+        &.next {
+            left: 0;
+            width: 40px;
+            height: 40px;
+            border: 2px solid #ddd;
+            border-radius: 100%;
+            margin-left: 1rem;
+            background-color: $white;
+            text-align: center;
+            padding-top: 0.4rem;
+        }
+    }
+}
+
+.pagin {
+    margin: 0 auto;
+    .pagination {
+        justify-content: center;
+        display: -ms-flexbox;
+        display: flex;
+        padding-left: 0;
+        list-style: none;
+        border-radius: 0;
+    }
+}
+
+.pagin .pagination li {
+    left: 0;
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 100%;
+    margin-left: 1rem;
+    background-color: $white;
+    text-align: center;
+    padding-top: 0.4rem;
+}
+
+.pagin .pagination li.prev {
+    left: 0;
+    width: 40px;
+    height: 40px;
+    border: 2px solid #ddd;
+    border-radius: 100%;
+    margin-left: 1rem;
+    background-color: $white;
+    text-align: center;
+    padding-top: 0.4rem;
+}
+
+.pagin .pagination li.active {
+    left: 0;
+    width: 40px;
+    height: 40px;
+    border: 1px solid #759f53;
+    border-radius: 100%;
+    margin-left: 1rem;
+    background-color: #759f53;
+    text-align: center;
+    padding-top: 0.4rem;
+}
+
+.pagin .pagination li.next {
+    left: 0;
+    width: 40px;
+    height: 40px;
+    border: 2px solid #ddd;
+    border-radius: 100%;
+    margin-left: 1rem;
+    background-color: $white;
+    text-align: center;
+    padding-top: 0.4rem;
+}
+
+.pagin .pagination li a,
+.pagin .pagination li span {
+    color: #ddd !important;
+    margin: 0 auto;
+    padding: 9px 14px;
+}
+
+.empty-data {
+    background-color: $gray;
+    padding-top: 1rem;
+    margin-left: 1rem;
+    margin-right: 1rem;
+}
+
+.like {
+    &.active {
+        color: #1374e4;
+    }
+}
+
+/* ========== wordcloud / keywordmap ========== */
+
+div#word-cloud-summary {
+    font-family: 'Kanit', sans-serif;
+}
+
+.vis-network:focus {
+    outline: unset;
+}

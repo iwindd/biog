@@ -1,4 +1,4 @@
-# yii console commands
+ yii console commands
 /yii
 /yii_test
 /yii_test.bat
@@ -45,8 +45,9 @@ node_modules/
 composer.lock
 
 # ignore all files in web and document
-/frontend/web/*
-/backend/web/*
+/frontend/web/files/*
+/frontend/web/uploads/*
+
 /document/**
 /db
 /document/css/**

@@ -1,0 +1,41 @@
+@import "variables/_color";
+@import "variables/_font";
+@import "placeholder/_image-profile";
+
+@import "components/_navbar";
+@import "components/_header";
+
+// page
+@import "page/home/_home";
+
+// user
+@import "page/user/_login";
+@import "page/user/_register";
+@import "page/user/_profile";
+@import "page/user/_reset-password";
+
+// content
+@import "page/content/_create-content";
+@import "page/content/_list";
+
+//news
+@import "page/news/_list";
+
+//knowledge
+@import "page/knowledge/_list";
+
+//blog
+@import "page/blog/_list";
+@import "page/blog/_detail";
+
+@import "page/map/_map";
+
+// component
+@import "components/main";
+@import "components/_footer";
+
+// override from default style
+@import "override/_body";
+@import "components/all_list";
+@import "components/all_detail";
+@import "override/_bootstrap";

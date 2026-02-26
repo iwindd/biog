@@ -1,0 +1,115 @@
+$create-data-namespace: 'create-content';
+
+$create-data-green-1: #40c379;
+$create-data-green-2: #34ce57;
+
+.#{$create-data-namespace}-container {
+    .text-green-1 {
+        color: $create-data-green-1;
+    }
+
+    .custom-control-input ~ .custom-control-label::before {
+        transform: scale(1.5);
+    }
+
+    .custom-control-label::after {
+        transform: scale(1.8);
+    }
+
+    .icon-content {
+        border-radius: 50rem;
+        padding: 0;
+        width: 55px;
+        height: 55px;
+        background-color: $create-data-green-1;
+
+        // img {
+        //     margin-top: 12%;
+        // }
+    }
+
+    .btn-success {
+        background-color: $create-data-green-1;
+        border-color: $create-data-green-1;
+
+        &:hover {
+            background-color: darken($create-data-green-1, 5%);
+            border-color: darken($create-data-green-1, 5%);
+        }
+    }
+    .#{$create-data-namespace}-form {
+        // padding-top: 50px;
+        padding-bottom: 50px;
+        min-height: calc(100vh - 428px);
+    }
+
+    .card-picture-item{
+        height: 270px;
+        margin-bottom: 10px;
+        position: relative;
+    }
+    .card-picture-item img{
+        height: 220px;
+        object-fit: cover;
+    }
+    
+    .card-picture-item button.close, .card-iframe-item button.close {
+        position: absolute;
+        padding: 0;
+        cursor: pointer;
+        background: black;
+        border: 0;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        right: 20px;
+        color: #fff;
+        text-shadow: none;
+        opacity: 1;
+        border-radius: 25px;
+        padding-left: 9px;
+        padding-right: 9px;
+        padding-bottom: 4px;
+        margin-top: 5px;
+        /* border: 1px solid red;
+        border-radius: 100%;
+        width: 24px;
+        top: 5px;
+        background-color: red; */
+    }
+    
+    .card-picture-item button.close:hover, .card-picture-item button.close:focus, 
+    .card-iframe-item button.close:hover, .card-iframe-item button.close:focus {
+        color: #fff;
+        outline: none;
+    }
+    
+}
+
+.field-content-taxonomy_list{
+    span{
+        &.select2-container{
+            width: 100% !important;
+            .select2-selection {
+                border-radius: 50rem !important;
+                ul{
+                    &.select2-selection__rendered{
+                        margin-top: 2px;
+                    }
+                    .select2-selection__clear{
+                        top: 0.8rem !important;
+                        right: 1.2rem;
+                        cursor: pointer;
+                    }
+                }
+            }
+        }
+    }
+}
+
+// .select2-dropdown{
+//     border: 0 !important;
+// }
+// .select2-container .select2-dropdown{
+//     box-shadow
+// }

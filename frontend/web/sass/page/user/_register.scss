@@ -1,0 +1,68 @@
+.register-container {
+    // max-width: 800px;
+
+    .register-form {
+        padding-top: 50px;
+        padding-bottom: 50px;
+        min-height: calc(100vh - 428px);
+
+        form{
+            width: 100%;
+        }
+
+        .select2-container {
+
+            .select2-selection--single{
+
+                .select2-selection__clear{
+                    position: absolute;
+                }
+            }
+        }
+
+        .alert {
+            width: 100%;
+        }
+    }
+
+    .form-group {
+        label {
+            margin-left: 12px;
+        }
+    }
+
+    .col-border {
+        padding: 20px 40px 20px 40px;
+        border: 1.5px solid #dee2e6;
+        flex: 0 0 48.5%;
+
+        &.-left {
+            margin-right: auto;
+        }
+        &.-right {
+            margin-left: auto;
+        }
+    }
+
+    .btn-login {
+        width: 200px;
+    }
+
+    .btn-register {
+        width: 200px;
+    }
+
+    @extend %profile-image;
+    .profile-image {
+        width: 150px;
+        height: 150px;
+    }
+}
+
+@media (max-width: 767px) {
+    .register-container {
+        .col-border{
+            flex: 0 0 100%;
+        }
+    }
+}

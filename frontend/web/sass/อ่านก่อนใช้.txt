@@ -1,0 +1,14 @@
+ถ้ายังไม่มี sass ติดตั้ง sass ก่อน
+npm install -g sass 
+
+run command
+(compile css file)
+sass --watch frontend/web/sass/style.scss:frontend/web/css/style.css
+
+(compile min.css file)
+sass --watch --style=compressed frontend/web/sass/style.scss:frontend/web/css/style.css
+
+
+** ไม่ push ไฟล์ 
+.css 
+.css.map

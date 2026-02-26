@@ -1,0 +1,213 @@
+.main-menu {
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+
+    .header-menu {
+        position: relative;
+        width: 37.5rem;
+        /* height: 100px; */
+        margin: 0 auto;
+    }
+}
+
+.menu {
+    font-size: 1.5rem;
+}
+
+.menu-sidebar{
+    .menu {
+        margin-bottom: 0;
+    }
+}
+a.menu-item:hover {
+    color: $white;
+}
+.menu-item {
+    float: left;
+    color: #f2f2f2;
+    text-align: center;
+    padding: 0;
+    width: 5.625rem;
+    text-decoration: none;
+    font-size: 1rem;
+    margin-left: .75rem;
+    margin-right: .75rem;
+    margin-top: 2rem;
+    .bg-icon {
+        //font-size: 3rem;
+        border: solid .125rem;
+        border-radius: 50%;
+        margin-left: 0.625rem;
+        padding: 0;
+        width: 4rem;
+        height: 4rem;
+        i {
+            vertical-align: middle;
+            margin-bottom: 28px;
+        }
+        img {
+            margin-bottom: 2rem;
+            vertical-align: middle;
+            height: 60px;
+            text-align: center;
+        }
+        &:hover {
+            background-color: $white;
+            path.st0 {
+                fill: $green;
+            }
+            //border: solid 2px $white;
+            //color: $white;
+        }
+        &.active {
+            background-color: $white;
+            path.st0 {
+                fill: $green;
+            }
+        }
+    }
+    
+    &.active {
+        .bg-icon {
+            background-color: $white;
+            border: solid 2px $white;
+            color: $green;
+            width: 75px;
+            height: 75px;
+            i {
+                vertical-align: middle;
+                margin-bottom: 28px;
+            }
+        }
+    }
+}
+
+.banner {
+    // background-image: url('/images/banner/bg.jpg');
+    // background-repeat: no-repeat;
+    // background-size: cover;
+    // height: 800px;
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+}
+
+.banner-content {
+    position: absolute;
+    bottom: 0;
+    
+}
+
+.analysis {
+    .number {
+        text-align: center;
+        color: $white;
+        font-size: 3rem;
+    }
+
+    .banner-text {
+        text-align: center;
+        color: $white;
+        font-size: 1.5rem;
+    }
+}
+
+
+
+.search-box {
+    .input-group {
+        background-color: rgba(255,255,255,.22);
+        padding: .75rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
+        border-radius: 3rem;
+    }
+}
+
+.search-input {
+    background-color: #fff;
+    border-radius: 2.25rem 0 0 2.25rem;
+    padding: .75rem;
+    height: 3.5rem;
+    padding-left: 1.75rem;
+    font-size: 1.1rem;
+    font-weight: lighter;
+    border: 0;
+}
+
+.btn-search {
+    border-radius:  0 2.25rem 2.25rem 0;
+    border: 0;
+    background-color: $purple;
+    color: $white;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    outline: none;
+    width: 7rem;
+    span {
+        margin-left: .75rem;
+        font-size: 1.25rem;
+    }
+}
+
+@media(max-width: 992px) {
+    .banner {
+        width: 100%;
+        height: 500px;
+        object-fit: cover;
+    }
+
+    .section-banner.content {
+        img {
+            height: 450px;
+        }
+    }
+}
+
+.analysis {
+    text-shadow: 2px 2px 12px #292929;
+}
+
+@media(min-width: 992px) {
+    .section-banner.content {
+        img {
+            height: 450px;
+        }
+    }
+}
+
+@media(max-width: 768px) {
+
+    .banner {
+        width: 100%;
+        height: 625px;
+        object-fit: cover;
+    }
+
+    .analysis {
+        text-shadow: 2px 2px 12px #292929;
+        margin-bottom: 10px;
+        .number {
+            text-align: center;
+            color: $white;
+            font-size: 2rem;
+        }
+    
+        .banner-text {
+            text-align: center;
+            color: $white;
+            font-size: 1.25rem;
+        }
+    }
+
+    .mobile-analysis{
+        background-color: rgb(0 0 0 / 30%);
+        .number {
+            text-align: center;
+            color: $white;
+            font-size: 4rem;
+        }
+    }
+
+
+}

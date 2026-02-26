@@ -1,0 +1,147 @@
+.content-table {
+thead {
+    background-color: $soft-green-2;
+    th {
+        font-size: 1rem;
+        font-weight: lighter;
+        border-bottom: 0 !important;
+        
+        a{
+            color: $black;
+        }
+        
+        
+    }
+    td {
+        border-top: 0 solid !important;
+    }
+    
+}
+}
+
+td {
+    .bg-icon {
+        font-size: 3rem;
+        border: none;
+        border-radius: 50%;
+        padding: 0;
+        width: 45px;
+        height: 45px;
+        min-width: 45px;
+        min-height: 45px;
+        background-color: $dark-gray;
+        i {
+            font-size: 2rem;
+            vertical-align: middle;
+            margin-bottom: 42px;
+        }
+        img {
+            vertical-align: unset;
+            padding-bottom: 0.5rem;
+        }
+        
+    }
+}
+.status-pending {
+    font-size: .6rem;
+}
+.status-approved {
+    font-size: .6rem;
+}
+.status-rejected {
+    font-size: .6rem;
+}
+
+.text-warning {
+    color: #CF9A27 !important;
+}
+
+.text-success {
+    color: #00C57A !important;
+}
+
+.text-danger {
+    color: #F02F67 !important;
+}
+.create-content-form {
+    .summary {
+        display: none;
+    }
+}
+
+.summary-all {
+    margin-top: .25rem;
+    font-size: 1.25rem;
+    color: #0671E4;
+}
+
+.action {
+    a {
+        color: #a7a7a7;
+    }
+    
+}
+
+
+table.content-table thead > tr > th a[data-sort]:before, table.content-table thead td a[data-sort]:before {
+    -webkit-font-smoothing: antialiased;
+    display: inline-block;
+    font-style: normal;
+    font-variant: normal;
+    text-rendering: auto;
+    line-height: 1;
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    content: "";
+    padding-left: 10px;
+    margin-right: 4px;
+}
+.site-content-detail{
+    .section-main{
+        p{
+            word-break: break-word;
+        }
+    }
+}
+
+.teacher-content-approve {
+    .status {
+        width: 150px;
+    }
+    .empty {
+        text-align: center;
+    }
+}
+
+.title-content-student {
+    display: flex;
+
+    .btn-import-content {
+        margin-left: 3rem;
+    }
+    .btn-purple {
+        margin-bottom: 1rem;
+    }
+}
+
+@media(max-width: 576px) {
+    .title-content-student {
+        display: block;
+
+        .btn-import-content {
+            margin-left: 0;
+        }
+
+        .btn-purple {
+            margin-bottom: 1rem;
+            width: 100%;
+        }
+    }
+}
+
+.content-table {
+    .note {
+        width: 120px;
+    }
+}
+

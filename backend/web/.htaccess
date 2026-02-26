@@ -1,0 +1,11 @@
+RewriteEngine on
+# Yii สร้าง URL เป็น /admin/assets/, /admin/images/, /admin/summernote/ แต่ไฟล์อยู่ที่ web/assets/, web/images/, web/summernote/
+# Rewrite ให้ Apache เสิร์ฟไฟล์จริงแทนส่งเข้า index.php
+# RewriteRule ^admin/(assets|images|summernote)/(.*)$ $1/$2 [L]
+RewriteRule ^admin/(.*)$ $1 [L]
+
+# ถ้าเป็นไฟล์หรือโฟลเดอร์ที่มีอยู่จริง ให้ใช้ request นั้นตรงๆ
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+# นอกนั้นส่งไปที่ index.php เพื่อให้ Yii จัดการ pretty URL (รวม /admin/user/login)
+RewriteRule . index.php
