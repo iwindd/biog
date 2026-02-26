@@ -275,8 +275,19 @@ class Content extends \yii\db\ActiveRecord
         return $this->hasMany(ContentImageSource::className(), ['content_id' => 'id']);
     }
 
+    /**
+     * Gets query for [[ContentDataSources]].
+     *
+     * @return \yii\db\ActiveQuery
+     */
+    public function getContentDataSources()
+    {
+        return $this->hasMany(ContentDataSource::className(), ['content_id' => 'id']);
+    }
+
     public function getContentTaxonomy()
     {
         return $this->hasMany(ContentTaxonomy::className(), ['taxonomy_id' => 'id'])->select(['id', 'content_id', 'taxonomy_id']);
     }
+
 }

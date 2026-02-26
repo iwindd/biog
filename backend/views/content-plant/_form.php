@@ -234,7 +234,14 @@ $licenseList = ArrayHelper::map(License::find()->all(), 'id', 'name');
                 </div>
             </div>
 
-            <?= $form->field($model, 'source_information')->textarea(['rows' => '3'], 'รายละเอียด'); ?>
+            <div class="row">
+                <div class="col-md-12">
+                    <?= $this->render('../components/_data_source_dynamic_form', [
+                        'form' => $form,
+                        'modelDataSource' => $modelDataSource,
+                    ]) ?>
+                </div>
+            </div>
 
             
             <?= $form->field($model, 'note')->textInput(['maxlength' => true]) ?>

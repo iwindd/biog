@@ -169,7 +169,32 @@ $this->params['breadcrumbs'][] = $this->title;
                 'attribute' => 'source_information',
                 'label' => 'แหล่งที่มาของข้อมูล',
                 'value' => function ($model) {
-                    return FrontendHelper::getSourceInformation($model['source_information']);
+                    if (!empty($model->contentDataSources)) {
+                        $htmlList = [];
+                        foreach ($model->contentDataSources as $source) {
+                            $formattedItems = [];
+                            if (!empty($source->source_name)) {
+                                $formattedItems[] = $source->source_name;
+                            }
+                            if (!empty($source->author)) {
+                                $formattedItems[] = 'ผู้จัดทำ: ' . $source->author;
+                            }
+                            if (!empty($source->published_date)) {
+                                $formattedItems[] = 'วันที่เผยแพร่: ' . date('d/m/Y', strtotime($source->published_date));
+                            }
+                            if (!empty($source->reference_url)) {
+                                $formattedItems[] = 'URL: <a href="' . $source->reference_url . '" target="_blank">' . $source->reference_url . '</a>';
+                            }
+                            
+                            if (!empty($formattedItems)) {
+                                $htmlList[] = '<li>' . implode(', ', $formattedItems) . '</li>';
+                            }
+                        }
+                        if (!empty($htmlList)) {
+                            return '<ul style="padding-left: 20px; margin-bottom: 0;">' . implode('', $htmlList) . '</ul>';
+                        }
+                    }
+                    return '-';
                 }
             ],
             [

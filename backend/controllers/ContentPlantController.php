@@ -131,6 +131,7 @@ class ContentPlantController extends Controller
         $modelPlant = new ContentPlant();
         $mediaModel = array();
         $modelImageSource = [new \backend\models\ContentImageSource()];
+        $modelDataSource = [new \backend\models\ContentDataSource()];
 
         $case_error = array();
 
@@ -138,6 +139,9 @@ class ContentPlantController extends Controller
         
             $modelImageSource = \backend\base\Model::createMultiple(\backend\models\ContentImageSource::classname());
             \backend\base\Model::loadMultiple($modelImageSource, Yii::$app->request->post());
+
+            $modelDataSource = \backend\base\Model::createMultiple(\backend\models\ContentDataSource::classname());
+            \backend\base\Model::loadMultiple($modelDataSource, Yii::$app->request->post());
 
             $transaction = \Yii::$app->db->beginTransaction();
             try {
@@ -237,6 +241,15 @@ class ContentPlantController extends Controller
                             }
                         }
 
+                        foreach ($modelDataSource as $dataSource) {
+                            $dataSource->content_id = $model->id;
+                            if (!empty($dataSource->source_name) || !empty($dataSource->author) || !empty($dataSource->published_date) || !empty($dataSource->reference_url)) {
+                                if (!$dataSource->save(false)) {
+                                    $checkUpdate = false;
+                                }
+                            }
+                        }
+
                         if ($checkUpdate) {
                             $transaction->commit();
 
@@ -259,6 +272,7 @@ class ContentPlantController extends Controller
             'modelPlant' => $modelPlant,
             'mediaModel' => $mediaModel,
             'modelImageSource' => $modelImageSource,
+            'modelDataSource' => $modelDataSource,
             'case_error' => $case_error
         ]);
     }
@@ -287,6 +301,9 @@ class ContentPlantController extends Controller
         $modelImageSourceOld = \backend\models\ContentImageSource::find()->where(['content_id' => $id])->all();
         $modelImageSource = (empty($modelImageSourceOld)) ? [new \backend\models\ContentImageSource()] : $modelImageSourceOld;
 
+        $modelDataSourceOld = \backend\models\ContentDataSource::find()->where(['content_id' => $id])->all();
+        $modelDataSource = (empty($modelDataSourceOld)) ? [new \backend\models\ContentDataSource()] : $modelDataSourceOld;
+
         $case_error = array();
 
         if ($model->load(Yii::$app->request->post()) && $modelPlant->load(Yii::$app->request->post())) {
@@ -294,6 +311,10 @@ class ContentPlantController extends Controller
             $modelImageSourceTemp = \backend\base\Model::createMultiple(\backend\models\ContentImageSource::classname(), $modelImageSourceOld);
             \backend\base\Model::loadMultiple($modelImageSourceTemp, Yii::$app->request->post());
             $modelImageSource = $modelImageSourceTemp;
+
+            $modelDataSourceTemp = \backend\base\Model::createMultiple(\backend\models\ContentDataSource::classname(), $modelDataSourceOld);
+            \backend\base\Model::loadMultiple($modelDataSourceTemp, Yii::$app->request->post());
+            $modelDataSource = $modelDataSourceTemp;
 
             // print '<pre>';
             // print_r($model);
@@ -530,6 +551,21 @@ class ContentPlantController extends Controller
                             }
                         }
 
+                        foreach ($modelDataSource as $dataSource) {
+                            $newDataSource = new \backend\models\ContentDataSource();
+                            $newDataSource->content_id = $model->id;
+                            $newDataSource->source_name = $dataSource->source_name;
+                            $newDataSource->author = $dataSource->author;
+                            $newDataSource->published_date = $dataSource->published_date;
+                            $newDataSource->reference_url = $dataSource->reference_url;
+
+                            if (!empty($newDataSource->source_name) || !empty($newDataSource->author) || !empty($newDataSource->published_date) || !empty($newDataSource->reference_url)) {
+                                if (!$newDataSource->save(false)) {
+                                    $checkUpdate = false;
+                                }
+                            }
+                        }
+
                         if ($checkUpdate) {
                             $transaction->commit();
 
@@ -557,6 +593,7 @@ class ContentPlantController extends Controller
             'modelPlant' => $modelPlantOld,
             'mediaModel' => $mediaModelOld,
             'modelImageSource' => $modelImageSource,
+            'modelDataSource' => $modelDataSource,
             'case_error' => $case_error
         ]);
 

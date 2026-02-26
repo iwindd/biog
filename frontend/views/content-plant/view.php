@@ -184,8 +184,31 @@ if (!function_exists('shortDescription')) {
                                     </p>
                                 <?php endif; ?>
 
-                                <?php if (!empty($content['source_information'])): ?>
-                                    <p class="detail-title"><span>แหล่งที่มาของข้อมูล:</span> <?php echo FrontendHelper::getSourceInformation($content['source_information']); ?></p>
+                                <?php if (!empty($content->contentDataSources)): ?>
+                                    <p class="detail-title"><span>แหล่งที่มาของข้อมูล:</span>
+                                        <ul style="padding-left: 20px; margin-bottom: 0;">
+                                            <?php foreach ($content->contentDataSources as $source): ?>
+                                                <?php
+                                                $formattedItems = [];
+                                                if (!empty($source->source_name)) {
+                                                    $formattedItems[] = $source->source_name;
+                                                }
+                                                if (!empty($source->author)) {
+                                                    $formattedItems[] = 'ผู้จัดทำ: ' . $source->author;
+                                                }
+                                                if (!empty($source->published_date)) {
+                                                    $formattedItems[] = 'วันที่เผยแพร่: ' . date('d/m/Y', strtotime($source->published_date));
+                                                }
+                                                if (!empty($source->reference_url)) {
+                                                    $formattedItems[] = 'URL: <a href="' . $source->reference_url . '" target="_blank">' . $source->reference_url . '</a>';
+                                                }
+                                                
+                                                if (!empty($formattedItems)): ?>
+                                                    <li><?php echo implode(', ', $formattedItems); ?></li>
+                                                <?php endif; ?>
+                                            <?php endforeach; ?>
+                                        </ul>
+                                    </p>
                                 <?php endif; ?>
 
                                 <?php if (!empty($content['license_id']) && !empty($content->license)): ?>
