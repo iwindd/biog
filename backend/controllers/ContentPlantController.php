@@ -867,7 +867,7 @@ class ContentPlantController extends Controller
                         16 => 'family_name',
                         17 => 'illustration_labels', // รูปภาพประกอบ (คั่นด้วย ; หรือ ,) ค้นหาจาก FileCenter
                         18 => 'image_sources', // แหล่งที่มารูปภาพ (ชื่อแหล่งที่มา, ผู้จัดทำ, วันที่เผยแพร่, URL อ้างอิง;)
-                        // 19 => Skip Data Source
+                        19 => 'data_sources', // แหล่งอ้างอิงข้อมูล (ชื่อแหล่งที่มา, ผู้จัดทำ, วันที่เผยแพร่, URL อ้างอิง;)
                         20 => 'note',
                         21 => 'status',
                         // 22 => Skip License
@@ -988,6 +988,60 @@ class ContentPlantController extends Controller
                                     $item['image_sources_errors'][] = "แหล่งที่มารูปภาพต้องมี URL อ้างอิง (พบ: '{$sourceString}')";
                                 } else {
                                     $item['image_sources_data'][] = [
+                                        'source_name' => $sourceName,
+                                        'author' => $author,
+                                        'published_date' => $sqlDate,
+                                        'reference_url' => $url,
+                                    ];
+                                }
+                            }
+                        }
+
+                        // Parse Data Sources
+                        $item['data_sources_data'] = [];
+                        $item['data_sources_errors'] = [];
+                        if (!empty($item['data_sources'])) {
+                            $sources = explode(';', $item['data_sources']);
+                            foreach ($sources as $sourceString) {
+                                $sourceString = trim($sourceString);
+                                if (empty($sourceString)) continue;
+
+                                $parts = array_map('trim', explode(',', $sourceString));
+                                $sourceName = $parts[0] ?? '';
+                                $author = $parts[1] ?? '';
+                                $publishedDate = $parts[2] ?? '';
+                                $sqlDate = null;
+                                if (!empty($publishedDate)) {
+                                    // Parse Thai date format like 17-06-2549
+                                    $dateParts = explode('-', $publishedDate);
+                                    if (count($dateParts) == 3) {
+                                        $d = str_pad($dateParts[0], 2, '0', STR_PAD_LEFT);
+                                        $m = str_pad($dateParts[1], 2, '0', STR_PAD_LEFT);
+                                        $y = (int)$dateParts[2];
+                                        if ($y > 2400) {
+                                            $y -= 543;
+                                        }
+                                        $sqlDate = "{$y}-{$m}-{$d}";
+                                    } else {
+                                        $dateParts = explode('/', $publishedDate);
+                                        if (count($dateParts) == 3) {
+                                            $d = str_pad($dateParts[0], 2, '0', STR_PAD_LEFT);
+                                            $m = str_pad($dateParts[1], 2, '0', STR_PAD_LEFT);
+                                            $y = (int)$dateParts[2];
+                                            if ($y > 2400) {
+                                                $y -= 543;
+                                            }
+                                            $sqlDate = "{$y}-{$m}-{$d}";
+                                        }
+                                    }
+                                }
+
+                                $url = $parts[3] ?? '';
+
+                                if (empty($url)) {
+                                    $item['data_sources_errors'][] = "แหล่งอ้างอิงข้อมูลต้องมี URL อ้างอิง (พบ: '{$sourceString}')";
+                                } else {
+                                    $item['data_sources_data'][] = [
                                         'source_name' => $sourceName,
                                         'author' => $author,
                                         'published_date' => $sqlDate,
@@ -1152,6 +1206,22 @@ class ContentPlantController extends Controller
                             
                             if (!$imgSrc->save(false)) { // Save without validation just to be sure, or true if validation allows it
                                 throw new \Exception("ไม่สามารถบันทึกข้อมูลแหล่งที่มารูปภาพได้");
+                            }
+                        }
+                    }
+
+                    // handle Data Sources from Import
+                    if (!empty($item['data_sources_data'])) {
+                        foreach ($item['data_sources_data'] as $sourceData) {
+                            $dataSrc = new \backend\models\ContentDataSource();
+                            $dataSrc->content_id = $content->id;
+                            $dataSrc->source_name = $sourceData['source_name'];
+                            $dataSrc->author = $sourceData['author'];
+                            $dataSrc->published_date = $sourceData['published_date'];
+                            $dataSrc->reference_url = $sourceData['reference_url'];
+                            
+                            if (!$dataSrc->save(false)) { // Save without validation
+                                throw new \Exception("ไม่สามารถบันทึกข้อมูลแหล่งอ้างอิงข้อมูลได้");
                             }
                         }
                     }
