@@ -18,7 +18,7 @@ class LicenseSearch extends License
   {
     return [
       [['id'], 'integer'],
-      [['name', 'description', 'url', 'created_at', 'updated_at'], 'safe'],
+      [['name', 'code', 'description', 'url', 'created_at', 'updated_at'], 'safe'],
     ];
   }
 
@@ -63,6 +63,7 @@ class LicenseSearch extends License
 
     $query
       ->andFilterWhere(['like', 'name', $this->name])
+      ->andFilterWhere(['like', 'code', $this->code])
       ->andFilterWhere(['like', 'description', $this->description])
       ->andFilterWhere(['like', 'url', $this->url]);
 

@@ -16,6 +16,8 @@ use yii\widgets\ActiveForm;
         <div class="box-body">
             <?= $form->field($model, 'name')->textInput(['maxlength' => true]) ?>
 
+            <?= $form->field($model, 'code')->textInput(['maxlength' => true]) ?>
+
             <?= $form->field($model, 'description')->textarea(['rows' => 6]) ?>
 
             <?= $form->field($model, 'url')->textInput(['maxlength' => true]) ?>

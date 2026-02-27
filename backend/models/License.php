@@ -9,6 +9,7 @@ use Yii;
  *
  * @property int $id
  * @property string $name
+ * @property string $code
  * @property string|null $description
  * @property string|null $url
  * @property string|null $created_at
@@ -32,10 +33,13 @@ class License extends \yii\db\ActiveRecord
   public function rules()
   {
     return [
-      [['name'], 'required'],
+      [['name', 'code'], 'required'],
       [['description'], 'string'],
       [['created_at', 'updated_at'], 'safe'],
       [['name', 'url'], 'string', 'max' => 255],
+      [['code'], 'string', 'max' => 50],
+      [['code'], 'unique'],
+      [['code'], 'match', 'pattern' => '/^\S+$/', 'message' => 'ห้ามเว้นวรรค (No spaces allowed)'],
     ];
   }
 
@@ -47,6 +51,7 @@ class License extends \yii\db\ActiveRecord
     return [
       'id' => 'ID',
       'name' => 'ชื่อสัญญาอนุญาต',
+      'code' => 'รหัสย่อ',
       'description' => 'รายละเอียด',
       'url' => 'ลิงก์อ้างอิง',
       'created_at' => 'วันที่สร้าง',
