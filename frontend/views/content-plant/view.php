@@ -169,16 +169,7 @@ if (!function_exists('shortDescription')) {
                                     <p class="detail-title"><span>แหล่งที่มาของภาพ:</span>
                                         <ul style="padding-left: 20px; margin-bottom: 0;">
                                             <?php foreach ($content->contentImageSources as $source): ?>
-                                                <?php
-                                                $formatted = FrontendHelper::formatImageSource(
-                                                    $source->source_name,
-                                                    $source->author,
-                                                    $source->published_date,
-                                                    $source->reference_url
-                                                );
-                                                if (!empty(trim(strip_tags($formatted)))): ?>
-                                                    <li><?php echo $formatted; ?></li>
-                                                <?php endif; ?>
+                                                <li><?php echo $source->displayLabel; ?></li>
                                             <?php endforeach; ?>
                                         </ul>
                                     </p>
@@ -188,24 +179,7 @@ if (!function_exists('shortDescription')) {
                                     <p class="detail-title"><span>แหล่งที่มาของข้อมูล:</span>
                                         <ul style="padding-left: 20px; margin-bottom: 0;">
                                             <?php foreach ($content->contentDataSources as $source): ?>
-                                                <?php
-                                                $formattedItems = [];
-                                                if (!empty($source->source_name)) {
-                                                    $formattedItems[] = $source->source_name;
-                                                }
-                                                if (!empty($source->author)) {
-                                                    $formattedItems[] = 'ผู้จัดทำ: ' . $source->author;
-                                                }
-                                                if (!empty($source->published_date)) {
-                                                    $formattedItems[] = 'วันที่เผยแพร่: ' . date('d/m/Y', strtotime($source->published_date));
-                                                }
-                                                if (!empty($source->reference_url)) {
-                                                    $formattedItems[] = 'URL: <a href="' . $source->reference_url . '" target="_blank">' . $source->reference_url . '</a>';
-                                                }
-                                                
-                                                if (!empty($formattedItems)): ?>
-                                                    <li><?php echo implode(', ', $formattedItems); ?></li>
-                                                <?php endif; ?>
+                                                <li><?php echo $source->displayLabel; ?></li>
                                             <?php endforeach; ?>
                                         </ul>
                                     </p>

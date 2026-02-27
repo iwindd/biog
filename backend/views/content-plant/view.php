@@ -144,17 +144,12 @@ $this->params['breadcrumbs'][] = $this->title;
                 'format' => 'raw',
                 'label' => 'แหล่งที่มาของภาพ',
                 'value' => function ($model) {
-                    if (!empty($model->contentImageSources)) {
+                    if (!empty($model->contentDataSources)) {
                         $htmlList = [];
-                        foreach ($model->contentImageSources as $source) {
-                            $formatted = FrontendHelper::formatImageSource(
-                                $source->source_name,
-                                $source->author,
-                                $source->published_date,
-                                $source->reference_url
-                            );
-                            if (!empty(trim(strip_tags($formatted)))) {
-                                $htmlList[] = '<li>' . $formatted . '</li>';
+                        foreach ($model->contentDataSources as $source) {
+                            $displayLabel = $source->displayLabel;
+                            if (!empty($displayLabel)) {
+                                $htmlList[] = '<li>' . $displayLabel . '</li>';
                             }
                         }
                         if (!empty($htmlList)) {
@@ -172,22 +167,9 @@ $this->params['breadcrumbs'][] = $this->title;
                     if (!empty($model->contentDataSources)) {
                         $htmlList = [];
                         foreach ($model->contentDataSources as $source) {
-                            $formattedItems = [];
-                            if (!empty($source->source_name)) {
-                                $formattedItems[] = $source->source_name;
-                            }
-                            if (!empty($source->author)) {
-                                $formattedItems[] = 'ผู้จัดทำ: ' . $source->author;
-                            }
-                            if (!empty($source->published_date)) {
-                                $formattedItems[] = 'วันที่เผยแพร่: ' . date('d/m/Y', strtotime($source->published_date));
-                            }
-                            if (!empty($source->reference_url)) {
-                                $formattedItems[] = 'URL: <a href="' . $source->reference_url . '" target="_blank">' . $source->reference_url . '</a>';
-                            }
-                            
-                            if (!empty($formattedItems)) {
-                                $htmlList[] = '<li>' . implode(', ', $formattedItems) . '</li>';
+                            $displayLabel = $source->displayLabel;
+                            if (!empty($displayLabel)) {
+                                $htmlList[] = '<li>' . $displayLabel . '</li>';
                             }
                         }
                         if (!empty($htmlList)) {

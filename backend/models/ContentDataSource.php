@@ -4,6 +4,7 @@ namespace backend\models;
 
 use Yii;
 use common\components\UrlValidatorHelper;
+use common\components\Formatter;
 
 /**
  * This is the model class for table "content_data_source".
@@ -91,5 +92,13 @@ class ContentDataSource extends \yii\db\ActiveRecord
     public function getContent()
     {
         return $this->hasOne(Content::className(), ['id' => 'content_id']);
+    }
+
+    /**
+     * @return string
+     */
+    public function getDisplayLabel()
+    {
+        return Formatter::getDisplaySourceLabelStatic($this->source_name, $this->author, $this->published_date, $this->reference_url);
     }
 }

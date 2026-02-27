@@ -1,7 +1,7 @@
 <?php
 
 namespace frontend\models;
-
+use common\components\Formatter;
 use Yii;
 
 /**
@@ -63,5 +63,13 @@ class ContentImageSource extends \yii\db\ActiveRecord
     public function getContent()
     {
         return $this->hasOne(Content::className(), ['id' => 'content_id']);
+    }
+
+    /**
+     * @return string
+     */
+    public function getDisplayLabel()
+    {
+        return Formatter::getDisplaySourceLabelStatic($this->source_name, $this->author, $this->published_date, $this->reference_url);
     }
 }
