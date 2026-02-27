@@ -46,40 +46,7 @@ $countCount  = Yii::$app->db->createCommand('SELECT COUNT(content.id) as count_c
                 </div>
             </div>
         </div>
-        <!-- <div class="main-menu menu justify-content-center d-flex">
-            <div class="table">
-                <a href="/" class="menu-item">
-                    <div class="bg-icon <?php echo FrontendHelper::menuActiveMain("site", $this->context->route); ?>">
-                        <img src="/images/icon/Home.svg" class="injectable">
-                    </div>
-                    <p>Home</p>
-                </a>
-                <a href="/news" class="menu-item">
-                    <div class="bg-icon <?php echo FrontendHelper::menuActiveMain("news", $this->context->route); ?>">
-                        <img src="/images/icon/News.svg" class="injectable">
-                    </div>
-                    <p>News</p>
-                </a>
-                <a href="/knowledge" class="menu-item">
-                    <div class="bg-icon <?php echo FrontendHelper::menuActiveMain("knowledge", $this->context->route); ?>">
-                        <img src="/images/icon/Knowledge.svg" class="injectable">
-                    </div>
-                    <p>Knowledge</p>
-                </a>
-                <a href="/blog" class="menu-item">
-                    <div class="bg-icon <?php echo FrontendHelper::menuActiveMain("blog", $this->context->route); ?>">
-                        <img src="/images/icon/Blog.svg" class="injectable">
-                    </div>
-                    <p>Blog</p>
-                </a>
-                <a href="/contact" class="menu-item">
-                    <div class="bg-icon <?php echo FrontendHelper::menuActiveMain("contact", $this->context->route); ?>">
-                        <img src="/images/icon/Contact.svg" class="injectable">
-                    </div>
-                    <p>Contact</p>
-                </a>
-            </div>
-        </div> -->
+
         <div class="main-menu menu table-responsive">
             <div class="header-menu">
                 <a href="/" class="menu-item">
@@ -111,6 +78,12 @@ $countCount  = Yii::$app->db->createCommand('SELECT COUNT(content.id) as count_c
                         <img src="/images/icon/Contact.svg" class="injectable">
                     </div>
                     <p>Contact</p>
+                </a>
+                <a href="/site/calendar" class="menu-item">
+                    <div class="bg-icon <?php echo FrontendHelper::menuActiveMain("calendar", $this->context->route); ?>">
+                        <img src="/images/icon/calendar.svg" class="injectable">
+                    </div>
+                    <p>ปฎิทินกิจกรรม</p>
                 </a>
             </div>
         </div>
