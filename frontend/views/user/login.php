@@ -94,10 +94,7 @@ if (!empty($banner->picture_path)) {
 
                 <div class="form-group">
                     <?= $form->field($modelUser, 'reCaptcha')->widget(
-                        \himiklab\yii2\recaptcha\ReCaptcha2::className(),
-                        [
-                            'siteKey' => '6Lcfv74ZAAAAABHCFqZBwgdU4dVi2klEiXvSY-Cj', // unnecessary is reCaptcha component was set up
-                        ]
+                        \himiklab\yii2\recaptcha\ReCaptcha2::className()
                     )->label(false) ?>
                 </div>
 

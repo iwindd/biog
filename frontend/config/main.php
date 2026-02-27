@@ -95,8 +95,8 @@ return [
         ],
         'reCaptcha' => [
             'class' => 'himiklab\yii2\recaptcha\ReCaptchaConfig',
-            'siteKeyV2' => '6Lcfv74ZAAAAABHCFqZBwgdU4dVi2klEiXvSY-Cj',
-            'secretV2' => '6Lcfv74ZAAAAABLXfpba-wAPdhdynSeEKy-sEh8j',
+            'siteKeyV2' => '6LdhQnksAAAAAPmFiWJfrNoHB0HE77AOaWt0r57f',
+            'secretV2' => '6LdhQnksAAAAAE69v9SJ1JvEsj1P_vpVmBidqmES',
             'siteKeyV3' => 'your siteKey v3',
             'secretV3' => 'your secret key v3',
         ],

@@ -73,14 +73,12 @@ class Users extends \yii\db\ActiveRecord
             [
                 ['reCaptcha'],
                 \himiklab\yii2\recaptcha\ReCaptchaValidator2::className(),
-                'secret' => '6Lcfv74ZAAAAABLXfpba-wAPdhdynSeEKy-sEh8j',  // unnecessary if reСaptcha is already configured
                 'uncheckedMessage' => 'Please confirm that you are not a bot.',
                 'on' => 'create',
             ],
             [
                 ['reCaptcha'],
                 \himiklab\yii2\recaptcha\ReCaptchaValidator2::className(),
-                'secret' => '6Lcfv74ZAAAAABLXfpba-wAPdhdynSeEKy-sEh8j',  // unnecessary if reСaptcha is already configured
                 'uncheckedMessage' => 'Please confirm that you are not a bot.',
                 'on' => 'login',
             ],
