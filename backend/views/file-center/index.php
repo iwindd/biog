@@ -88,17 +88,26 @@ $this->registerCss($css);
                 $html = '<div class="file-item">';
                 $html .= '<img src="' . $previewUrl . '" alt="' . Html::encode($model->alt_text) . '" title="' . Html::encode($model->file_name) . '">';
                 $html .= '<div class="file-name" title="' . Html::encode($model->file_name) . '">' . Html::encode($model->file_name) . '</div>';
+                $html .= '<div class="file-label" title="' . Html::encode($model->label) . '" style="font-size: 11px; color: #007bff; margin-bottom: 5px;">' . Html::encode($model->label ? 'ป้ายกำกับ: ' . $model->label : 'ไม่มีป้ายกำกับ') . '</div>';
                 $html .= '<div class="file-size">' . $model->getFileSizeText() . '</div>';
                 $html .= '<div class="file-item-actions">';
                 $html .= Html::a('<i class="fa fa-trash"></i>', ['delete', 'id' => $model->id], [
                     'class' => 'btn btn-xs btn-danger',
+                    'title' => 'ลบ',
                     'data' => [
                         'confirm' => 'คุณแน่ใจหรือไม่ที่จะลบไฟล์นี้?',
                         'method' => 'post',
                     ],
                 ]);
-                $html .= ' ' . Html::button('<i class="fa fa-link"></i> คัดลอกลิงก์', [
+                $html .= ' ' . Html::button('<i class="fa fa-pencil"></i>', [
+                    'class' => 'btn btn-xs btn-warning edit-label',
+                    'title' => 'แก้ไขป้ายกำกับ',
+                    'data-id' => $model->id,
+                    'data-label' => $model->label,
+                ]);
+                $html .= ' ' . Html::button('<i class="fa fa-link"></i>', [
                     'class' => 'btn btn-xs btn-default copy-link',
+                    'title' => 'คัดลอกลิงก์',
                     'data-url' => $model->file_path,
                 ]);
                 $html .= '</div>';
@@ -115,6 +124,7 @@ $this->registerCss($css);
 
 <?php
 $uploadUrl = yii\helpers\Url::to(['file-center/upload']);
+$updateLabelUrl = yii\helpers\Url::to(['file-center/update-label']);
 $csrfParam = Yii::$app->request->csrfParam;
 $csrfToken = Yii::$app->request->csrfToken;
 $urlFrontend = isset(Yii::$app->params['urlFrontend']) ? Yii::$app->params['urlFrontend'] : "";
@@ -243,10 +253,43 @@ $(document).ready(function() {
         
         var \$btn = $(this);
         var originalHtml = \$btn.html();
-        \$btn.html('<i class="fa fa-check"></i> คัดลอกแล้ว');
+        \$btn.html('<i class="fa fa-check"></i>');
         setTimeout(function() {
             \$btn.html(originalHtml);
         }, 2000);
+    });
+
+    // Edit label action
+    $(document).on('click', '.edit-label', function(e) {
+        e.preventDefault();
+        var id = $(this).data('id');
+        var currentLabel = $(this).data('label');
+        
+        var newLabel = prompt('กรุณากรอกชื่ออ้างอิงของรูปภาพ (ห้ามซ้ำกัน):', currentLabel || '');
+        if (newLabel !== null && newLabel !== currentLabel) {
+            $.ajax({
+                url: '$updateLabelUrl' + '?id=' + id,
+                type: 'POST',
+                data: {
+                    label: newLabel,
+                    '$csrfParam': '$csrfToken'
+                },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        $.pjax.reload({container: '#file-center-grid'});
+                    } else {
+                        var errorMsg = response.message;
+                        if (response.errors && response.errors.label) {
+                            errorMsg += '\\n' + response.errors.label.join('\\n');
+                        }
+                        alert(errorMsg);
+                    }
+                },
+                error: function() {
+                    alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+                }
+            });
+        }
     });
 });
 JS;

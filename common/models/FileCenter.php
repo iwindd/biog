@@ -15,6 +15,7 @@ use yii\db\ActiveRecord;
  * @property string $file_path
  * @property string $file_type
  * @property int $file_size
+ * @property string|null $label
  * @property string|null $alt_text
  * @property int|null $created_at
  * @property int|null $updated_at
@@ -52,7 +53,9 @@ class FileCenter extends ActiveRecord
         return [
             [['file_name', 'file_path', 'file_type', 'file_size'], 'required'],
             [['file_size', 'created_at', 'updated_at', 'created_by'], 'integer'],
-            [['file_name', 'file_path', 'alt_text'], 'string', 'max' => 255],
+            [['file_name', 'file_path', 'label', 'alt_text'], 'string', 'max' => 255],
+            [['label'], 'unique'],
+            [['label'], 'match', 'pattern' => '/^\S*$/', 'message' => 'ป้ายกำกับต้องไม่มีช่องว่าง'],
             [['file_type'], 'string', 'max' => 100],
         ];
     }
@@ -68,6 +71,7 @@ class FileCenter extends ActiveRecord
             'file_path' => 'File Path',
             'file_type' => 'File Type',
             'file_size' => 'File Size',
+            'label' => 'Label',
             'alt_text' => 'Alt Text',
             'created_at' => 'Created At',
             'updated_at' => 'Updated At',

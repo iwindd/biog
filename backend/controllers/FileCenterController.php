@@ -29,6 +29,7 @@ class FileCenterController extends Controller
                     'actions' => [
                         'delete' => ['POST'],
                         'upload' => ['POST'],
+                        'update-label' => ['POST'],
                     ],
                 ],
             ]
@@ -116,6 +117,12 @@ class FileCenterController extends Controller
                 $model->file_type = $uploadFile->type;
                 $model->file_size = $uploadFile->size;
                 
+                // Set default label
+                $model->label = preg_replace('/\s+/', '-', trim($uploadFile->name));
+                if (FileCenter::find()->where(['label' => $model->label])->exists()) {
+                    $model->label = $fileName;
+                }
+                
                 if ($model->save()) {
                     return [
                         'status' => 'success',
@@ -168,6 +175,26 @@ class FileCenterController extends Controller
     }
     
     /**
+     * Updates the label of an existing FileCenter model.
+     * @param int $id ID
+     * @return \yii\web\Response
+     */
+    public function actionUpdateLabel($id)
+    {
+        Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+        $model = $this->findModel($id);
+        
+        $label = Yii::$app->request->post('label');
+        $model->label = $label === '' ? null : preg_replace('/\s+/', '-', trim($label));
+        
+        if ($model->save()) {
+            return ['status' => 'success', 'message' => 'Label updated successfully.', 'label' => $model->label];
+        } else {
+            return ['status' => 'error', 'message' => 'Failed to update label.', 'errors' => $model->errors];
+        }
+    }
+    
+    /**
      * API Endpoint for File Picker to fetch files
      */
     public function actionListApi($page = 1, $q = '', $extensions = '')
@@ -213,6 +240,7 @@ class FileCenterController extends Controller
                 'file_type' => $model->file_type,
                 'file_size_text' => $model->getFileSizeText(),
                 'is_image' => strpos($model->file_type, 'image/') === 0,
+                'label' => $model->label,
             ];
         }
 
