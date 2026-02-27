@@ -859,20 +859,23 @@ class ContentPlantController extends Controller
                         8 => 'district',
                         9 => 'subdistrict',
                         10 => 'zipcode',
-                        11 => 'picture_path_label', // รูปภาพปก (ค้นหาจาก FileCenter label)
-                        12 => 'season',
-                        13 => 'ability',
-                        14 => 'common_name',
-                        15 => 'scientific_name',
-                        16 => 'family_name',
-                        17 => 'illustration_labels', // รูปภาพประกอบ (คั่นด้วย ; หรือ ,) ค้นหาจาก FileCenter
-                        18 => 'image_sources', // แหล่งที่มารูปภาพ (ชื่อแหล่งที่มา, ผู้จัดทำ, วันที่เผยแพร่, URL อ้างอิง;)
-                        19 => 'data_sources', // แหล่งอ้างอิงข้อมูล (ชื่อแหล่งที่มา, ผู้จัดทำ, วันที่เผยแพร่, URL อ้างอิง;)
-                        20 => 'note',
-                        21 => 'status',
-                        22 => 'license_code', // รหัสสัญญาอนุญาต เช่น CC0, CC_BY-NC-ND
-                        23 => 'is_hidden',
+                        11 => 'picture_path_label', // รูปภาพปก 
+                        12 => 'other_information', // ข้อมูลอื่น ๆ ที่ฉันรู้ (เพิ่มใหม่)
+                        13 => 'season',
+                        14 => 'ability',
+                        15 => 'common_name',
+                        16 => 'scientific_name',
+                        17 => 'family_name',
+                        18 => 'illustration_labels', // รูปภาพประกอบ 
+                        19 => 'taxonomy_names', // คำสำคัญ (Tags) (เพิ่มใหม่)
+                        20 => 'image_sources', // แหล่งที่มารูปภาพ 
+                        21 => 'data_sources', // แหล่งอ้างอิงข้อมูล 
+                        22 => 'note',
+                        23 => 'status',
+                        24 => 'license_code', // รหัสสัญญาอนุญาต 
+                        25 => 'is_hidden',
                     ];
+
 
                     $importData = [];
                     // Start from Row 3 (Index 2) up to 22 (Max 20 rows from row 3)
@@ -1076,6 +1079,7 @@ class ContentPlantController extends Controller
                         $importData[] = $item;
                     }
 
+
                     unlink($filePath); // Delete temp file
 
                     // Save to Session or Temp Table to show summary
@@ -1172,6 +1176,7 @@ class ContentPlantController extends Controller
                     $plant->common_name = $item['common_name'];
                     $plant->scientific_name = $item['scientific_name'];
                     $plant->family_name = $item['family_name'];
+                    $plant->other_information = $item['other_information'] ?? null;
                     $plant->created_at = date('Y-m-d H:i:s');
                     $plant->updated_at = date('Y-m-d H:i:s');
                     
@@ -1236,6 +1241,33 @@ class ContentPlantController extends Controller
                             
                             if (!$dataSrc->save(false)) { // Save without validation
                                 throw new \Exception("ไม่สามารถบันทึกข้อมูลแหล่งอ้างอิงข้อมูลได้");
+                            }
+                        }
+                    }
+
+                    // Handle taxonomy / tags (คำสำคัญ)
+                    if (!empty($item['taxonomy_names'])) {
+                        $tags = explode(',', $item['taxonomy_names']);
+                        foreach ($tags as $tag_name) {
+                            $tag_name = trim($tag_name);
+                            if (empty($tag_name)) continue;
+                            
+                            $taxId = $this->getTaxonomyInputData($tag_name);
+                            if (!empty($taxId)) {
+                                $modelTax = new ContentTaxonomy();
+                                $modelTax->content_id = $content->id;
+                                $modelTax->taxonomy_id = $taxId;
+                                
+                                $duplicate = (new \yii\db\Query())
+                                    ->select(['content_id','taxonomy_id'])
+                                    ->from('content_taxonomy')
+                                    ->where(['content_id' => $modelTax->content_id])
+                                    ->andWhere(['taxonomy_id' => $modelTax->taxonomy_id])
+                                    ->all();
+                                if (empty($duplicate)) {
+                                    $modelTax->created_at = date('Y-m-d H:i:s');
+                                    $modelTax->save(false);
+                                }
                             }
                         }
                     }
