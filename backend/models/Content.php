@@ -54,14 +54,124 @@ class Content extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-            [['type_id', 'created_by_user_id', 'updated_by_user_id'], 'required'],
-            [['name', 'status'], 'required'],
-            [['is_hidden'], 'boolean'],
-            [['type_id', 'region_id', 'province_id', 'district_id', 'subdistrict_id', 'zipcode_id', 'approved_by_user_id', 'created_by_user_id', 'updated_by_user_id', 'active', 'license_id'], 'integer'],
-            [['description', 'other_information', 'source_information', 'status'], 'string'],
-            [['created_at', 'updated_at', 'files', 'picture_path', 'content_source_id', 'content_root_id'], 'safe'],
-            [['name', 'note', 'photo_credit'], 'string', 'max' => 255],
-            [['latitude', 'longitude'], 'string', 'max' => 100],
+
+            // =========================
+            // REQUIRED
+            // =========================
+            [
+                [
+                    'type_id',
+                    'name',
+                    // 'features', // Moved to ContentPlant
+                    'status',
+                    'license_id',
+                    'created_by_user_id',
+                    'updated_by_user_id',
+                    'picture_path',
+                    'region_id',
+                    'province_id',
+                    'district_id',
+                    'subdistrict_id',
+                    'zipcode_id'
+                ],
+                'required'
+            ],
+    
+            // =========================
+            // BOOLEAN
+            // =========================
+            [
+                ['is_hidden'],
+                'boolean'
+            ],
+    
+            // =========================
+            // INTEGER
+            // =========================
+            [
+                [
+                    'type_id',
+                    'region_id',
+                    'province_id',
+                    'district_id',
+                    'subdistrict_id',
+                    'zipcode_id',
+                    'approved_by_user_id',
+                    'created_by_user_id',
+                    'updated_by_user_id',
+                    'active',
+                    'license_id'
+                ],
+                'integer'
+            ],
+    
+            // =========================
+            // TEXT
+            // =========================
+            [
+                [
+                    'description',
+                    'other_information',
+                    //'source_information' @Deprecated
+                ],
+                'string'
+            ],
+    
+            // =========================
+            // STATUS ENUM
+            // =========================
+            [['status'], 'in', 'range' => ['pending', 'approved', 'rejected']],
+    
+            // =========================
+            // STRING LENGTH
+            // =========================
+            [
+                [
+                    'name',
+                    'note',
+                    //'photo_credit' @Deprecated
+                ],
+                'string',
+                'max' => 255
+            ],
+    
+            // =========================
+            // LAT / LONG (Production Safe)
+            // =========================
+            [['latitude', 'longitude'], 'number'],
+            [['latitude'], 'number', 'min' => -90, 'max' => 90],
+            [['longitude'], 'number', 'min' => -180, 'max' => 180],
+    
+            // lat ต้องมาคู่ long
+            [
+                ['latitude'],
+                'required',
+                'when' => function ($model) {
+                    return !empty($model->longitude);
+                }
+            ],
+            [
+                ['longitude'],
+                'required',
+                'when' => function ($model) {
+                    return !empty($model->latitude);
+                }
+            ],
+    
+            // =========================
+            // SAFE SYSTEM FIELDS
+            // =========================
+            [
+                [
+                    'created_at',
+                    'updated_at',
+                    'files',
+                    'picture_path',
+                    'content_source_id',
+                    'content_root_id'
+                ],
+                'safe'
+            ],
         ];
     }
 
@@ -77,8 +187,8 @@ class Content extends \yii\db\ActiveRecord
             'picture_path' => 'รูปภาพปก',
             'description' => 'รายละเอียด',
             'other_information' => 'ข้อมูลอื่น ๆ ที่ฉันรู้',
-            'source_information' => 'แหล่งที่มาของข้อมูล',
-            'photo_credit' => 'แหล่งที่มาของภาพ',
+            //'source_information' => 'แหล่งที่มาของข้อมูล',@Deprecated
+            //'photo_credit' => 'แหล่งที่มาของภาพ', @Deprecated
             'latitude' => 'ละจิจูด',
             'longitude' => 'ลองจิจูด',
             'region_id' => 'ภูมิภาค',

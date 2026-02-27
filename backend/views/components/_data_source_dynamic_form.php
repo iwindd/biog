@@ -25,7 +25,7 @@ $isShort = false;
             'widgetContainer' => 'dynamicform_data_source',
             'widgetBody' => '.container-data-sources',
             'widgetItem' => '.data-source-item',
-            'min' => 1,
+            'min' => 0,
             'insertButton' => '.add-data-source',
             'deleteButton' => '.remove-data-source',
             'model' => $modelDataSource[0],
@@ -84,27 +84,23 @@ $isShort = false;
                         <?php
                             $currentUrl = $modelSource->reference_url ?? '';
                             $isShort = !empty($shortUrlBase) && !empty($currentUrl) && strpos($currentUrl, $shortUrlBase) === 0;
-                        ?>
-                        <div class="input-group">
-                            <?= $form->field($modelSource, "[{$indexDataSource}]reference_url", [
-                                'template' => '{input}',
-                                'options' => ['tag' => false],
+                            
+                            $toggleBtn = Html::button('<i class="glyphicon glyphicon-' . ($isShort ? 'resize-full' : 'resize-small') . '"></i>', [
+                                'class' => 'btn btn-' . ($isShort ? 'warning' : 'info') . ' btn-toggle-short-url-data',
+                                'title' => $isShort ? 'เปลี่ยนกลับเป็น URL เต็ม' : 'ย่อ URL',
+                                'data-mode' => $isShort ? 'expand' : 'shorten',
+                                'style' => 'height: 34px;'
+                            ]);
+                            
+                            echo $form->field($modelSource, "[{$indexDataSource}]reference_url", [
+                                'template' => '<div class="input-group">{input}<span class="input-group-btn" style="vertical-align: top;">' . $toggleBtn . '</span></div>{error}',
                             ])->textInput([
                                 'maxlength' => true,
                                 'placeholder' => 'URL อ้างอิง',
                                 'class' => 'form-control data-source-url-input',
                                 'readonly' => $isShort,
-                            ]) ?>
-                            <span class="input-group-btn" style="vertical-align: top;">
-                                <button type="button"
-                                    class="btn btn-<?= $isShort ? 'warning' : 'info' ?> btn-toggle-short-url-data"
-                                    title="<?= $isShort ? 'เปลี่ยนกลับเป็น URL เต็ม' : 'ย่อ URL' ?>"
-                                    data-mode="<?= $isShort ? 'expand' : 'shorten' ?>"
-                                    style="height: 34px;">
-                                    <i class="glyphicon glyphicon-<?= $isShort ? 'resize-full' : 'resize-small' ?>"></i>
-                                </button>
-                            </span>
-                        </div>
+                            ]);
+                        ?>
                     </td>
                     <td class="text-center vcenter">
                         <button type="button" class="remove-data-source btn btn-danger btn-xs"><span class="glyphicon glyphicon-minus"></span></button>
@@ -198,6 +194,21 @@ $(".dynamicform_data_source").on("afterInsert", function(e, item) {
         });
     }
 });
+
+// Start with 0 rows on create if the row is empty (use timeout to ensure widget is ready)
+setTimeout(function() {
+    if (window.location.href.indexOf('create') > -1) {
+        if ($(".data-source-item").length === 1) {
+            var hasValue = false;
+            $(".data-source-item:first input").each(function() {
+                if ($(this).val() && $(this).attr('type') !== 'hidden') hasValue = true;
+            });
+            if (!hasValue) {
+                $(".remove-data-source:first").click();
+            }
+        }
+    }
+}, 100);
 JS;
 $this->registerJs($js);
 ?>

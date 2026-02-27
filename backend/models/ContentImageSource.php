@@ -1,7 +1,7 @@
 <?php
 
 namespace backend\models;
-
+use common\components\UrlValidatorHelper;
 use Yii;
 
 /**
@@ -32,11 +32,38 @@ class ContentImageSource extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-            [['content_id'], 'required'],
+
+            // REQUIRED
+            [['content_id', 'reference_url'], 'required'],
+    
+            // INTEGER
             [['content_id'], 'integer'],
-            [['published_date'], 'safe'],
-            [['source_name', 'author', 'reference_url'], 'string', 'max' => 255],
-            [['content_id'], 'exist', 'skipOnError' => true, 'targetClass' => Content::className(), 'targetAttribute' => ['content_id' => 'id']],
+    
+            // DATE
+            [['published_date'], 'date', 'format' => 'php:Y-m-d'],
+            [
+                ['published_date'],
+                'compare',
+                'compareValue' => date('Y-m-d'),
+                'operator' => '<=',
+                'message' => '{attribute} ห้ามเกินวันที่ปัจจุบัน'
+            ],
+    
+            // STRING
+            [['source_name', 'author'], 'string', 'max' => 255],
+    
+            // URL
+            UrlValidatorHelper::devFriendly('reference_url'),
+            [['reference_url'], 'string', 'max' => 255],
+    
+            // FK
+            [
+                ['content_id'],
+                'exist',
+                'skipOnError' => true,
+                'targetClass' => Content::class,
+                'targetAttribute' => ['content_id' => 'id']
+            ],
         ];
     }
 

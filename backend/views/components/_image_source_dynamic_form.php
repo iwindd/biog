@@ -25,7 +25,7 @@ $isShort = false;
             'widgetContainer' => 'dynamicform_image_source',
             'widgetBody' => '.container-image-sources',
             'widgetItem' => '.image-source-item',
-            'min' => 1,
+            'min' => 0,
             'insertButton' => '.add-image-source',
             'deleteButton' => '.remove-image-source',
             'model' => $modelImageSource[0],
@@ -44,7 +44,7 @@ $isShort = false;
                     <th>ชื่อแหล่งที่มา</th>
                     <th>ผู้จัดทำ</th>
                     <th>วันที่เผยแพร่</th>
-                    <th>URL อ้างอิง</th>
+                    <th>URL อ้างอิง<span style="color:red;">*</span></th>
                     <th class="text-center" style="width: 50px;">
                         <button type="button" class="add-image-source btn btn-success btn-xs"><span class="glyphicon glyphicon-plus"></span></button>
                     </th>
@@ -83,27 +83,23 @@ $isShort = false;
                         <?php
                             $currentUrl = $modelSource->reference_url ?? '';
                             $isShort = !empty($shortUrlBase) && !empty($currentUrl) && strpos($currentUrl, $shortUrlBase) === 0;
-                        ?>
-                        <div class="input-group">
-                            <?= $form->field($modelSource, "[{$indexImageSource}]reference_url", [
-                                'template' => '{input}',
-                                'options' => ['tag' => false],
+                            
+                            $toggleBtn = Html::button('<i class="glyphicon glyphicon-' . ($isShort ? 'resize-full' : 'resize-small') . '"></i>', [
+                                'class' => 'btn btn-' . ($isShort ? 'warning' : 'info') . ' btn-toggle-short-url',
+                                'title' => $isShort ? 'เปลี่ยนกลับเป็น URL เต็ม' : 'ย่อ URL',
+                                'data-mode' => $isShort ? 'expand' : 'shorten',
+                                'style' => 'height: 34px;'
+                            ]);
+                            
+                            echo $form->field($modelSource, "[{$indexImageSource}]reference_url", [
+                                'template' => '<div class="input-group">{input}<span class="input-group-btn" style="vertical-align: top;">' . $toggleBtn . '</span></div>{error}',
                             ])->textInput([
                                 'maxlength' => true,
                                 'placeholder' => 'URL อ้างอิง',
                                 'class' => 'form-control img-source-url-input',
                                 'readonly' => $isShort,
-                            ]) ?>
-                            <span class="input-group-btn" style="vertical-align: top;">
-                                <button type="button"
-                                    class="btn btn-<?= $isShort ? 'warning' : 'info' ?> btn-toggle-short-url"
-                                    title="<?= $isShort ? 'เปลี่ยนกลับเป็น URL เต็ม' : 'ย่อ URL' ?>"
-                                    data-mode="<?= $isShort ? 'expand' : 'shorten' ?>"
-                                    style="height: 34px;">
-                                    <i class="glyphicon glyphicon-<?= $isShort ? 'resize-full' : 'resize-small' ?>"></i>
-                                </button>
-                            </span>
-                        </div>
+                            ]);
+                        ?>
                     </td>
                     <td class="text-center vcenter">
                         <button type="button" class="remove-image-source btn btn-danger btn-xs"><span class="glyphicon glyphicon-minus"></span></button>
@@ -197,6 +193,21 @@ $(".dynamicform_image_source").on("afterInsert", function(e, item) {
         });
     }
 });
+
+// Start with 0 rows on create if the row is empty (use timeout to ensure widget is ready)
+setTimeout(function() {
+    if (window.location.href.indexOf('create') > -1) {
+        if ($(".image-source-item").length === 1) {
+            var hasValue = false;
+            $(".image-source-item:first input").each(function() {
+                if ($(this).val() && $(this).attr('type') !== 'hidden') hasValue = true;
+            });
+            if (!hasValue) {
+                $(".remove-image-source:first").click();
+            }
+        }
+    }
+}, 100);
 JS;
 $this->registerJs($js);
 ?>
