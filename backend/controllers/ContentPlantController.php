@@ -1056,12 +1056,16 @@ class ContentPlantController extends Controller
 
                         // Lookup License by code
                         $item['license_id'] = null;
+                        $item['license_name'] = null;
+                        $item['license_description'] = null;
                         $item['license_error'] = null;
                         $trimLicenseCode = trim($item['license_code'] ?? '');
                         if (!empty($trimLicenseCode) && $trimLicenseCode !== '-') {
                             $license = \backend\models\License::find()->where(['code' => $trimLicenseCode])->one();
                             if ($license) {
                                 $item['license_id'] = $license->id;
+                                $item['license_name'] = $license->name;
+                                $item['license_description'] = $license->description;
                             } else {
                                 $item['license_error'] = "ไม่พบสัญญาอนุญาตจากรหัส '" . $trimLicenseCode . "'";
                             }
