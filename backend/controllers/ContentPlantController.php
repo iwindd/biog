@@ -866,7 +866,7 @@ class ContentPlantController extends Controller
                         15 => 'scientific_name',
                         16 => 'family_name',
                         17 => 'illustration_labels', // รูปภาพประกอบ (คั่นด้วย ; หรือ ,) ค้นหาจาก FileCenter
-                        // 18 => Skip Image Source
+                        18 => 'image_sources', // แหล่งที่มารูปภาพ (ชื่อแหล่งที่มา, ผู้จัดทำ, วันที่เผยแพร่, URL อ้างอิง;)
                         // 19 => Skip Data Source
                         20 => 'note',
                         21 => 'status',
@@ -937,6 +937,62 @@ class ContentPlantController extends Controller
                                     } else {
                                         $item['illustration_errors'][] = "ไม่พบรูปภาพประกอบ '{$trimLabel}'";
                                     }
+                                }
+                            }
+                        }
+
+                        // Parse Image Sources
+                        $item['image_sources_data'] = [];
+                        $item['image_sources_errors'] = [];
+                        if (!empty($item['image_sources'])) {
+                            $sources = explode(';', $item['image_sources']);
+                            foreach ($sources as $sourceString) {
+                                $sourceString = trim($sourceString);
+                                if (empty($sourceString)) continue;
+
+                                $parts = array_map('trim', explode(',', $sourceString));
+                                $sourceName = $parts[0] ?? '';
+                                $author = $parts[1] ?? '';
+                                $publishedDate = $parts[2] ?? '';
+                                $sqlDate = null;
+                                if (!empty($publishedDate)) {
+                                    // Parse Thai date format like 17-06-2549
+                                    $dateParts = explode('-', $publishedDate);
+                                    if (count($dateParts) == 3) {
+                                        $d = str_pad($dateParts[0], 2, '0', STR_PAD_LEFT);
+                                        $m = str_pad($dateParts[1], 2, '0', STR_PAD_LEFT);
+                                        $y = (int)$dateParts[2];
+                                        // If year is in Buddhist era (e.g. 2549), convert to CE (2006)
+                                        if ($y > 2400) {
+                                            $y -= 543;
+                                        }
+                                        $sqlDate = "{$y}-{$m}-{$d}";
+                                    } else {
+                                        // If using slash (17/06/2549)
+                                        $dateParts = explode('/', $publishedDate);
+                                        if (count($dateParts) == 3) {
+                                            $d = str_pad($dateParts[0], 2, '0', STR_PAD_LEFT);
+                                            $m = str_pad($dateParts[1], 2, '0', STR_PAD_LEFT);
+                                            $y = (int)$dateParts[2];
+                                            if ($y > 2400) {
+                                                $y -= 543;
+                                            }
+                                            $sqlDate = "{$y}-{$m}-{$d}";
+                                        }
+                                    }
+                                }
+
+                                $url = $parts[3] ?? '';
+
+                                if (empty($url)) {
+                                    $item['image_sources_errors'][] = "แหล่งที่มารูปภาพต้องมี URL อ้างอิง (พบ: '{$sourceString}')";
+                                } else {
+                                    $item['image_sources_data'][] = [
+                                        'source_name' => $sourceName,
+                                        'author' => $author,
+                                        'published_date' => $sqlDate,
+                                        'reference_url' => $url,
+                                    ];
                                 }
                             }
                         }
@@ -1080,6 +1136,22 @@ class ContentPlantController extends Controller
                                         throw new \Exception("ไฟล์รูปประกอบ " . basename($fcPath) . " คัดลอกไม่สำเร็จ");
                                     }
                                 }
+                            }
+                        }
+                    }
+
+                    // handle Image Sources from Import
+                    if (!empty($item['image_sources_data'])) {
+                        foreach ($item['image_sources_data'] as $sourceData) {
+                            $imgSrc = new \backend\models\ContentImageSource();
+                            $imgSrc->content_id = $content->id;
+                            $imgSrc->source_name = $sourceData['source_name'];
+                            $imgSrc->author = $sourceData['author'];
+                            $imgSrc->published_date = $sourceData['published_date'];
+                            $imgSrc->reference_url = $sourceData['reference_url'];
+                            
+                            if (!$imgSrc->save(false)) { // Save without validation just to be sure, or true if validation allows it
+                                throw new \Exception("ไม่สามารถบันทึกข้อมูลแหล่งที่มารูปภาพได้");
                             }
                         }
                     }

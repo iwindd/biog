@@ -53,6 +53,11 @@ $this->params['breadcrumbs'][] = $this->title;
                                 $errors[] = $illError;
                             }
                         }
+                        if (!empty($item['image_sources_errors'])) {
+                            foreach ($item['image_sources_errors'] as $imgSrcError) {
+                                $errors[] = $imgSrcError;
+                            }
+                        }
                     ?>
                     <tr class="<?= !empty($errors) ? 'danger' : '' ?>">
                         <td><?= $index + 1 ?></td>
