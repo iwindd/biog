@@ -203,9 +203,75 @@ CSS;
                 </a>
             </div>
         </div>
+    </section>
 
-        <div class="row">
-            <div class="col-md-12">
+    <!-- Chart content -->
+    <section class="row" style="margin: 0  ">
+        <!-- สถิติจำนวนเรื่องตามประเภทเนื้อหา -->
+        <div class="col-md-12 col-lg-8">
+            <div class="box">
+                <div class="box-header with-border">
+                <h3 class="box-title">สถิติจำนวนเรื่องตามประเภทเนื้อหา</h3>
+
+                <div class="box-tools pull-right">
+                    <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
+                    <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
+                </div>
+                </div>
+                <!-- /.box-header -->
+                <div class="box-body">
+                <div class="row">
+                    <div class="col-md-12">
+                    
+                    <div class="chart">
+                        <!-- Bar Chart Canvas -->
+                        <?php
+                        echo Highcharts::widget([
+                            'options' => [
+                                'chart' => [
+                                    'type' => 'column'
+                                ],
+                                'title' => ['text' => 'จำนวนเรื่องทั้งหมดในแต่ละประเภทเนื้อหา'],
+                                'xAxis' => [
+                                    'categories' => $chartCategories,
+                                    'crosshair' => true
+                                ],
+                                'yAxis' => [
+                                    'min' => 0,
+                                    'title' => [
+                                        'text' => 'จำนวน (เรื่อง)'
+                                    ]
+                                ],
+                                'plotOptions' => [
+                                    'column' => [
+                                        'pointPadding' => 0.2,
+                                        'borderWidth' => 0,
+                                        'colorByPoint' => true
+                                    ]
+                                ],
+                                'series' => [
+                                    [
+                                        'name' => 'จำนวนเรื่อง',
+                                        'data' => $chartSeriesData,
+                                        'showInLegend' => false
+                                    ]
+                                ],
+                            ],
+                        ]);
+                        ?>
+                    </div>
+                    <!-- /.chart-responsive -->
+                    </div>
+                    <!-- /.col -->
+                </div>
+                <!-- /.row -->
+                </div>
+                <!-- ./box-body -->
+            
+            </div>
+        </div>
+        <!-- สถิติผู้ใช้งาน -->
+        <div class="col-md-12 col-lg-4">
             <div class="box">
                 <div class="box-header with-border">
                 <h3 class="box-title">สถิติผู้ใช้งาน</h3>
@@ -251,12 +317,8 @@ CSS;
                 <!-- ./box-body -->
             
             </div>
-            <!-- /.box -->
-            </div>
-            <!-- /.col -->
-        </div> 
+        </div>
     </section>
-
 </div>
 
 
