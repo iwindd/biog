@@ -865,7 +865,7 @@ class ContentPlantController extends Controller
                         14 => 'common_name',
                         15 => 'scientific_name',
                         16 => 'family_name',
-                        // 17 => Skip Illustration
+                        17 => 'illustration_labels', // รูปภาพประกอบ (คั่นด้วย ; หรือ ,) ค้นหาจาก FileCenter
                         // 18 => Skip Image Source
                         // 19 => Skip Data Source
                         20 => 'note',
@@ -920,6 +920,25 @@ class ContentPlantController extends Controller
                             }
                         } else {
                             $item['picture_path'] = null;
+                        }
+
+                        // Lookup FileCenter for Illustration Images
+                        $item['files'] = [];
+                        $item['illustration_errors'] = [];
+                        if (!empty($item['illustration_labels'])) {
+                            // Split by comma or semicolon
+                            $labels = preg_split('/[,;]+/', $item['illustration_labels']);
+                            foreach ($labels as $label) {
+                                $trimLabel = trim($label);
+                                if (!empty($trimLabel)) {
+                                    $fcPic = \common\models\FileCenter::find()->where(['label' => $trimLabel])->one();
+                                    if ($fcPic) {
+                                        $item['files'][] = $fcPic->file_path;
+                                    } else {
+                                        $item['illustration_errors'][] = "ไม่พบรูปภาพประกอบ '{$trimLabel}'";
+                                    }
+                                }
+                            }
                         }
 
                         // Fallback status
@@ -987,7 +1006,29 @@ class ContentPlantController extends Controller
                 $content->status = $item['status'];
                 $content->note = $item['note'];
                 $content->is_hidden = (string)($item['is_hidden'] ?? 0);
-                $content->picture_path = $item['picture_path'] ?? null;
+                
+                // Copy Cover Image file
+                $content->picture_path = null;
+                if (!empty($item['picture_path'])) {
+                    $srcPath = $item['picture_path'];
+                    if (strpos($srcPath, '/uploads/filecenter/') !== false || strpos($srcPath, '/uploads/') !== false) {
+                        $sourcePath = Yii::getAlias('@frontend/web') . $srcPath;
+                        if (file_exists($sourcePath)) {
+                            $ext = pathinfo($sourcePath, PATHINFO_EXTENSION);
+                            $newName = 'pic_' . uniqid() . time() . '.' . $ext;
+                            $destDir = Yii::getAlias('@frontend/web/files/content-plant');
+                            \yii\helpers\FileHelper::createDirectory($destDir);
+                            
+                            if (copy($sourcePath, $destDir . '/' . $newName)) {
+                                $content->picture_path = $newName;
+                            } else {
+                                throw new \Exception("ไฟล์รูปภาพปกคัดลอกไม่สำเร็จ");
+                            }
+                        }
+                    } else {
+                        $content->picture_path = $srcPath;
+                    }
+                }
                 
                 $content->created_by_user_id = Yii::$app->user->identity->id;
                 $content->updated_by_user_id = Yii::$app->user->identity->id;
@@ -1013,6 +1054,36 @@ class ContentPlantController extends Controller
                     if (!$plant->save()) {
                         throw new \Exception('Failed to save plant info: ' . json_encode($plant->errors));
                     }
+
+                    // handle FileCenter gallery paths from Import
+                    if (!empty($item['files'])) {
+                        foreach ($item['files'] as $fcPath) {
+                            if (strpos($fcPath, '/uploads/filecenter/') !== false || strpos($fcPath, '/uploads/') !== false) {
+                                $sourcePath = Yii::getAlias('@frontend/web') . $fcPath;
+                                if (file_exists($sourcePath)) {
+                                    $ext = pathinfo($sourcePath, PATHINFO_EXTENSION);
+                                    $newName = 'pic_' . uniqid() . time() . '.' . $ext;
+                                    $destDir = Yii::getAlias('@frontend/web/files/content-plant');
+                                    \yii\helpers\FileHelper::createDirectory($destDir);
+                                    
+                                    if (copy($sourcePath, $destDir . '/' . $newName)) {
+                                        $value = [
+                                            'file_display_name' => basename($fcPath),
+                                            'file_key' => $newName,
+                                            'created_by_user_id' => Yii::$app->user->identity->id
+                                        ];
+                                        $newRecordPicture = $this->savePicture($content->id, $value);
+                                        if($newRecordPicture == false){
+                                            throw new \Exception("ไฟล์รูปประกอบ " . basename($fcPath) . " บันทึกไม่สำเร็จ");
+                                        }
+                                    } else {
+                                        throw new \Exception("ไฟล์รูปประกอบ " . basename($fcPath) . " คัดลอกไม่สำเร็จ");
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                 } else {
                     throw new \Exception('Failed to save content: ' . json_encode($content->errors));
                 }

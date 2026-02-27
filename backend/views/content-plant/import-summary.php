@@ -48,6 +48,11 @@ $this->params['breadcrumbs'][] = $this->title;
                         if (!empty($item['picture_error'])) {
                             $errors[] = $item['picture_error'];
                         }
+                        if (!empty($item['illustration_errors'])) {
+                            foreach ($item['illustration_errors'] as $illError) {
+                                $errors[] = $illError;
+                            }
+                        }
                     ?>
                     <tr class="<?= !empty($errors) ? 'danger' : '' ?>">
                         <td><?= $index + 1 ?></td>
