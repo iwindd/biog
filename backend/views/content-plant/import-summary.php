@@ -63,6 +63,9 @@ $this->params['breadcrumbs'][] = $this->title;
                                 $errors[] = $dataSrcError;
                             }
                         }
+                        if (!empty($item['license_error'])) {
+                            $errors[] = $item['license_error'];
+                        }
                     ?>
                     <tr class="<?= !empty($errors) ? 'danger' : '' ?>">
                         <td><?= $index + 1 ?></td>

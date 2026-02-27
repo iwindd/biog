@@ -870,7 +870,7 @@ class ContentPlantController extends Controller
                         19 => 'data_sources', // แหล่งอ้างอิงข้อมูล (ชื่อแหล่งที่มา, ผู้จัดทำ, วันที่เผยแพร่, URL อ้างอิง;)
                         20 => 'note',
                         21 => 'status',
-                        // 22 => Skip License
+                        22 => 'license_code', // รหัสสัญญาอนุญาต เช่น CC0, CC_BY-NC-ND
                         23 => 'is_hidden',
                     ];
 
@@ -1051,6 +1051,18 @@ class ContentPlantController extends Controller
                             }
                         }
 
+                        // Lookup License by code
+                        $item['license_id'] = null;
+                        $item['license_error'] = null;
+                        if (!empty($item['license_code'])) {
+                            $license = \backend\models\License::find()->where(['code' => trim($item['license_code'])])->one();
+                            if ($license) {
+                                $item['license_id'] = $license->id;
+                            } else {
+                                $item['license_error'] = "ไม่พบสัญญาอนุญาตจากรหัส '" . trim($item['license_code']) . "'";
+                            }
+                        }
+
                         // Fallback status
                         $validStatuses = ['pending', 'approved', 'rejected'];
                         $status = strtolower($item['status'] ?? '');
@@ -1116,6 +1128,7 @@ class ContentPlantController extends Controller
                 $content->status = $item['status'];
                 $content->note = $item['note'];
                 $content->is_hidden = (string)($item['is_hidden'] ?? 0);
+                $content->license_id = $item['license_id'] ?? null;
                 
                 // Copy Cover Image file
                 $content->picture_path = null;
