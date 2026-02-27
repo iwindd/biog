@@ -26,6 +26,7 @@ $this->title = 'Dashboard';
                 border-radius: 16px;
                 padding: 24px;
                 box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+                margin-bottom: 25px;
                 display: flex;
                 align-items: center;
                 position: relative;
