@@ -896,25 +896,18 @@ class ContentPlantController extends Controller
 
                         if (empty($item['province']) && empty($item['district']) && $item['latitude'] && $item['longitude']) {
                             $autoAddress = \backend\components\ImportHelper::autoFillAddress($item['latitude'], $item['longitude']);
-                            if (!empty($autoAddress['province'])) {
-                                $item['province'] = $autoAddress['province'];
-                            }
-                            if (!empty($autoAddress['district'])) {
-                                $item['district'] = $autoAddress['district'];
-                            }
-                            if (!empty($autoAddress['subdistrict'])) {
-                                $item['subdistrict'] = $autoAddress['subdistrict'];
-                            }
-                            if (!empty($autoAddress['zipcode'])) {
-                                $item['zipcode'] = $autoAddress['zipcode'];
+                            if (!empty($autoAddress)) {
+                                $item = array_merge($item, $autoAddress); // Merge both names and IDs
                             }
                         }
 
-                        // Map Address to IDs
-                        $addressIds = \backend\components\ImportHelper::findAddressIds(
-                            $item['region'], $item['province'], $item['district'], $item['subdistrict'], $item['zipcode']
-                        );
-                        $item = array_merge($item, $addressIds);
+                        // Map Address to IDs (only for addresses not already filled by autoAddress)
+                        if (empty($item['province_id']) || empty($item['district_id'])) {
+                            $addressIds = \backend\components\ImportHelper::findAddressIds(
+                                $item['region'], $item['province'], $item['district'], $item['subdistrict'], $item['zipcode']
+                            );
+                            $item = array_merge($item, $addressIds);
+                        }
 
                         // Fallback status
                         $validStatuses = ['pending', 'approved', 'rejected'];

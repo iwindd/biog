@@ -194,11 +194,98 @@ class ImportHelper
             return [];
         }
 
-        return [
-            'province' => str_replace('จ.', '', str_replace('จังหวัด', '', $province)),
-            'district' => str_replace('อ.', '', str_replace('อำเภอ', '', str_replace('เขต', '', $district))),
-            'subdistrict' => str_replace('ต.', '', str_replace('ตำบล', '', str_replace('แขวง', '', $subdistrict))),
+        $result = [
+            'region_id' => null,
+            'province_id' => null,
+            'district_id' => null,
+            'subdistrict_id' => null,
+            'zipcode_id' => null,
+            'province' => $province,
+            'district' => $district,
+            'subdistrict' => $subdistrict,
             'zipcode' => $zipcode
         ];
+
+        // Strip common Thai prefixes for fuzzy matching (Same as ApiController)
+        $stripPrefixes = function ($name) {
+            $prefixes = ['จังหวัด', 'อำเภอ', 'เขต', 'แขวง', 'ตำบล', 'จ.', 'อ.', 'ต.'];
+            foreach ($prefixes as $prefix) {
+                if (mb_strpos($name, $prefix) === 0) {
+                    $name = mb_substr($name, mb_strlen($prefix));
+                }
+            }
+            return trim($name);
+        };
+
+        // Match province
+        if (!empty($province)) {
+            $cleanName = $stripPrefixes($province);
+            $provModel = Province::find()
+                ->where(['or',
+                    ['like', 'name_th', $cleanName],
+                    ['like', 'name_en', $province],
+                ])
+                ->one();
+            if ($provModel) {
+                $result['province_id'] = (int) $provModel->id;
+                $result['region_id'] = (int) $provModel->region_id;
+            }
+        }
+
+        // Match district (scoped to province if found)
+        if (!empty($district)) {
+            $cleanName = $stripPrefixes($district);
+            $districtQuery = District::find()
+                ->where(['or',
+                    ['like', 'name_th', $cleanName],
+                    ['like', 'name_en', $district],
+                ]);
+            if ($result['province_id']) {
+                $districtQuery->andWhere(['province_id' => $result['province_id']]);
+            }
+            $distModel = $districtQuery->one();
+            if ($distModel) {
+                $result['district_id'] = (int) $distModel->id;
+                // Also set province from district if not yet found
+                if (!$result['province_id']) {
+                    $result['province_id'] = (int) $distModel->province_id;
+                    $provModel2 = Province::findOne($distModel->province_id);
+                    if ($provModel2) {
+                        $result['region_id'] = (int) $provModel2->region_id;
+                    }
+                }
+            }
+        }
+
+        // Match subdistrict (scoped to district if found)
+        if (!empty($subdistrict)) {
+            $cleanName = $stripPrefixes($subdistrict);
+            $subdistrictQuery = Subdistrict::find()
+                ->where(['or',
+                    ['like', 'name_th', $cleanName],
+                    ['like', 'name_en', $subdistrict],
+                ]);
+            if ($result['district_id']) {
+                $subdistrictQuery->andWhere(['district_id' => $result['district_id']]);
+            }
+            $subModel = $subdistrictQuery->one();
+            if ($subModel) {
+                $result['subdistrict_id'] = (int) $subModel->id;
+            }
+        }
+
+        // Match zipcode (scoped to subdistrict if found)
+        if (!empty($zipcode)) {
+            $zipcodeQuery = Zipcode::find()->where(['zipcode' => $zipcode]);
+            if ($result['subdistrict_id']) {
+                $zipcodeQuery->andWhere(['subdistrict_id' => $result['subdistrict_id']]);
+            }
+            $zipModel = $zipcodeQuery->one();
+            if ($zipModel) {
+                $result['zipcode_id'] = (int) $zipModel->id;
+            }
+        }
+
+        return $result;
     }
 }
