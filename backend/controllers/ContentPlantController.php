@@ -43,7 +43,7 @@ class ContentPlantController extends Controller
                 'rules' => [
                     //dashboard_view
                     [
-                        'actions' => ['index', 'view', 'create', 'update', 'delete', 'export'],
+                        'actions' => ['index', 'view', 'create', 'update', 'delete', 'export', 'import', 'import-summary', 'import-confirm'],
                         'allow' => true,
                         'matchCallback' => function ($rule, $action) 
                         {
@@ -54,6 +54,9 @@ class ContentPlantController extends Controller
                                 break;
 
                                 case 'create':
+                                case 'import':
+                                case 'import-summary':
+                                case 'import-confirm':
                                     return PermissionAccess::BackendAccess('content_create', 'controller');
                                 break;
 
@@ -824,6 +827,198 @@ class ContentPlantController extends Controller
 
 
         return $this->render('export',['model' => $model]);
+    }
+
+    public function actionImport()
+    {
+        $model = new \backend\models\ContentPlantImportForm();
+
+        if ($model->load(Yii::$app->request->post())) {
+            $model->importFile = \yii\web\UploadedFile::getInstance($model, 'importFile');
+            if ($model->validate()) {
+                $filePath = Yii::getAlias('@runtime/uploads/') . 'import_' . time() . '.' . $model->importFile->extension;
+                \yii\helpers\FileHelper::createDirectory(dirname($filePath));
+                $model->importFile->saveAs($filePath);
+
+                // Parse Excel
+                try {
+                    $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
+                    $worksheet = $spreadsheet->getActiveSheet();
+                    $rows = $worksheet->toArray();
+                    
+                    // การตั้งค่า Column Mapping ของไฟล์ Excel ให้แก้ไขง่าย
+                    $columnMapping = [
+                        0 => 'name',
+                        1 => 'other_name',
+                        2 => 'characteristics',
+                        3 => 'benefits',
+                        4 => 'found_source',
+                        5 => 'coord',
+                        6 => 'region',
+                        7 => 'province',
+                        8 => 'district',
+                        9 => 'subdistrict',
+                        10 => 'zipcode',
+                        // 11 => Skip Cover
+                        12 => 'season',
+                        13 => 'ability',
+                        14 => 'common_name',
+                        15 => 'scientific_name',
+                        16 => 'family_name',
+                        // 17 => Skip Illustration
+                        // 18 => Skip Image Source
+                        // 19 => Skip Data Source
+                        20 => 'note',
+                        21 => 'status',
+                        // 22 => Skip License
+                        23 => 'is_hidden',
+                    ];
+
+                    $importData = [];
+                    // Start from Row 3 (Index 2) up to 22 (Max 20 rows from row 3)
+                    for ($i = 2; $i < min(count($rows), 22); $i++) {
+                        $row = $rows[$i];
+                        if (empty($row[0])) continue; // Skip empty Title
+
+                        $item = [];
+                        foreach ($columnMapping as $colIndex => $fieldName) {
+                            $item[$fieldName] = $row[$colIndex] ?? null;
+                        }
+
+                        // Custom mapping formats
+                        $item['status'] = $item['status'] ?? 'pending';
+                        $item['is_hidden'] = (trim($item['is_hidden'] ?? '') === 'ซ่อน') ? 1 : 0;
+
+                        // Process Coordinates and Address
+                        $coords = \backend\components\ImportHelper::parseCoordinates($item['coord']);
+                        $item['latitude'] = $coords['lat'];
+                        $item['longitude'] = $coords['lng'];
+
+                        if (empty($item['province']) && empty($item['district']) && $item['latitude'] && $item['longitude']) {
+                            $autoAddress = \backend\components\ImportHelper::autoFillAddress($item['latitude'], $item['longitude']);
+                            if (!empty($autoAddress['province'])) {
+                                $item['province'] = $autoAddress['province'];
+                            }
+                            if (!empty($autoAddress['district'])) {
+                                $item['district'] = $autoAddress['district'];
+                            }
+                            if (!empty($autoAddress['subdistrict'])) {
+                                $item['subdistrict'] = $autoAddress['subdistrict'];
+                            }
+                            if (!empty($autoAddress['zipcode'])) {
+                                $item['zipcode'] = $autoAddress['zipcode'];
+                            }
+                        }
+
+                        // Map Address to IDs
+                        $addressIds = \backend\components\ImportHelper::findAddressIds(
+                            $item['region'], $item['province'], $item['district'], $item['subdistrict'], $item['zipcode']
+                        );
+                        $item = array_merge($item, $addressIds);
+
+                        // Fallback status
+                        $validStatuses = ['pending', 'approved', 'rejected'];
+                        $status = strtolower($item['status'] ?? '');
+                        if (!in_array($status, $validStatuses)) {
+                            $item['status'] = 'pending';
+                        } else {
+                            $item['status'] = $status;
+                        }
+
+                        $importData[] = $item;
+                    }
+
+                    unlink($filePath); // Delete temp file
+
+                    // Save to Session or Temp Table to show summary
+                    Yii::$app->session->set('import_plant_data', $importData);
+
+                    return $this->redirect(['import-summary']);
+
+                } catch (\Exception $e) {
+                    Yii::$app->session->setFlash('error', 'Error parsing file: ' . $e->getMessage());
+                }
+            }
+        }
+
+        return $this->render('import', [
+            'model' => $model,
+        ]);
+    }
+
+    public function actionImportSummary()
+    {
+        $data = Yii::$app->session->get('import_plant_data');
+        if (empty($data)) {
+            return $this->redirect(['import']);
+        }
+
+        return $this->render('import-summary', [
+            'data' => $data,
+        ]);
+    }
+
+    public function actionImportConfirm()
+    {
+        $data = Yii::$app->session->get('import_plant_data');
+        if (empty($data)) {
+            return $this->redirect(['import']);
+        }
+
+        $transaction = Yii::$app->db->beginTransaction();
+        try {
+            foreach ($data as $item) {
+                $content = new Content();
+                $content->type_id = 1; // Plant
+                $content->name = $item['name'];
+                $content->latitude = (string)$item['latitude'];
+                $content->longitude = (string)$item['longitude'];
+                $content->region_id = $item['region_id'];
+                $content->province_id = $item['province_id'];
+                $content->district_id = $item['district_id'];
+                $content->subdistrict_id = $item['subdistrict_id'];
+                $content->zipcode_id = $item['zipcode_id'];
+                $content->status = $item['status'];
+                $content->note = $item['note'];
+                $content->is_hidden = (string)($item['is_hidden'] ?? 0);
+                
+                $content->created_by_user_id = Yii::$app->user->identity->id;
+                $content->updated_by_user_id = Yii::$app->user->identity->id;
+                $content->created_at = date('Y-m-d H:i:s');
+                $content->updated_at = date('Y-m-d H:i:s');
+                $content->active = 1;
+
+                if ($content->save()) {
+                    $plant = new ContentPlant();
+                    $plant->content_id = $content->id;
+                    $plant->other_name = $item['other_name'];
+                    $plant->features = $item['characteristics'];
+                    $plant->benefit = $item['benefits'];
+                    $plant->found_source = $item['found_source'];
+                    $plant->season = $item['season'];
+                    $plant->ability = $item['ability'];
+                    $plant->common_name = $item['common_name'];
+                    $plant->scientific_name = $item['scientific_name'];
+                    $plant->family_name = $item['family_name'];
+                    $plant->created_at = date('Y-m-d H:i:s');
+                    $plant->updated_at = date('Y-m-d H:i:s');
+                    
+                    if (!$plant->save()) {
+                        throw new \Exception('Failed to save plant info: ' . json_encode($plant->errors));
+                    }
+                } else {
+                    throw new \Exception('Failed to save content: ' . json_encode($content->errors));
+                }
+            }
+            $transaction->commit();
+            Yii::$app->session->remove('import_plant_data');
+            Yii::$app->session->setFlash('success', 'นำเข้าข้อมูลสำเร็จ ' . count($data) . ' รายการ');
+            return $this->redirect(['index']);
+        } catch (\Exception $e) {
+            $transaction->rollBack();
+            Yii::$app->session->setFlash('error', 'เกิดข้อผิดพลาด: ' . $e->getMessage());
+            return $this->redirect(['import-summary']);
+        }
     }
 
     /**

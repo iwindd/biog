@@ -37,6 +37,7 @@ $this->params['breadcrumbs'][] = $this->title;
 
     <p>
         <?= Html::a('เพิ่มข้อมูลพืช', ['create'], ['class' => 'btn btn-success']) ?>
+        <?= Html::a('Import Excel', ['import'], ['class' => 'btn btn-primary']) ?>
 
         <?php if ($totalPage > 0):
             for ($i = 1; $i <= $totalPage; $i++): ?>

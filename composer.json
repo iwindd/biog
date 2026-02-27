@@ -41,7 +41,8 @@
         "yiidoc/yii2-redactor": "*",
         "bizley/quill": "^3.1",
         "kartik-v/yii2-editors": "@dev",
-        "dmstr/yii2-cookie-consent": "^1.4"
+        "dmstr/yii2-cookie-consent": "^1.4",
+        "phpoffice/phpspreadsheet": "^1.19"
     },
     "require-dev": {
         "yiisoft/yii2-debug": "~2.1.0",
@@ -58,6 +59,9 @@
         "process-timeout": 1800,
         "fxp-asset": {
             "enabled": false
+        },
+        "allow-plugins": {
+            "yiisoft/yii2-composer": true
         }
     },
     "repositories": [
