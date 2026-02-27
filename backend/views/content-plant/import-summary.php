@@ -24,6 +24,7 @@ $this->params['breadcrumbs'][] = $this->title;
             <thead>
                 <tr>
                     <th>#</th>
+                    <th>รูปภาพปก</th>
                     <th>ชื่อเรื่อง</th>
                     <th>พิกัด</th>
                     <th>ที่อยู่</th>
@@ -44,9 +45,23 @@ $this->params['breadcrumbs'][] = $this->title;
                         if (empty($item['province_id'])) {
                             $errors[] = "ไม่พบรหัสจังหวัด";
                         }
+                        if (!empty($item['picture_error'])) {
+                            $errors[] = $item['picture_error'];
+                        }
                     ?>
                     <tr class="<?= !empty($errors) ? 'danger' : '' ?>">
                         <td><?= $index + 1 ?></td>
+                        <td>
+                            <?php if (!empty($item['picture_path'])): ?>
+                                <?php
+                                $urlFrontend = isset(Yii::$app->params['urlFrontend']) ? Yii::$app->params['urlFrontend'] : '';
+                                $previewUrl = $urlFrontend . $item['picture_path'];
+                                ?>
+                                <?= Html::img($previewUrl, ['style' => 'max-width: 80px; max-height: 80px; object-fit: cover;', 'class' => 'img-thumbnail']) ?>
+                            <?php else: ?>
+                                <span class="text-muted">ไม่มีรูป</span>
+                            <?php endif; ?>
+                        </td>
                         <td><?= Html::encode($item['name']) ?></td>
                         <td><?= Html::encode($item['coord']) ?></td>
                         <td>

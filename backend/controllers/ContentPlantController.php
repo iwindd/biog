@@ -859,7 +859,7 @@ class ContentPlantController extends Controller
                         8 => 'district',
                         9 => 'subdistrict',
                         10 => 'zipcode',
-                        // 11 => Skip Cover
+                        11 => 'picture_path_label', // รูปภาพปก (ค้นหาจาก FileCenter label)
                         12 => 'season',
                         13 => 'ability',
                         14 => 'common_name',
@@ -907,6 +907,19 @@ class ContentPlantController extends Controller
                                 $item['region'], $item['province'], $item['district'], $item['subdistrict'], $item['zipcode']
                             );
                             $item = array_merge($item, $addressIds);
+                        }
+
+                        // Lookup FileCenter for Cover Image
+                        if (!empty($item['picture_path_label'])) {
+                            $fileCenter = \common\models\FileCenter::find()->where(['label' => trim($item['picture_path_label'])])->one();
+                            if ($fileCenter) {
+                                $item['picture_path'] = $fileCenter->file_path;
+                            } else {
+                                $item['picture_path'] = null;
+                                $item['picture_error'] = "ไม่พบรูปภาพปกจากป้ายกำกับ '{$item['picture_path_label']}'";
+                            }
+                        } else {
+                            $item['picture_path'] = null;
                         }
 
                         // Fallback status
@@ -974,6 +987,7 @@ class ContentPlantController extends Controller
                 $content->status = $item['status'];
                 $content->note = $item['note'];
                 $content->is_hidden = (string)($item['is_hidden'] ?? 0);
+                $content->picture_path = $item['picture_path'] ?? null;
                 
                 $content->created_by_user_id = Yii::$app->user->identity->id;
                 $content->updated_by_user_id = Yii::$app->user->identity->id;
