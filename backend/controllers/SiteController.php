@@ -150,14 +150,32 @@ class SiteController extends Controller
             }
         }
 
+        // Barchart Data grouping by Content Type statuses (Pending, Approved, Rejected etc if needed, or just total)
+        $contentStats = [
+            'plant' => Content::find()->where(['active' => 1, 'type_id' => 1, 'status' => 'approved'])->count(),
+            'animal' => Content::find()->where(['active' => 1, 'type_id' => 2, 'status' => 'approved'])->count(),
+            'micro' => Content::find()->where(['active' => 1, 'type_id' => 3, 'status' => 'approved'])->count(),
+            'wisdom' => Content::find()->where(['active' => 1, 'type_id' => 4, 'status' => 'approved'])->count(),
+            'eco' => Content::find()->where(['active' => 1, 'type_id' => 5, 'status' => 'approved'])->count(),
+            'product' => Content::find()->where(['active' => 1, 'type_id' => 6, 'status' => 'approved'])->count(),
+        ];
         
-        // print '<pre>';
-        // print_r($data);
-        // print '<pre>';
-        // exit();
+        $chartCategories = ['พืช', 'สัตว์', 'จุลินทรีย์', 'ภูมิปัญญา/ปราชญ์', 'ท่องเที่ยวเชิงนิเวศ', 'ผลิตภัณฑ์ชุมชน'];
+        $chartSeriesData = [
+            ['y' => (int)$contentStats['plant'], 'color' => '#2ecc71'],   
+            ['y' => (int)$contentStats['animal'], 'color' => '#f39c12'],  
+            ['y' => (int)$contentStats['micro'], 'color' => '#9b59b6'],   
+            ['y' => (int)$contentStats['wisdom'], 'color' => '#3498db'],  
+            ['y' => (int)$contentStats['eco'], 'color' => '#00bcd4'],     
+            ['y' => (int)$contentStats['product'], 'color' => '#e74c3c'], 
+        ];
 
-        return $this->render('index', ['data' => $data]);
 
+        return $this->render('index', [
+            'data' => $data, 
+            'chartCategories' => $chartCategories, 
+            'chartSeriesData' => $chartSeriesData
+        ]);
        
     }
 
