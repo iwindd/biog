@@ -76,7 +76,7 @@ class SiteController extends Controller
                         'allow' => true,
                     ],
                     [
-                        'actions' => ['logout', 'index', 'deleteuser'],
+                        'actions' => ['logout', 'index', 'deleteuser', 'export-pdf'],
                         'allow' => true,
                         'roles' => ['@'],
                     ],
@@ -177,6 +177,67 @@ class SiteController extends Controller
             'chartSeriesData' => $chartSeriesData
         ]);
        
+    }
+
+    public function actionExportPdf()
+    {
+        if(!PermissionAccess::BackendAccess('login_backend', 'function')){
+            Yii::$app->user->logout();
+            return $this->goHome();
+        }
+
+        // Barchart Data grouping by Content Type statuses (Pending, Approved, Rejected etc if needed, or just total)
+        $contentStats = [
+            'plant' => Content::find()->where(['active' => 1, 'type_id' => 1, 'status' => 'approved'])->count(),
+            'animal' => Content::find()->where(['active' => 1, 'type_id' => 2, 'status' => 'approved'])->count(),
+            'micro' => Content::find()->where(['active' => 1, 'type_id' => 3, 'status' => 'approved'])->count(),
+            'wisdom' => Content::find()->where(['active' => 1, 'type_id' => 4, 'status' => 'approved'])->count(),
+            'eco' => Content::find()->where(['active' => 1, 'type_id' => 5, 'status' => 'approved'])->count(),
+            'product' => Content::find()->where(['active' => 1, 'type_id' => 6, 'status' => 'approved'])->count(),
+        ];
+        
+        $chartCategories = ['พืช', 'สัตว์', 'จุลินทรีย์', 'ภูมิปัญญา/ปราชญ์', 'ท่องเที่ยวเชิงนิเวศ', 'ผลิตภัณฑ์ชุมชน'];
+        
+        $contentList = [];
+        $i = 0;
+        foreach($chartCategories as $category) {
+            $key = array_keys($contentStats)[$i];
+            $contentList[] = [
+                'category' => $category,
+                'count' => (int)$contentStats[$key]
+            ];
+            $i++;
+        }
+
+        // Generate PDF
+        $content = $this->renderPartial('export-pdf', [
+            'contentList' => $contentList
+        ]);
+
+        $pdf = new \kartik\mpdf\Pdf([
+            'mode' => \kartik\mpdf\Pdf::MODE_UTF8, 
+            'format' => \kartik\mpdf\Pdf::FORMAT_A4, 
+            'orientation' => \kartik\mpdf\Pdf::ORIENT_PORTRAIT, 
+            'destination' => \kartik\mpdf\Pdf::DEST_BROWSER, 
+            'content' => $content,  
+            'cssInline' => '
+                body { font-family: "Garuda", "Kinnari", sans-serif; }
+                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+                th { background-color: #f5f5f5; font-weight: bold; }
+                .text-center { text-align: center; }
+                .text-right { text-align: right; }
+                h2 { text-align: center; margin-bottom: 5px; }
+                .date-info { text-align: center; color: #666; margin-bottom: 20px; }
+            ',
+            'options' => ['title' => 'สถิติจำนวนเรื่องตามประเภทเนื้อหา'],
+            'methods' => [ 
+                'SetHeader'=>['สถิติจำนวนเรื่องตามประเภทเนื้อหา||Generated On: ' . date("r")], 
+                'SetFooter'=>['|Page {PAGENO}|'],
+            ]
+        ]);
+        
+        return $pdf->render(); 
     }
 
     function readCSV($csvFile, $array)

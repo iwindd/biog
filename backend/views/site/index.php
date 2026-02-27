@@ -26,7 +26,6 @@ $this->title = 'Dashboard';
                 border-radius: 16px;
                 padding: 24px;
                 box-shadow: 0 4px 15px rgba(0,0,0,0.03);
-                margin-bottom: 25px;
                 display: flex;
                 align-items: center;
                 position: relative;
@@ -203,6 +202,11 @@ CSS;
                 </a>
             </div>
         </div>
+    </section>
+    
+    <!-- Actions -->
+    <section style="margin: 15px; display:flex; justify-content: flex-end;">
+        <a href="<?= Url::to(['/site/export-pdf']) ?>" target="_blank" class="btn btn-primary" title="Export to PDF"><i class="fa fa-file-pdf-o"></i> Export PDF</a>
     </section>
 
     <!-- Chart content -->

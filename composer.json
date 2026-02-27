@@ -42,7 +42,8 @@
         "bizley/quill": "^3.1",
         "kartik-v/yii2-editors": "@dev",
         "dmstr/yii2-cookie-consent": "^1.4",
-        "phpoffice/phpspreadsheet": "^1.19"
+        "phpoffice/phpspreadsheet": "^1.19",
+        "kartik-v/yii2-mpdf": "dev-master"
     },
     "require-dev": {
         "yiisoft/yii2-debug": "~2.1.0",
