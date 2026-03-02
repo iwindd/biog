@@ -44,13 +44,16 @@ class ContentFungiController extends Controller
                 'rules' => [
                     //dashboard_view
                     [
-                        'actions' => ['index', 'view', 'create', 'update', 'delete', 'export'],
+                        'actions' => ['index', 'view', 'create', 'update', 'delete', 'export', 'import', 'import-summary', 'import-confirm'],
                         'allow' => true,
                         'matchCallback' => function ($rule, $action) 
                         {
                             switch($action->id){
                                 case 'index':
                                 case 'export':
+                                case 'import':
+                                case 'import-summary':
+                                case 'import-confirm':
                                     return PermissionAccess::BackendAccess('content_list', 'controller');
                                 break;
 
@@ -669,7 +672,7 @@ class ContentFungiController extends Controller
         return $model;
     }
 
-    private function getTaxonomyInputData($name)
+    public function getTaxonomyInputData($name)
     {
         $model = Taxonomy::find()->where(['name' => $name])->one();
         if(empty($model)){
@@ -682,7 +685,7 @@ class ContentFungiController extends Controller
         return $model->id;
     }
 
-    private function savePicture($newContentId, $value)
+    public function savePicture($newContentId, $value)
     {
   
         $mediaModel = new Picture();
@@ -702,6 +705,80 @@ class ContentFungiController extends Controller
         }
 
         return true;
+    }
+
+    public function actionImport()
+    {
+        $model = new \backend\models\ContentImportForm();
+
+        if ($model->load(Yii::$app->request->post())) {
+            $model->importFile = \yii\web\UploadedFile::getInstance($model, 'importFile');
+            if ($model->validate()) {
+                $importData = \backend\components\ImportHelper::parseExcelFile($model);
+                if ($importData !== null) {
+                    Yii::$app->session->set('import_fungi_data', $importData);
+                    return $this->redirect(['import-summary']);
+                }
+            }
+        }
+
+        return $this->render('import', [
+            'model' => $model,
+        ]);
+    }
+
+    public function actionImportSummary()
+    {
+        $data = Yii::$app->session->get('import_fungi_data');
+        if (empty($data)) {
+            return $this->redirect(['import']);
+        }
+
+        return $this->render('import-summary', [
+            'data' => $data,
+        ]);
+    }
+
+    public function actionImportConfirm()
+    {
+        $data = Yii::$app->session->get('import_fungi_data');
+        if (empty($data)) {
+            return $this->redirect(['import']);
+        }
+
+        $result = \backend\components\ImportHelper::confirmImport($data, [
+            'type_id' => 3,
+            'folder' => 'content-fungi',
+            'sessionKey' => 'import_fungi_data',
+            'saveTypeSpecific' => function ($contentId, $item) {
+                $fungi = new ContentFungi();
+                $fungi->content_id = $contentId;
+                $fungi->other_name = $item['other_name'];
+                $fungi->features = $item['characteristics'];
+                $fungi->benefit = $item['benefits'];
+                $fungi->found_source = $item['found_source'];
+                $fungi->season = $item['season'];
+                $fungi->ability = $item['ability'];
+                $fungi->common_name = $item['common_name'];
+                $fungi->scientific_name = $item['scientific_name'];
+                $fungi->family_name = $item['family_name'];
+                $fungi->other_information = $item['other_information'] ?? null;
+                $fungi->created_at = date('Y-m-d H:i:s');
+                $fungi->updated_at = date('Y-m-d H:i:s');
+
+                if (!$fungi->save()) {
+                    throw new \Exception('Failed to save fungi info: ' . json_encode($fungi->errors));
+                }
+                return true;
+            },
+            'savePicture' => [$this, 'savePicture'],
+            'getTaxonomyInputData' => [$this, 'getTaxonomyInputData'],
+        ]);
+
+        if ($result['success']) {
+            return $this->redirect(['index']);
+        }
+        return $this->redirect(['import-summary']);
     }
 
     /**

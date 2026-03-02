@@ -85,6 +85,7 @@ if(!empty($_GET['ContentFungiSearch'])){
 
     <p>
         <?= Html::a('เพิ่มข้อมูลจุลินทรีย์', ['create'], ['class' => 'btn btn-success']) ?>
+        <?= Html::a('Import Excel', ['import'], ['class' => 'btn btn-primary']) ?>
 
         <?= Html::a(  Html::img('/images/csv.png', ['class' => 'csv-export']).'Export ข้อมูลจุลินทรีย์', ['export'.$url], ['class' => 'btn btn-info export-bakcground f-right ','title' => 'Export Excel']) ?>
     </p>
