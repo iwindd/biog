@@ -87,6 +87,7 @@ if(!empty($_GET['ContentProductSearch'])){
 
     <p>
         <?= Html::a('เพิ่มข้อมูลผลิตภัณฑ์', ['create'], ['class' => 'btn btn-success']) ?>
+        <?= Html::a('Import Excel', ['import'], ['class' => 'btn btn-primary']) ?>
 
         <?= Html::a(  Html::img('/images/csv.png', ['class' => 'csv-export']).'Export ข้อมูลผลิตภัณฑ์ชุมชน', ['export'.$url], ['class' => 'btn btn-info export-bakcground f-right ','title' => 'Export Excel']) ?>
     </p>

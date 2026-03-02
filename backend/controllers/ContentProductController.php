@@ -44,13 +44,16 @@ class ContentProductController extends Controller
                 'rules' => [
                     //dashboard_view
                     [
-                        'actions' => ['index', 'view', 'create', 'update', 'delete', 'export'],
+                        'actions' => ['index', 'view', 'create', 'update', 'delete', 'export', 'import', 'import-summary', 'import-confirm'],
                         'allow' => true,
                         'matchCallback' => function ($rule, $action) 
                         {
                             switch($action->id){
                                 case 'index':
                                 case 'export':
+                                case 'import':
+                                case 'import-summary':
+                                case 'import-confirm':
                                     return PermissionAccess::BackendAccess('content_list', 'controller');
                                 break;
 
@@ -670,7 +673,7 @@ class ContentProductController extends Controller
         return $model;
     }
 
-    private function getTaxonomyInputData($name)
+    public function getTaxonomyInputData($name)
     {
         $model = Taxonomy::find()->where(['name' => $name])->one();
         if(empty($model)){
@@ -683,7 +686,7 @@ class ContentProductController extends Controller
         return $model->id;
     }
 
-    private function savePicture($newContentId, $value)
+    public function savePicture($newContentId, $value)
     {
   
         $mediaModel = new Picture();
@@ -705,7 +708,90 @@ class ContentProductController extends Controller
         return true;
     }
 
+    public function actionImport()
+    {
+        $model = new \backend\models\ContentImportForm();
 
+        if ($model->load(Yii::$app->request->post())) {
+            $model->importFile = \yii\web\UploadedFile::getInstance($model, 'importFile');
+            if ($model->validate()) {
+                $importData = \backend\components\ImportHelper::parseExcelFile(
+                    $model,
+                    \backend\components\ImportHelper::getProductColumnMapping(),
+                    [\backend\components\ImportHelper::class, 'processProductRow']
+                );
+                if ($importData !== null) {
+                    Yii::$app->session->set('import_product_data', $importData);
+                    return $this->redirect(['import-summary']);
+                }
+            }
+        }
+
+        return $this->render('import', [
+            'model' => $model,
+        ]);
+    }
+
+    public function actionImportSummary()
+    {
+        $data = Yii::$app->session->get('import_product_data');
+        if (empty($data)) {
+            return $this->redirect(['import']);
+        }
+
+        return $this->render('import-summary', [
+            'data' => $data,
+        ]);
+    }
+
+    public function actionImportConfirm()
+    {
+        $data = Yii::$app->session->get('import_product_data');
+        if (empty($data)) {
+            return $this->redirect(['import']);
+        }
+
+        $result = \backend\components\ImportHelper::confirmImport($data, [
+            'type_id' => 6,
+            'folder' => 'content-product',
+            'sessionKey' => 'import_product_data',
+            'saveTypeSpecific' => function ($contentId, $item) {
+                // Save description (product_features) on Content model
+                $content = Content::findOne($contentId);
+                if ($content) {
+                    $content->description = $item['product_features'] ?? null;
+                    $content->save(false);
+                }
+
+                $product = new ContentProduct();
+                $product->content_id = $contentId;
+                $product->product_category_id = $item['product_category_id'];
+                $product->product_features = $item['product_features'];
+                $product->product_main_material = $item['product_main_material'];
+                $product->product_sources_material = $item['product_sources_material'];
+                $product->product_price = $item['product_price'];
+                $product->product_distribution_location = $item['product_distribution_location'];
+                $product->product_address = $item['product_address'];
+                $product->product_phone = $item['product_phone'];
+                $product->found_source = $item['found_source'];
+                $product->contact = $item['contact'];
+                $product->created_at = date('Y-m-d H:i:s');
+                $product->updated_at = date('Y-m-d H:i:s');
+
+                if (!$product->save()) {
+                    throw new \Exception('Failed to save product info: ' . json_encode($product->errors));
+                }
+                return true;
+            },
+            'savePicture' => [$this, 'savePicture'],
+            'getTaxonomyInputData' => [$this, 'getTaxonomyInputData'],
+        ]);
+
+        if ($result['success']) {
+            return $this->redirect(['index']);
+        }
+        return $this->redirect(['import-summary']);
+    }
 
     /**
      * Finds the Content model based on its primary key value.
