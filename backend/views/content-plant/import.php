@@ -4,7 +4,7 @@ use yii\helpers\Html;
 use yii\widgets\ActiveForm;
 
 /* @var $this yii\web\View */
-/* @var $model backend\models\ContentPlantImportForm */
+/* @var $model backend\models\ContentImportForm */
 
 $this->title = 'นำเข้าข้อมูลพืชจาก Excel';
 $this->params['breadcrumbs'][] = ['label' => 'จัดการข้อมูลพืช', 'url' => ['index']];

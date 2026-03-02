@@ -700,7 +700,7 @@ class ContentPlantController extends Controller
         return $model;
     }
 
-    private function getTaxonomyInputData($name)
+    public function getTaxonomyInputData($name)
     {
         $model = Taxonomy::find()->where(['name' => $name])->one();
         if(empty($model)){
@@ -713,7 +713,7 @@ class ContentPlantController extends Controller
         return $model->id;
     }
 
-    private function savePicture($newContentId, $value)
+    public function savePicture($newContentId, $value)
     {
   
         $mediaModel = new Picture();
@@ -831,268 +831,15 @@ class ContentPlantController extends Controller
 
     public function actionImport()
     {
-        $model = new \backend\models\ContentPlantImportForm();
+        $model = new \backend\models\ContentImportForm();
 
         if ($model->load(Yii::$app->request->post())) {
             $model->importFile = \yii\web\UploadedFile::getInstance($model, 'importFile');
             if ($model->validate()) {
-                $filePath = Yii::getAlias('@runtime/uploads/') . 'import_' . time() . '.' . $model->importFile->extension;
-                \yii\helpers\FileHelper::createDirectory(dirname($filePath));
-                $model->importFile->saveAs($filePath);
-
-                // Parse Excel
-                try {
-                    $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
-                    $worksheet = $spreadsheet->getActiveSheet();
-                    $rows = $worksheet->toArray();
-                    
-                    // การตั้งค่า Column Mapping ของไฟล์ Excel ให้แก้ไขง่าย
-                    $columnMapping = [
-                        0 => 'name',
-                        1 => 'other_name',
-                        2 => 'characteristics',
-                        3 => 'benefits',
-                        4 => 'found_source',
-                        5 => 'coord',
-                        6 => 'region',
-                        7 => 'province',
-                        8 => 'district',
-                        9 => 'subdistrict',
-                        10 => 'zipcode',
-                        11 => 'picture_path_label', // รูปภาพปก 
-                        12 => 'other_information', // ข้อมูลอื่น ๆ ที่ฉันรู้ (เพิ่มใหม่)
-                        13 => 'season',
-                        14 => 'ability',
-                        15 => 'common_name',
-                        16 => 'scientific_name',
-                        17 => 'family_name',
-                        18 => 'illustration_labels', // รูปภาพประกอบ 
-                        19 => 'taxonomy_names', // คำสำคัญ (Tags) (เพิ่มใหม่)
-                        20 => 'image_sources', // แหล่งที่มารูปภาพ 
-                        21 => 'data_sources', // แหล่งอ้างอิงข้อมูล 
-                        22 => 'note',
-                        23 => 'status',
-                        24 => 'license_code', // รหัสสัญญาอนุญาต 
-                        25 => 'is_hidden',
-                    ];
-
-
-                    $importData = [];
-                    // Start from Row 3 (Index 2) up to 22 (Max 20 rows from row 3)
-                    for ($i = 2; $i < min(count($rows), 22); $i++) {
-                        $row = $rows[$i];
-                        if (empty($row[0])) continue; // Skip empty Title
-
-                        $item = [];
-                        foreach ($columnMapping as $colIndex => $fieldName) {
-                            $item[$fieldName] = $row[$colIndex] ?? null;
-                        }
-
-                        // Custom mapping formats
-                        $item['status'] = $item['status'] ?? 'pending';
-                        $item['is_hidden'] = (trim($item['is_hidden'] ?? '') === 'ซ่อน') ? 1 : 0;
-
-                        // Process Coordinates and Address
-                        $coords = \backend\components\ImportHelper::parseCoordinates($item['coord']);
-                        $item['latitude'] = $coords['lat'];
-                        $item['longitude'] = $coords['lng'];
-
-                        if (empty($item['province']) && empty($item['district']) && $item['latitude'] && $item['longitude']) {
-                            $autoAddress = \backend\components\ImportHelper::autoFillAddress($item['latitude'], $item['longitude']);
-                            if (!empty($autoAddress)) {
-                                $item = array_merge($item, $autoAddress); // Merge both names and IDs
-                            }
-                        }
-
-                        // Map Address to IDs (only for addresses not already filled by autoAddress)
-                        if (empty($item['province_id']) || empty($item['district_id'])) {
-                            $addressIds = \backend\components\ImportHelper::findAddressIds(
-                                $item['region'], $item['province'], $item['district'], $item['subdistrict'], $item['zipcode']
-                            );
-                            $item = array_merge($item, $addressIds);
-                        }
-
-                        // Lookup FileCenter for Cover Image
-                        if (!empty($item['picture_path_label'])) {
-                            $fileCenter = \common\models\FileCenter::find()->where(['label' => trim($item['picture_path_label'])])->one();
-                            if ($fileCenter) {
-                                $item['picture_path'] = $fileCenter->file_path;
-                            } else {
-                                $item['picture_path'] = null;
-                                $item['picture_error'] = "ไม่พบรูปภาพปกจากป้ายกำกับ '{$item['picture_path_label']}'";
-                            }
-                        } else {
-                            $item['picture_path'] = null;
-                        }
-
-                        // Lookup FileCenter for Illustration Images
-                        $item['files'] = [];
-                        $item['illustration_errors'] = [];
-                        if (!empty($item['illustration_labels'])) {
-                            // Split by comma or semicolon
-                            $labels = preg_split('/[,;]+/', $item['illustration_labels']);
-                            foreach ($labels as $label) {
-                                $trimLabel = trim($label);
-                                if (!empty($trimLabel)) {
-                                    $fcPic = \common\models\FileCenter::find()->where(['label' => $trimLabel])->one();
-                                    if ($fcPic) {
-                                        $item['files'][] = $fcPic->file_path;
-                                    } else {
-                                        $item['illustration_errors'][] = "ไม่พบรูปภาพประกอบ '{$trimLabel}'";
-                                    }
-                                }
-                            }
-                        }
-
-                        // Parse Image Sources
-                        $item['image_sources_data'] = [];
-                        $item['image_sources_errors'] = [];
-                        if (!empty($item['image_sources'])) {
-                            $sources = explode(';', $item['image_sources']);
-                            foreach ($sources as $sourceString) {
-                                $sourceString = trim($sourceString);
-                                if (empty($sourceString)) continue;
-
-                                $parts = array_map('trim', explode(',', $sourceString));
-                                $sourceName = $parts[0] ?? '';
-                                $author = $parts[1] ?? '';
-                                $publishedDate = $parts[2] ?? '';
-                                $sqlDate = null;
-                                if (!empty($publishedDate)) {
-                                    // Parse Thai date format like 17-06-2549
-                                    $dateParts = explode('-', $publishedDate);
-                                    if (count($dateParts) == 3) {
-                                        $d = str_pad($dateParts[0], 2, '0', STR_PAD_LEFT);
-                                        $m = str_pad($dateParts[1], 2, '0', STR_PAD_LEFT);
-                                        $y = (int)$dateParts[2];
-                                        // If year is in Buddhist era (e.g. 2549), convert to CE (2006)
-                                        if ($y > 2400) {
-                                            $y -= 543;
-                                        }
-                                        $sqlDate = "{$y}-{$m}-{$d}";
-                                    } else {
-                                        // If using slash (17/06/2549)
-                                        $dateParts = explode('/', $publishedDate);
-                                        if (count($dateParts) == 3) {
-                                            $d = str_pad($dateParts[0], 2, '0', STR_PAD_LEFT);
-                                            $m = str_pad($dateParts[1], 2, '0', STR_PAD_LEFT);
-                                            $y = (int)$dateParts[2];
-                                            if ($y > 2400) {
-                                                $y -= 543;
-                                            }
-                                            $sqlDate = "{$y}-{$m}-{$d}";
-                                        }
-                                    }
-                                }
-
-                                $url = $parts[3] ?? '';
-
-                                if (empty($url)) {
-                                    $item['image_sources_errors'][] = "แหล่งที่มารูปภาพต้องมี URL อ้างอิง (พบ: '{$sourceString}')";
-                                } else {
-                                    $item['image_sources_data'][] = [
-                                        'source_name' => $sourceName,
-                                        'author' => $author,
-                                        'published_date' => $sqlDate,
-                                        'reference_url' => $url,
-                                    ];
-                                }
-                            }
-                        }
-
-                        // Parse Data Sources
-                        $item['data_sources_data'] = [];
-                        $item['data_sources_errors'] = [];
-                        if (!empty($item['data_sources'])) {
-                            $sources = explode(';', $item['data_sources']);
-                            foreach ($sources as $sourceString) {
-                                $sourceString = trim($sourceString);
-                                if (empty($sourceString)) continue;
-
-                                $parts = array_map('trim', explode(',', $sourceString));
-                                $sourceName = $parts[0] ?? '';
-                                $author = $parts[1] ?? '';
-                                $publishedDate = $parts[2] ?? '';
-                                $sqlDate = null;
-                                if (!empty($publishedDate)) {
-                                    // Parse Thai date format like 17-06-2549
-                                    $dateParts = explode('-', $publishedDate);
-                                    if (count($dateParts) == 3) {
-                                        $d = str_pad($dateParts[0], 2, '0', STR_PAD_LEFT);
-                                        $m = str_pad($dateParts[1], 2, '0', STR_PAD_LEFT);
-                                        $y = (int)$dateParts[2];
-                                        if ($y > 2400) {
-                                            $y -= 543;
-                                        }
-                                        $sqlDate = "{$y}-{$m}-{$d}";
-                                    } else {
-                                        $dateParts = explode('/', $publishedDate);
-                                        if (count($dateParts) == 3) {
-                                            $d = str_pad($dateParts[0], 2, '0', STR_PAD_LEFT);
-                                            $m = str_pad($dateParts[1], 2, '0', STR_PAD_LEFT);
-                                            $y = (int)$dateParts[2];
-                                            if ($y > 2400) {
-                                                $y -= 543;
-                                            }
-                                            $sqlDate = "{$y}-{$m}-{$d}";
-                                        }
-                                    }
-                                }
-
-                                $url = $parts[3] ?? '';
-
-                                if (empty($url)) {
-                                    $item['data_sources_errors'][] = "แหล่งอ้างอิงข้อมูลต้องมี URL อ้างอิง (พบ: '{$sourceString}')";
-                                } else {
-                                    $item['data_sources_data'][] = [
-                                        'source_name' => $sourceName,
-                                        'author' => $author,
-                                        'published_date' => $sqlDate,
-                                        'reference_url' => $url,
-                                    ];
-                                }
-                            }
-                        }
-
-                        // Lookup License by code
-                        $item['license_id'] = null;
-                        $item['license_name'] = null;
-                        $item['license_description'] = null;
-                        $item['license_error'] = null;
-                        $trimLicenseCode = trim($item['license_code'] ?? '');
-                        if (!empty($trimLicenseCode) && $trimLicenseCode !== '-') {
-                            $license = \backend\models\License::find()->where(['code' => $trimLicenseCode])->one();
-                            if ($license) {
-                                $item['license_id'] = $license->id;
-                                $item['license_name'] = $license->name;
-                                $item['license_description'] = $license->description;
-                            } else {
-                                $item['license_error'] = "ไม่พบสัญญาอนุญาตจากรหัส '" . $trimLicenseCode . "'";
-                            }
-                        }
-
-                        // Fallback status
-                        $validStatuses = ['pending', 'approved', 'rejected'];
-                        $status = strtolower($item['status'] ?? '');
-                        if (!in_array($status, $validStatuses)) {
-                            $item['status'] = 'pending';
-                        } else {
-                            $item['status'] = $status;
-                        }
-
-                        $importData[] = $item;
-                    }
-
-
-                    unlink($filePath); // Delete temp file
-
-                    // Save to Session or Temp Table to show summary
+            $importData = \backend\components\ImportHelper::parseExcelFile($model);
+                if ($importData !== null) {
                     Yii::$app->session->set('import_plant_data', $importData);
-
                     return $this->redirect(['import-summary']);
-
-                } catch (\Exception $e) {
-                    Yii::$app->session->setFlash('error', 'Error parsing file: ' . $e->getMessage());
                 }
             }
         }
@@ -1121,175 +868,41 @@ class ContentPlantController extends Controller
             return $this->redirect(['import']);
         }
 
-        $transaction = Yii::$app->db->beginTransaction();
-        try {
-            foreach ($data as $item) {
-                $content = new Content();
-                $content->type_id = 1; // Plant
-                $content->name = $item['name'];
-                $content->latitude = (string)$item['latitude'];
-                $content->longitude = (string)$item['longitude'];
-                $content->region_id = $item['region_id'];
-                $content->province_id = $item['province_id'];
-                $content->district_id = $item['district_id'];
-                $content->subdistrict_id = $item['subdistrict_id'];
-                $content->zipcode_id = $item['zipcode_id'];
-                $content->status = $item['status'];
-                $content->note = $item['note'];
-                $content->is_hidden = (string)($item['is_hidden'] ?? 0);
-                $content->license_id = $item['license_id'] ?? null;
-                
-                // Copy Cover Image file
-                $content->picture_path = null;
-                if (!empty($item['picture_path'])) {
-                    $srcPath = $item['picture_path'];
-                    if (strpos($srcPath, '/uploads/filecenter/') !== false || strpos($srcPath, '/uploads/') !== false) {
-                        $sourcePath = Yii::getAlias('@frontend/web') . $srcPath;
-                        if (file_exists($sourcePath)) {
-                            $ext = pathinfo($sourcePath, PATHINFO_EXTENSION);
-                            $newName = 'pic_' . uniqid() . time() . '.' . $ext;
-                            $destDir = Yii::getAlias('@frontend/web/files/content-plant');
-                            \yii\helpers\FileHelper::createDirectory($destDir);
-                            
-                            if (copy($sourcePath, $destDir . '/' . $newName)) {
-                                $content->picture_path = $newName;
-                            } else {
-                                throw new \Exception("ไฟล์รูปภาพปกคัดลอกไม่สำเร็จ");
-                            }
-                        }
-                    } else {
-                        $content->picture_path = $srcPath;
-                    }
+        $result = \backend\components\ImportHelper::confirmImport($data, [
+            'type_id' => 1,
+            'folder' => 'content-plant',
+            'sessionKey' => 'import_plant_data',
+            'saveTypeSpecific' => function ($contentId, $item) {
+                $plant = new ContentPlant();
+                $plant->content_id = $contentId;
+                $plant->other_name = $item['other_name'];
+                $plant->features = $item['characteristics'];
+                $plant->benefit = $item['benefits'];
+                $plant->found_source = $item['found_source'];
+                $plant->season = $item['season'];
+                $plant->ability = $item['ability'];
+                $plant->common_name = $item['common_name'];
+                $plant->scientific_name = $item['scientific_name'];
+                $plant->family_name = $item['family_name'];
+                $plant->other_information = $item['other_information'] ?? null;
+                $plant->created_at = date('Y-m-d H:i:s');
+                $plant->updated_at = date('Y-m-d H:i:s');
+
+                if (!$plant->save()) {
+                    throw new \Exception('Failed to save plant info: ' . json_encode($plant->errors));
                 }
-                
-                $content->created_by_user_id = Yii::$app->user->identity->id;
-                $content->updated_by_user_id = Yii::$app->user->identity->id;
-                $content->created_at = date('Y-m-d H:i:s');
-                $content->updated_at = date('Y-m-d H:i:s');
-                $content->active = 1;
+                return true;
+            },
+            'savePicture' => [$this, 'savePicture'],
+            'getTaxonomyInputData' => [$this, 'getTaxonomyInputData'],
+        ]);
 
-                if ($content->save()) {
-                    $plant = new ContentPlant();
-                    $plant->content_id = $content->id;
-                    $plant->other_name = $item['other_name'];
-                    $plant->features = $item['characteristics'];
-                    $plant->benefit = $item['benefits'];
-                    $plant->found_source = $item['found_source'];
-                    $plant->season = $item['season'];
-                    $plant->ability = $item['ability'];
-                    $plant->common_name = $item['common_name'];
-                    $plant->scientific_name = $item['scientific_name'];
-                    $plant->family_name = $item['family_name'];
-                    $plant->other_information = $item['other_information'] ?? null;
-                    $plant->created_at = date('Y-m-d H:i:s');
-                    $plant->updated_at = date('Y-m-d H:i:s');
-                    
-                    if (!$plant->save()) {
-                        throw new \Exception('Failed to save plant info: ' . json_encode($plant->errors));
-                    }
-
-                    // handle FileCenter gallery paths from Import
-                    if (!empty($item['files'])) {
-                        foreach ($item['files'] as $fcPath) {
-                            if (strpos($fcPath, '/uploads/filecenter/') !== false || strpos($fcPath, '/uploads/') !== false) {
-                                $sourcePath = Yii::getAlias('@frontend/web') . $fcPath;
-                                if (file_exists($sourcePath)) {
-                                    $ext = pathinfo($sourcePath, PATHINFO_EXTENSION);
-                                    $newName = 'pic_' . uniqid() . time() . '.' . $ext;
-                                    $destDir = Yii::getAlias('@frontend/web/files/content-plant');
-                                    \yii\helpers\FileHelper::createDirectory($destDir);
-                                    
-                                    if (copy($sourcePath, $destDir . '/' . $newName)) {
-                                        $value = [
-                                            'file_display_name' => basename($fcPath),
-                                            'file_key' => $newName,
-                                            'created_by_user_id' => Yii::$app->user->identity->id
-                                        ];
-                                        $newRecordPicture = $this->savePicture($content->id, $value);
-                                        if($newRecordPicture == false){
-                                            throw new \Exception("ไฟล์รูปประกอบ " . basename($fcPath) . " บันทึกไม่สำเร็จ");
-                                        }
-                                    } else {
-                                        throw new \Exception("ไฟล์รูปประกอบ " . basename($fcPath) . " คัดลอกไม่สำเร็จ");
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // handle Image Sources from Import
-                    if (!empty($item['image_sources_data'])) {
-                        foreach ($item['image_sources_data'] as $sourceData) {
-                            $imgSrc = new \backend\models\ContentImageSource();
-                            $imgSrc->content_id = $content->id;
-                            $imgSrc->source_name = $sourceData['source_name'];
-                            $imgSrc->author = $sourceData['author'];
-                            $imgSrc->published_date = $sourceData['published_date'];
-                            $imgSrc->reference_url = $sourceData['reference_url'];
-                            
-                            if (!$imgSrc->save(false)) { // Save without validation just to be sure, or true if validation allows it
-                                throw new \Exception("ไม่สามารถบันทึกข้อมูลแหล่งที่มารูปภาพได้");
-                            }
-                        }
-                    }
-
-                    // handle Data Sources from Import
-                    if (!empty($item['data_sources_data'])) {
-                        foreach ($item['data_sources_data'] as $sourceData) {
-                            $dataSrc = new \backend\models\ContentDataSource();
-                            $dataSrc->content_id = $content->id;
-                            $dataSrc->source_name = $sourceData['source_name'];
-                            $dataSrc->author = $sourceData['author'];
-                            $dataSrc->published_date = $sourceData['published_date'];
-                            $dataSrc->reference_url = $sourceData['reference_url'];
-                            
-                            if (!$dataSrc->save(false)) { // Save without validation
-                                throw new \Exception("ไม่สามารถบันทึกข้อมูลแหล่งอ้างอิงข้อมูลได้");
-                            }
-                        }
-                    }
-
-                    // Handle taxonomy / tags (คำสำคัญ)
-                    if (!empty($item['taxonomy_names'])) {
-                        $tags = explode(',', $item['taxonomy_names']);
-                        foreach ($tags as $tag_name) {
-                            $tag_name = trim($tag_name);
-                            if (empty($tag_name)) continue;
-                            
-                            $taxId = $this->getTaxonomyInputData($tag_name);
-                            if (!empty($taxId)) {
-                                $modelTax = new ContentTaxonomy();
-                                $modelTax->content_id = $content->id;
-                                $modelTax->taxonomy_id = $taxId;
-                                
-                                $duplicate = (new \yii\db\Query())
-                                    ->select(['content_id','taxonomy_id'])
-                                    ->from('content_taxonomy')
-                                    ->where(['content_id' => $modelTax->content_id])
-                                    ->andWhere(['taxonomy_id' => $modelTax->taxonomy_id])
-                                    ->all();
-                                if (empty($duplicate)) {
-                                    $modelTax->created_at = date('Y-m-d H:i:s');
-                                    $modelTax->save(false);
-                                }
-                            }
-                        }
-                    }
-
-                } else {
-                    throw new \Exception('Failed to save content: ' . json_encode($content->errors));
-                }
-            }
-            $transaction->commit();
-            Yii::$app->session->remove('import_plant_data');
-            Yii::$app->session->setFlash('success', 'นำเข้าข้อมูลสำเร็จ ' . count($data) . ' รายการ');
+        if ($result['success']) {
             return $this->redirect(['index']);
-        } catch (\Exception $e) {
-            $transaction->rollBack();
-            Yii::$app->session->setFlash('error', 'เกิดข้อผิดพลาด: ' . $e->getMessage());
-            return $this->redirect(['import-summary']);
         }
+        return $this->redirect(['import-summary']);
     }
+
 
     /**
      * Finds the Content model based on its primary key value.
