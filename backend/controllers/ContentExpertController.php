@@ -44,13 +44,16 @@ class ContentExpertController extends Controller
                 'rules' => [
                     //dashboard_view
                     [
-                        'actions' => ['index', 'view', 'create', 'update', 'delete', 'export'],
+                        'actions' => ['index', 'view', 'create', 'update', 'delete', 'export', 'import', 'import-summary', 'import-confirm'],
                         'allow' => true,
                         'matchCallback' => function ($rule, $action) 
                         {
                             switch($action->id){
                                 case 'index':
                                 case 'export':
+                                case 'import':
+                                case 'import-summary':
+                                case 'import-confirm':
                                     return PermissionAccess::BackendAccess('content_list', 'controller');
                                 break;
 
@@ -666,7 +669,7 @@ class ContentExpertController extends Controller
         return $model;
     }
 
-    private function getTaxonomyInputData($name)
+    public function getTaxonomyInputData($name)
     {
         $model = Taxonomy::find()->where(['name' => $name])->one();
         if(empty($model)){
@@ -679,7 +682,7 @@ class ContentExpertController extends Controller
         return $model->id;
     }
 
-    private function savePicture($newContentId, $value)
+    public function savePicture($newContentId, $value)
     {
   
         $mediaModel = new Picture();
@@ -701,6 +704,89 @@ class ContentExpertController extends Controller
         return true;
     }
 
+    public function actionImport()
+    {
+        $model = new \backend\models\ContentImportForm();
+
+        if ($model->load(Yii::$app->request->post())) {
+            $model->importFile = \yii\web\UploadedFile::getInstance($model, 'importFile');
+            if ($model->validate()) {
+                $importData = \backend\components\ImportHelper::parseExcelFile(
+                    $model,
+                    \backend\components\ImportHelper::getExpertColumnMapping(),
+                    [\backend\components\ImportHelper::class, 'processExpertRow']
+                );
+                if ($importData !== null) {
+                    Yii::$app->session->set('import_expert_data', $importData);
+                    return $this->redirect(['import-summary']);
+                }
+            }
+        }
+
+        return $this->render('import', [
+            'model' => $model,
+        ]);
+    }
+
+    public function actionImportSummary()
+    {
+        $data = Yii::$app->session->get('import_expert_data');
+        if (empty($data)) {
+            return $this->redirect(['import']);
+        }
+
+        return $this->render('import-summary', [
+            'data' => $data,
+        ]);
+    }
+
+    public function actionImportConfirm()
+    {
+        $data = Yii::$app->session->get('import_expert_data');
+        if (empty($data)) {
+            return $this->redirect(['import']);
+        }
+
+        $result = \backend\components\ImportHelper::confirmImport($data, [
+            'type_id' => 4,
+            'folder' => 'content-expert',
+            'sessionKey' => 'import_expert_data',
+            'saveTypeSpecific' => function ($contentId, $item) {
+                // Also save description on Content model
+                $content = Content::findOne($contentId);
+                if ($content) {
+                    $content->description = $item['description'] ?? null;
+                    $content->save(false);
+                }
+
+                $expert = new ContentExpert();
+                $expert->content_id = $contentId;
+                $expert->expert_category_id = $item['expert_category_id'];
+                $expert->expert_firstname = $item['expert_firstname'];
+                $expert->expert_lastname = $item['expert_lastname'];
+                $expert->expert_birthdate = $item['expert_birthdate'];
+                $expert->expert_expertise = $item['expert_expertise'];
+                $expert->expert_occupation = $item['expert_occupation'];
+                $expert->expert_card_id = $item['expert_card_id'];
+                $expert->phone = $item['phone'];
+                $expert->address = $item['address'];
+                $expert->created_at = date('Y-m-d H:i:s');
+                $expert->updated_at = date('Y-m-d H:i:s');
+
+                if (!$expert->save()) {
+                    throw new \Exception('Failed to save expert info: ' . json_encode($expert->errors));
+                }
+                return true;
+            },
+            'savePicture' => [$this, 'savePicture'],
+            'getTaxonomyInputData' => [$this, 'getTaxonomyInputData'],
+        ]);
+
+        if ($result['success']) {
+            return $this->redirect(['index']);
+        }
+        return $this->redirect(['import-summary']);
+    }
 
     /**
      * Finds the Content model based on its primary key value.
