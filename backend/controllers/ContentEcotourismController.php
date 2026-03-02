@@ -44,13 +44,16 @@ class ContentEcotourismController extends Controller
                 'rules' => [
                     //dashboard_view
                     [
-                        'actions' => ['index', 'view', 'create', 'update', 'delete', 'export'],
+                        'actions' => ['index', 'view', 'create', 'update', 'delete', 'export', 'import', 'import-summary', 'import-confirm'],
                         'allow' => true,
                         'matchCallback' => function ($rule, $action) 
                         {
                             switch($action->id){
                                 case 'index':
                                 case 'export':
+                                case 'import':
+                                case 'import-summary':
+                                case 'import-confirm':
                                     return PermissionAccess::BackendAccess('content_list', 'controller');
                                 break;
 
@@ -574,7 +577,7 @@ class ContentEcotourismController extends Controller
         return $model;
     }
 
-    private function getTaxonomyInputData($name)
+    public function getTaxonomyInputData($name)
     {
         $model = Taxonomy::find()->where(['name' => $name])->one();
         if(empty($model)){
@@ -587,7 +590,7 @@ class ContentEcotourismController extends Controller
         return $model->id;
     }
 
-    private function savePicture($newContentId, $value)
+    public function savePicture($newContentId, $value)
     {
   
         $mediaModel = new Picture();
@@ -607,6 +610,86 @@ class ContentEcotourismController extends Controller
         }
 
         return true;
+    }
+
+    public function actionImport()
+    {
+        $model = new \backend\models\ContentImportForm();
+
+        if ($model->load(Yii::$app->request->post())) {
+            $model->importFile = \yii\web\UploadedFile::getInstance($model, 'importFile');
+            if ($model->validate()) {
+                $importData = \backend\components\ImportHelper::parseExcelFile(
+                    $model,
+                    \backend\components\ImportHelper::getEcotourismColumnMapping(),
+                    [\backend\components\ImportHelper::class, 'processEcotourismRow']
+                );
+                if ($importData !== null) {
+                    Yii::$app->session->set('import_ecotourism_data', $importData);
+                    return $this->redirect(['import-summary']);
+                }
+            }
+        }
+
+        return $this->render('import', [
+            'model' => $model,
+        ]);
+    }
+
+    public function actionImportSummary()
+    {
+        $data = Yii::$app->session->get('import_ecotourism_data');
+        if (empty($data)) {
+            return $this->redirect(['import']);
+        }
+
+        return $this->render('import-summary', [
+            'data' => $data,
+        ]);
+    }
+
+    public function actionImportConfirm()
+    {
+        $data = Yii::$app->session->get('import_ecotourism_data');
+        if (empty($data)) {
+            return $this->redirect(['import']);
+        }
+
+        $result = \backend\components\ImportHelper::confirmImport($data, [
+            'type_id' => 5,
+            'folder' => 'content-ecotourism',
+            'sessionKey' => 'import_ecotourism_data',
+            'saveTypeSpecific' => function ($contentId, $item) {
+                // Save description on Content model
+                $content = Content::findOne($contentId);
+                if ($content) {
+                    $content->description = $item['description'] ?? null;
+                    $content->save(false);
+                }
+
+                $eco = new ContentEcotourism();
+                $eco->content_id = $contentId;
+                $eco->address = $item['address'];
+                $eco->phone = $item['phone'];
+                $eco->name = $item['contact_name'];
+                $eco->travel_information = $item['travel_information'];
+                $eco->contact = $item['contact'];
+                $eco->created_at = date('Y-m-d H:i:s');
+                $eco->updated_at = date('Y-m-d H:i:s');
+
+                if (!$eco->save()) {
+                    throw new \Exception('Failed to save ecotourism info: ' . json_encode($eco->errors));
+                }
+                return true;
+            },
+            'savePicture' => [$this, 'savePicture'],
+            'getTaxonomyInputData' => [$this, 'getTaxonomyInputData'],
+        ]);
+
+        if ($result['success']) {
+            return $this->redirect(['index']);
+        }
+        return $this->redirect(['import-summary']);
     }
 
     /**
