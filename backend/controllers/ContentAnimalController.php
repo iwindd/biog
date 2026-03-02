@@ -44,13 +44,16 @@ class ContentAnimalController extends Controller
                 'rules' => [
                     //dashboard_view
                     [
-                        'actions' => ['index', 'view', 'create', 'update', 'delete', 'export'],
+                        'actions' => ['index', 'view', 'create', 'update', 'delete', 'export', 'import', 'import-summary', 'import-confirm'],
                         'allow' => true,
                         'matchCallback' => function ($rule, $action) 
                         {
                             switch($action->id){
                                 case 'index':
                                 case 'export':
+                                case 'import':
+                                case 'import-summary':
+                                case 'import-confirm':
                                     return PermissionAccess::BackendAccess('content_list', 'controller');
                                 break;
 
@@ -686,7 +689,7 @@ class ContentAnimalController extends Controller
         return $model;
     }
 
-    private function getTaxonomyInputData($name)
+    public function getTaxonomyInputData($name)
     {
         $model = Taxonomy::find()->where(['name' => $name])->one();
         if(empty($model)){
@@ -699,7 +702,7 @@ class ContentAnimalController extends Controller
         return $model->id;
     }
 
-    private function savePicture($newContentId, $value)
+    public function savePicture($newContentId, $value)
     {
   
         $mediaModel = new Picture();
@@ -719,6 +722,80 @@ class ContentAnimalController extends Controller
         }
 
         return true;
+    }
+
+    public function actionImport()
+    {
+        $model = new \backend\models\ContentImportForm();
+
+        if ($model->load(Yii::$app->request->post())) {
+            $model->importFile = \yii\web\UploadedFile::getInstance($model, 'importFile');
+            if ($model->validate()) {
+                $importData = \backend\components\ImportHelper::parseExcelFile($model);
+                if ($importData !== null) {
+                    Yii::$app->session->set('import_animal_data', $importData);
+                    return $this->redirect(['import-summary']);
+                }
+            }
+        }
+
+        return $this->render('import', [
+            'model' => $model,
+        ]);
+    }
+
+    public function actionImportSummary()
+    {
+        $data = Yii::$app->session->get('import_animal_data');
+        if (empty($data)) {
+            return $this->redirect(['import']);
+        }
+
+        return $this->render('import-summary', [
+            'data' => $data,
+        ]);
+    }
+
+    public function actionImportConfirm()
+    {
+        $data = Yii::$app->session->get('import_animal_data');
+        if (empty($data)) {
+            return $this->redirect(['import']);
+        }
+
+        $result = \backend\components\ImportHelper::confirmImport($data, [
+            'type_id' => 2,
+            'folder' => 'content-animal',
+            'sessionKey' => 'import_animal_data',
+            'saveTypeSpecific' => function ($contentId, $item) {
+                $animal = new ContentAnimal();
+                $animal->content_id = $contentId;
+                $animal->other_name = $item['other_name'];
+                $animal->features = $item['characteristics'];
+                $animal->benefit = $item['benefits'];
+                $animal->found_source = $item['found_source'];
+                $animal->season = $item['season'];
+                $animal->ability = $item['ability'];
+                $animal->common_name = $item['common_name'];
+                $animal->scientific_name = $item['scientific_name'];
+                $animal->family_name = $item['family_name'];
+                $animal->other_information = $item['other_information'] ?? null;
+                $animal->created_at = date('Y-m-d H:i:s');
+                $animal->updated_at = date('Y-m-d H:i:s');
+
+                if (!$animal->save()) {
+                    throw new \Exception('Failed to save animal info: ' . json_encode($animal->errors));
+                }
+                return true;
+            },
+            'savePicture' => [$this, 'savePicture'],
+            'getTaxonomyInputData' => [$this, 'getTaxonomyInputData'],
+        ]);
+
+        if ($result['success']) {
+            return $this->redirect(['index']);
+        }
+        return $this->redirect(['import-summary']);
     }
 
     /**
