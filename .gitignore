@@ -54,3 +54,4 @@ composer.lock
 backup
 
 note.md
+.env

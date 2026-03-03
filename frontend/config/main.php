@@ -95,10 +95,10 @@ return [
         ],
         'reCaptcha' => [
             'class' => 'himiklab\yii2\recaptcha\ReCaptchaConfig',
-            'siteKeyV2' => '6LdhQnksAAAAAPmFiWJfrNoHB0HE77AOaWt0r57f',
-            'secretV2' => '6LdhQnksAAAAAE69v9SJ1JvEsj1P_vpVmBidqmES',
-            'siteKeyV3' => 'your siteKey v3',
-            'secretV3' => 'your secret key v3',
+            'siteKeyV2' => getenv('RECAPTCHA_SITE_KEY_V2'),
+            'secretV2' => getenv('RECAPTCHA_SECRET_V2'),
+            'siteKeyV3' => getenv('RECAPTCHA_SITE_KEY_V3') ?: '',
+            'secretV3' => getenv('RECAPTCHA_SECRET_V3') ?: '',
         ],
         'view' => [
             'theme' => [
@@ -113,11 +113,11 @@ return [
             'useFileTransport' => false,
             'transport' => [
                 'class' => 'Swift_SmtpTransport',
-                'host' => 'smtp.gmail.com',
-                'username' => 'biogang.smtp@gmail.com',
-                'password' => 'nsrxdrammdozafgg',
-                'port' => '587',
-                'encryption' => 'tls',
+                'host' => getenv('SMTP_HOST'),
+                'username' => getenv('SMTP_USERNAME'),
+                'password' => getenv('SMTP_PASSWORD'),
+                'port' => getenv('SMTP_PORT'),
+                'encryption' => getenv('SMTP_ENCRYPTION'),
             ],
         ],
         'i18n' => [
