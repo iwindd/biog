@@ -99,6 +99,13 @@ $this->params['breadcrumbs'][] = $this->title;
                 'label' => 'แหล่งที่พบ',
                 'value' => $modelContentPlant->found_source,
             ],
+            [
+                'format' => 'html',
+                'label' => 'ข้อมูลอื่นที่เราควรรู้ (จากระบบ)',
+                'attribute' => 'other_information',
+                'value' => $model->other_information,
+                'visible' => !empty($model->other_information),
+            ],
             'latitude',
             'longitude',
             [
@@ -144,9 +151,9 @@ $this->params['breadcrumbs'][] = $this->title;
                 'format' => 'raw',
                 'label' => 'แหล่งที่มาของภาพ',
                 'value' => function ($model) {
-                    if (!empty($model->contentDataSources)) {
+                    if (!empty($model->contentImageSources)) {
                         $htmlList = [];
-                        foreach ($model->contentDataSources as $source) {
+                        foreach ($model->contentImageSources as $source) {
                             $displayLabel = $source->displayLabel;
                             if (!empty($displayLabel)) {
                                 $htmlList[] = '<li>' . $displayLabel . '</li>';
@@ -226,6 +233,40 @@ $this->params['breadcrumbs'][] = $this->title;
                 'attribute' => 'license_id',
                 'value' => function ($model) {
                     return $model->license ? $model->license->name : '-';
+                }
+            ],
+            [
+                'label' => 'คำสำคัญ (Tags)',
+                'value' => function ($model) {
+                    $tags = [];
+                    foreach ($model->contentTaxonomies as $ct) {
+                        if ($ct->taxonomy) {
+                            $tags[] = '<span class="label label-info">' . Html::encode($ct->taxonomy->name) . '</span>';
+                        }
+                    }
+                    return !empty($tags) ? implode(' ', $tags) : '-';
+                },
+                'format' => 'raw',
+            ],
+            [
+                'label' => 'รูปภาพเพิ่มเติม (Gallery)',
+                'format' => 'raw',
+                'value' => function ($model) {
+                    $pictures = \backend\models\Picture::find()->where(['content_id' => $model->id])->all();
+                    if (!empty($pictures)) {
+                        $html = '<div class="row">';
+                        foreach ($pictures as $pic) {
+                            $img = Upload::readfilePictureNoPermission('content-plant', $pic->path);
+                            $html .= '<div class="col-sm-3 col-md-2" style="margin-bottom:10px;">';
+                            $html .= '<div style="border:1px solid #ddd; padding:5px; height:120px; display:flex; align-items:center; justify-content:center; overflow:hidden;">';
+                            $html .= $img;
+                            $html .= '</div>';
+                            $html .= '</div>';
+                        }
+                        $html .= '</div>';
+                        return $html;
+                    }
+                    return '-';
                 }
             ],
             // 'active',

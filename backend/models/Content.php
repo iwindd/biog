@@ -270,4 +270,14 @@ class Content extends \yii\db\ActiveRecord
     {
         return $this->hasMany(ContentDataSource::className(), ['content_id' => 'id']);
     }
+
+    /**
+     * Gets query for [[ContentTaxonomies]].
+     *
+     * @return \yii\db\ActiveQuery
+     */
+    public function getContentTaxonomies()
+    {
+        return $this->hasMany(ContentTaxonomy::className(), ['content_id' => 'id']);
+    }
 }

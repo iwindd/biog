@@ -46,4 +46,14 @@ class ContentTaxonomy extends \yii\db\ActiveRecord
             'created_at' => 'Created At',
         ];
     }
+
+    /**
+     * Gets query for [[Taxonomy]].
+     *
+     * @return \yii\db\ActiveQuery
+     */
+    public function getTaxonomy()
+    {
+        return $this->hasOne(Taxonomy::className(), ['id' => 'taxonomy_id']);
+    }
 }

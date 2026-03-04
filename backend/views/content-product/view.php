@@ -77,6 +77,10 @@ $this->params['breadcrumbs'][] = $this->title;
                 'value' => $modelContent->product_distribution_location,
             ],
             [
+                'label' => 'ข้อมูลการติดต่อ',
+                'value' => $modelContent->contact,
+            ],
+            [
                 'label' => 'ที่อยู่',
                 'value' => $modelContent->product_address,
             ],
@@ -86,8 +90,15 @@ $this->params['breadcrumbs'][] = $this->title;
             ],
             [
                 'format' => 'html',
-                'label' => 'ข้อมูลอื่น ๆ ที่ฉันรู้',
+                'label' => 'รายละเอียดเพิ่มเติม',
+                'value' => $modelContent->other_information,
+            ],
+            [
+                'format' => 'html',
+                'label' => 'ข้อมูลอื่นที่เราควรรู้ (จากระบบ)',
+                'attribute' => 'other_information',
                 'value' => $model->other_information,
+                'visible' => !empty($model->other_information),
             ],
             [
                 'label' => 'แหล่งที่พบ',
@@ -135,65 +146,42 @@ $this->params['breadcrumbs'][] = $this->title;
                 }
             ],
             [
-                'attribute' => 'photo_credit',
                 'label' => 'แหล่งที่มาของภาพ',
                 'format' => 'raw',
                 'value' => function ($model) {
-                    if (empty($model->contentImageSources)) {
-                        return '-';
-                    }
-                    $sources = [];
-                    foreach ($model->contentImageSources as $source) {
-                        $formattedItems = [];
-                        if (!empty($source->source_name)) {
-                            $formattedItems[] = $source->source_name;
+                    if (!empty($model->contentImageSources)) {
+                        $htmlList = [];
+                        foreach ($model->contentImageSources as $source) {
+                            $displayLabel = $source->displayLabel;
+                            if (!empty($displayLabel)) {
+                                $htmlList[] = '<li>' . $displayLabel . '</li>';
+                            }
                         }
-                        if (!empty($source->author)) {
-                            $formattedItems[] = 'ผู้จัดทำ: ' . $source->author;
-                        }
-                        if (!empty($source->published_date)) {
-                            $formattedItems[] = 'วันที่เผยแพร่: ' . date('d/m/Y', strtotime($source->published_date));
-                        }
-                        if (!empty($source->reference_url)) {
-                            $formattedItems[] = 'URL: <a href="' . $source->reference_url . '" target="_blank">' . $source->reference_url . '</a>';
-                        }
-                        
-                        if (!empty($formattedItems)) {
-                            $sources[] = '<li>' . implode(', ', $formattedItems) . '</li>';
+                        if (!empty($htmlList)) {
+                            return '<ul style="padding-left: 20px; margin-bottom: 0;">' . implode('', $htmlList) . '</ul>';
                         }
                     }
-                    return !empty($sources) ? '<ul style="padding-left: 20px; margin-bottom: 0;">' . implode('', $sources) . '</ul>' : '-';
+                    return '-';
                 },
             ],
             [
                 'attribute' => 'source_information',
-                'label' => 'แหล่งที่มาของข้อมูล',
                 'format' => 'raw',
+                'label' => 'แหล่งที่มาของข้อมูล',
                 'value' => function ($model) {
-                    if (empty($model->contentDataSources)) {
-                        return '-';
-                    }
-                    $sources = [];
-                    foreach ($model->contentDataSources as $source) {
-                        $formattedItems = [];
-                        if (!empty($source->source_name)) {
-                            $formattedItems[] = $source->source_name;
+                    if (!empty($model->contentDataSources)) {
+                        $htmlList = [];
+                        foreach ($model->contentDataSources as $source) {
+                            $displayLabel = $source->displayLabel;
+                            if (!empty($displayLabel)) {
+                                $htmlList[] = '<li>' . $displayLabel . '</li>';
+                            }
                         }
-                        if (!empty($source->author)) {
-                            $formattedItems[] = 'ผู้จัดทำ: ' . $source->author;
-                        }
-                        if (!empty($source->published_date)) {
-                            $formattedItems[] = 'วันที่เผยแพร่: ' . date('d/m/Y', strtotime($source->published_date));
-                        }
-                        if (!empty($source->reference_url)) {
-                            $formattedItems[] = 'URL: <a href="' . $source->reference_url . '" target="_blank">' . $source->reference_url . '</a>';
-                        }
-                        
-                        if (!empty($formattedItems)) {
-                            $sources[] = '<li>' . implode(', ', $formattedItems) . '</li>';
+                        if (!empty($htmlList)) {
+                            return '<ul style="padding-left: 20px; margin-bottom: 0;">' . implode('', $htmlList) . '</ul>';
                         }
                     }
-                    return !empty($sources) ? '<ul style="padding-left: 20px; margin-bottom: 0;">' . implode('', $sources) . '</ul>' : '-';
+                    return '-';
                 },
             ],
             [
@@ -243,6 +231,40 @@ $this->params['breadcrumbs'][] = $this->title;
                 'attribute' => 'license_id',
                 'value' => function ($model) {
                     return $model->license ? $model->license->name : '-';
+                }
+            ],
+            [
+                'label' => 'คำสำคัญ (Tags)',
+                'value' => function ($model) {
+                    $tags = [];
+                    foreach ($model->contentTaxonomies as $ct) {
+                        if ($ct->taxonomy) {
+                            $tags[] = '<span class="label label-info">' . Html::encode($ct->taxonomy->name) . '</span>';
+                        }
+                    }
+                    return !empty($tags) ? implode(' ', $tags) : '-';
+                },
+                'format' => 'raw',
+            ],
+            [
+                'label' => 'รูปภาพเพิ่มเติม (Gallery)',
+                'format' => 'raw',
+                'value' => function ($model) {
+                    $pictures = \backend\models\Picture::find()->where(['content_id' => $model->id])->all();
+                    if (!empty($pictures)) {
+                        $html = '<div class="row">';
+                        foreach ($pictures as $pic) {
+                            $img = Upload::readfilePictureNoPermission('content-product', $pic->path);
+                            $html .= '<div class="col-sm-3 col-md-2" style="margin-bottom:10px;">';
+                            $html .= '<div style="border:1px solid #ddd; padding:5px; height:120px; display:flex; align-items:center; justify-content:center; overflow:hidden;">';
+                            $html .= $img;
+                            $html .= '</div>';
+                            $html .= '</div>';
+                        }
+                        $html .= '</div>';
+                        return $html;
+                    }
+                    return '-';
                 }
             ],
             // 'active',
