@@ -18,6 +18,7 @@ use yii\filters\AccessControl;
 use yii\filters\AccessRule;
 use backend\components\PermissionAccess;
 use backend\components\BackendHelper;
+use backend\models\UserNotificationSetting;
 
 
 /**
@@ -39,7 +40,7 @@ class SettingController extends Controller
                 'rules' => [
                     //dashboard_view
                     [
-                        'actions' => ['index', 'expert', 'data-protection', 'delete-protection-pdf'],
+                        'actions' => ['index', 'expert', 'data-protection', 'delete-protection-pdf', 'notification'],
                         'allow' => true,
                         'matchCallback' => function ($rule, $action) 
                         {
@@ -48,6 +49,7 @@ class SettingController extends Controller
                                 case 'expert':
                                 case 'data-protection':
                                 case 'delete-protection-pdf':
+                                case 'notification':
                                     return PermissionAccess::BackendAccess('setting_view', 'controller');
                                 break;
 
@@ -87,6 +89,8 @@ class SettingController extends Controller
         $query=Variables::find()->where(['key' =>"phone_info"])->one();
         $model->phone_info=$query->value;
 
+        // Per-admin notification setting
+        $notificationModel = UserNotificationSetting::getOrCreate(Yii::$app->user->identity->id);
 
         if (Yii::$app->request->post()){
             $post=Yii::$app->request->post();
@@ -99,6 +103,13 @@ class SettingController extends Controller
             Yii::$app->db->createCommand()
             ->update('variables', ['value' => $post['Variables']['phone_info']], ['key' =>"phone_info"])
             ->execute();
+
+            // Save per-admin notification setting
+            if (isset($post['UserNotificationSetting'])) {
+                $notificationModel->notify_new_registration = isset($post['UserNotificationSetting']['notify_new_registration']) ? (int)$post['UserNotificationSetting']['notify_new_registration'] : 0;
+                $notificationModel->updated_at = date('Y-m-d H:i:s');
+                $notificationModel->save();
+            }
 
             if ($model->sender_mail !=  $post['Variables']['sender_mail']) {
                 BackendHelper::saveUserLog('variables', Yii::$app->user->identity->id, 1, 'update sender email', 'แก้ไขอีเมลผู้ส่ง');
@@ -114,6 +125,7 @@ class SettingController extends Controller
         }
         return $this->render('index', [
             'model' => $model,
+            'notificationModel' => $notificationModel,
         ]);
         
     }
@@ -379,5 +391,32 @@ class SettingController extends Controller
         }
 
         throw new NotFoundHttpException('The requested page does not exist.');
+    }
+
+    /**
+     * Per-admin notification settings.
+     */
+    public function actionNotification()
+    {
+        $userId = Yii::$app->user->identity->id;
+        $model = UserNotificationSetting::getOrCreate($userId);
+
+        if (Yii::$app->request->post()) {
+            $post = Yii::$app->request->post();
+            $model->notify_new_registration = isset($post['UserNotificationSetting']['notify_new_registration']) ? (int)$post['UserNotificationSetting']['notify_new_registration'] : 0;
+            $model->updated_at = date('Y-m-d H:i:s');
+            $model->save();
+
+            Yii::$app->getSession()->setFlash('alert', [
+                'body' => 'บันทึกการตั้งค่าการแจ้งเตือนเรียบร้อยแล้ว',
+                'options' => ['class' => 'alert-success']
+            ]);
+
+            return $this->redirect(['/setting/notification']);
+        }
+
+        return $this->render('notification', [
+            'model' => $model,
+        ]);
     }
 }

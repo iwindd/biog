@@ -221,6 +221,11 @@ class ApprovedStudentController extends Controller
                     if(!empty($userRolePendingStudent)){
                         $userRolePendingStudent->delete();
                     }
+                    if (!empty($_POST['roleStudent'])) {
+                        Helper::sendMailApprovedStudent($id, 'อนุมัติ');
+                    } else {
+                        Helper::sendMailApprovedStudent($id, 'ไม่อนุมัติ');
+                    }
                 }
 
                 // ถ้าไม่ได้เลือก role ใดเลย และ role เดิมเป็น Pending Student ให้คง Pending Student ไว้

@@ -744,5 +744,97 @@ class Helper {
         }
     }
 
-   
+    public static function sendMailApprovedStudent($studentId, $status){
+
+        $studentProfile = Profile::find()->where(['user_id' => $studentId])->one();
+        if (!empty($studentProfile)) {
+            $user = Users::find()->where(['id' => $studentId])->one();
+
+            $setSubject = "BIOGANG: เปลี่ยนแปลงสถานะนักเรียน";
+            $setMessage1 = Variables::find()->where(['key' => 'approved_student'])->one();
+            $setMessage1 = empty($setMessage1['value'])? "":$setMessage1['value'];
+
+
+            $mail_sender = Variables::find()->where(['key' => 'sender_mail'])->one();
+            if (!empty($mail_sender)) {
+                $hostname = getenv('FRONTEND_URL');
+
+                $setMessage = "";
+                if (!empty($setMessage1)) {
+                    $setMessage =  str_replace("[student-name]", $studentProfile->firstname." ".$studentProfile->lastname, $setMessage1);
+
+                    $setMessage =  str_replace("[status]", $status, $setMessage);
+
+                    $setMessage =  str_replace("[link]", $hostname."/login", $setMessage);
+                }
+
+                \Yii::$app->mailer->compose()
+                ->setFrom([$mail_sender['value']=>'BIOGANG'])
+                ->setTo($user->email)
+                ->setSubject($setSubject)
+                ->setTextBody($setMessage)
+                ->send();
+            }
+        }
+    }
+
+    public static function sendMailNewRegistrationToAdmin($userId, $roleType){
+        // Get registrant info
+        $user = Users::find()->where(['id' => $userId])->one();
+        $profile = Profile::find()->where(['user_id' => $userId])->one();
+        if(empty($user) || empty($profile)){
+            return;
+        }
+
+        // Get email template
+        $template = Variables::find()->where(['key' => 'new_registration_notification'])->one();
+        $setMessageTemplate = empty($template['value']) ? "" : $template['value'];
+        if(empty($setMessageTemplate)) return;
+
+        $mail_sender = Variables::find()->where(['key' => 'sender_mail'])->one();
+        if(!empty($mail_sender)){
+            $hostname = getenv('BACKEND_URL');
+
+            // Find admins who opted-in for notifications
+            $admins = Users::find()
+                ->innerJoin('user_role', 'user_role.user_id = user.id')
+                ->innerJoin('user_notification_settings', 'user_notification_settings.user_id = user.id')
+                ->where([
+                    'user_role.role_id' => 1,
+                    'user.blocked_at' => null,
+                    'user_notification_settings.notify_new_registration' => 1,
+                ])
+                ->all();
+
+            if(!empty($admins)){
+                $approvalLink = $hostname . "/admin/";
+                if($roleType == 'student'){
+                    $approvalLink .= "approved-student";
+                    $roleThai = "นักเรียน";
+                } else if($roleType == 'teacher'){
+                    $approvalLink .= "approved-teacher";
+                    $roleThai = "ครู/อาจารย์";
+                } else {
+                    $approvalLink .= "users";
+                    $roleThai = $roleType;
+                }
+
+                $setMessage = str_replace("[user-name]", $profile->firstname . " " . $profile->lastname, $setMessageTemplate);
+                $setMessage = str_replace("[user-email]", $user->email, $setMessage);
+                $setMessage = str_replace("[user-role]", $roleThai, $setMessage);
+                $setMessage = str_replace("[link]", $approvalLink, $setMessage);
+
+                foreach($admins as $admin){
+                    if(!empty($admin->email)){
+                        \Yii::$app->mailer->compose()
+                        ->setFrom([$mail_sender['value'] => 'BIOGANG'])
+                        ->setTo($admin->email)
+                        ->setSubject("BIOGANG: มีสมาชิกใหม่รอการอนุมัติ (" . $roleThai . ")")
+                        ->setTextBody($setMessage)
+                        ->send();
+                    }
+                }
+            }
+        }
+    }
 }

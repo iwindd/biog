@@ -10,6 +10,7 @@ use frontend\models\School;
 use frontend\models\UserRole;
 use frontend\models\UserSchool;
 use frontend\components\FrontendHelper;
+use common\components\Helper;
 
 use common\components\Upload;
 
@@ -126,6 +127,9 @@ class RegisterController extends Controller
                             $transaction->commit();
 
                             FrontendHelper::saveUserLog('user', $uid, $uid, 'register', 'Register เข้าสู่ระบบ IP: '.$_SERVER['REMOTE_ADDR']);
+
+                            // Notify Admin
+                            Helper::sendMailNewRegistrationToAdmin($uid, $userModel->role);
 
                             \Yii::$app->getSession()->setFlash('REGISTER_SUCCESS',[
                                 'body'=> "สมัครสมาชิกสำเร็จ",

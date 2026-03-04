@@ -61,6 +61,12 @@ $this->params['breadcrumbs'][] = $this->title;
                 
             </div>
 
+            <div class="form-group">
+                <h4>การแจ้งเตือนส่วนตัว</h4>
+                <?= $form->field($notificationModel, 'notify_new_registration')->checkbox(['value' => 1, 'uncheck' => 0]) ?>
+                <p class="help-block text-muted">เมื่อมีนักเรียนหรือครูสมัครสมาชิกใหม่ ระบบจะส่งอีเมลแจ้งเตือนมาหาคุณ</p>
+            </div>
+
         </div>
     </div>
 
