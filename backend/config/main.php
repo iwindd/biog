@@ -130,6 +130,10 @@ return [
                     '/approved-teacher/update/<id:\d+>' => 'approved-teacher/update',
                     '/approved-teacher/delete/<id:\d+>' => 'approved-teacher/delete',
 
+                    '/approved-student/<id:\d+>' => 'approved-student/view',
+                    '/approved-student/update/<id:\d+>' => 'approved-student/update',
+                    '/approved-student/delete/<id:\d+>' => 'approved-student/delete',
+
                     '/content-animal/<id:\d+>' => 'content-animal/view',
                     '/content-animal/update/<id:\d+>' => 'content-animal/update',
                     '/content-animal/delete/<id:\d+>' => 'content-animal/delete',

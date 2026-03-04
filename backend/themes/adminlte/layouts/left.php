@@ -42,6 +42,9 @@ $getMenuTemplate = function ($typeId) use ($contentTypes) {
                         ? ['label' => 'อนุมัติอาจารย์', 'icon' => 'user-plus', 'url' => ['/approved-teacher'], 'active' => BackendHelper::menuActive('teacher', $this->context->route)]
                         : array(),
                     PermissionAccess::BackendAccess('user_list', 'funtion') == true
+                        ? ['label' => 'อนุมัตินักเรียน', 'icon' => 'user-plus', 'url' => ['/approved-student'], 'active' => BackendHelper::menuActive('student-approve', $this->context->route)]
+                        : array(),
+                    PermissionAccess::BackendAccess('user_list', 'funtion') == true
                         ? ['label' => 'จัดการผู้ใช้งาน', 'icon' => 'user-o', 'url' => ['/users'], 'active' => BackendHelper::menuActive('users', $this->context->route)]
                         : array(),
                     ['label' => 'Wallboard', 'icon' => 'commenting', 'url' => ['/wallboard'], 'active' => BackendHelper::menuActive('wallboard', $this->context->route)],

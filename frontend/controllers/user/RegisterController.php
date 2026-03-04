@@ -78,7 +78,7 @@ class RegisterController extends Controller
 
                             if($userModel->role == 'student'){
                                 $userRole->user_id = $uid;
-                                $userRole->role_id = 4;
+                                $userRole->role_id = 7; // Pending Student - ต้องรอแอดมินอนุมัติ
                                 $userRole->save();
                             }else if($userModel->role == 'teacher'){
                                 $userRole->user_id = $uid;

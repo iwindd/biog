@@ -259,6 +259,12 @@ class BackendHelper
             } else {
                 return false;
             }
+        } elseif ($site == "student-approve") {
+            if ($action == "approved-student/index" || $action == "approved-student/view" || $action == "approved-student/create" || $action == "approved-student/update" ) {
+                return true;
+            } else {
+                return false;
+            }
         } elseif ($site == "banner") {
             if ($action == "banner/index" || $action == "banner/view" || $action == "banner/create" || $action == "banner/update") {
                 return true;
