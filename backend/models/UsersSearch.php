@@ -222,7 +222,7 @@ class UsersSearch extends Users
 
         $query->andFilterWhere(['is', 'blocked_at', new \yii\db\Expression('null')]);
 
-        $query->groupBy('user.email');
+        $query->groupBy('user.id');
 
         if(empty($params['sort'])){
             $dataProvider->query->orderBy('user.updated_at DESC');
