@@ -708,6 +708,13 @@ class FrontendHelper
                 return '';
             }
         }
+        if ($site == 'calendar') {
+            if ($action == 'site/calendar') {
+                return 'active';
+            } else {
+                return '';
+            }
+        }
     }
 
     public static function getPageView($id, $model)
