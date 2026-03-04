@@ -184,13 +184,7 @@ $this->params['breadcrumbs'][] = $this->title;
                 'format' => 'html',
                 'attribute' => 'status',
                 'value' => function ($model) {
-                    if ($model->status == 'pending') {
-                        return "<span class='label label-warning'>Pending</span>";
-                    } elseif ($model->status == 'approved') {
-                        return "<span class='label label-success'>Approved</span>";
-                    } elseif ($model->status == 'rejected') {
-                        return "<span class='label label-danger'>Rejected</span>";
-                    }
+                    return \backend\components\BackendHelper::getStatusBadge($model->status);
                 }
             ],
             [

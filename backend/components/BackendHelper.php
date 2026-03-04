@@ -229,6 +229,18 @@ class BackendHelper
         return "ปิดใช้งาน";
     }
 
+    public static function getStatusBadge($status)
+    {
+        if ($status == 'pending') {
+            return "<span class='label label-warning'>รอตรวจสอบ</span>";
+        } elseif ($status == 'approved') {
+            return "<span class='label label-success'>อนุมัติแล้ว</span>";
+        } elseif ($status == 'rejected') {
+            return "<span class='label label-danger'>ไม่อนุมัติ</span>";
+        }
+        return "-";
+    }
+
     public static function getDate($date)
     {
         if (!empty($date) && $date != "0000-00-00 00:00:00" && is_numeric($date)) {

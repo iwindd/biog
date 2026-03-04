@@ -240,15 +240,9 @@ if (!empty($_GET['sort'])) {
             [
                 'format' => 'html',
                 'attribute' => 'status',
-                'filter' => Html::activeDropDownList($searchModel, 'status', array('pending' => 'Pending', 'approved' => 'Approved', 'rejected' => 'Rejected'), ['class' => 'form-control', 'prompt' => 'ทั้งหมด']),
+                'filter' => Html::activeDropDownList($searchModel, 'status', array('pending' => 'รอตรวจสอบ', 'approved' => 'อนุมัติแล้ว', 'rejected' => 'ไม่อนุมัติ'), ['class' => 'form-control', 'prompt' => 'ทั้งหมด']),
                 'value' => function ($model) {
-                    if ($model->status == 'pending') {
-                        return "<span class='label label-warning'>Pending</span>";
-                    } elseif ($model->status == 'approved') {
-                        return "<span class='label label-success'>Approved</span>";
-                    } elseif ($model->status == 'rejected') {
-                        return "<span class='label label-danger'>Rejected</span>";
-                    }
+                    return \backend\components\BackendHelper::getStatusBadge($model->status);
                 }
             ],
             [
