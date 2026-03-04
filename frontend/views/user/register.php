@@ -173,7 +173,7 @@ if (!empty($banner->picture_path)) {
                     ])->label('วันเกิด');
                     ?>
 
-                    <?= $form->field($profileModel, 'invite_friend')->textInput()->input('text', ['placeholder' => 'อีเมล'])->label('ได้รับคำเชิญจาก'); ?>
+                    <?= $form->field($profileModel, 'invite_friend')->textInput()->input('text', ['placeholder' => 'รหัสผู้แนะนำ / อีเมลผู้แนะนำ'])->label('ได้รับคำเชิญจาก'); ?>
 
                     <div class="mt-4 mb-2">
                         <span class="h6">ที่อยู่</span>
