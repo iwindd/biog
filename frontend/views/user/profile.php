@@ -122,7 +122,15 @@ if(!empty($banner->picture_path)){
                                     ?>  
                                         <br>
                                         <div class="alert alert-warning" role="alert">
-                                            สถานะอาจารย์: กำลังรอตรวจสอบโดยผู้ดูแลระบบ
+                                            สถานะอาจารย์: กำลังรอตรวจสอบโดยแอดมิน
+                                        </div>
+                                        
+                                    <?php
+                                }elseif($userRole->role_id == 7){
+                                    ?>  
+                                        <br>
+                                        <div class="alert alert-warning" role="alert">
+                                            สถานะนักเรียน: กำลังรอตรวจสอบโดยแอดมิน
                                         </div>
                                         
                                     <?php
