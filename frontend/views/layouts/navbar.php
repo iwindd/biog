@@ -39,7 +39,7 @@ if (!Yii::$app->user->isGuest) {
 NavBar::begin([
     'brandLabel' => 
         '<object><div class="brand-group d-flex">' .
-            '<a href="https://www.bedo.or.th/bedo" target="_blank"><div class="d-inline bedo-logo" >' .
+            '<a href="https://www.bedo.or.th/" target="_blank"><div class="d-inline bedo-logo" >' .
                 Html::img('/images/logo/BEDO_Logo_Circle.png', ['alt' => 'Home', 'id' => 'link-logo', 'class' => 'logo-biogang img-fluid']) .
             '</div></a>'.
             '<div class="vertical-line-navbar"></div>' . 
