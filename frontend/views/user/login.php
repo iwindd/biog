@@ -51,7 +51,7 @@ if (!empty($banner->picture_path)) {
 
             <div class="text-center text-bold mb-4 "><span class="h3">เข้าสู่ระบบ</span></div>
 
-            <?php $form = ActiveForm::begin([]); ?>
+            <?php $form = ActiveForm::begin(['id' => 'login-form']); ?>
             <div class="form-group mb-3">
                 <?= $form
                     ->field($model, 'login')
@@ -86,7 +86,7 @@ if (!empty($banner->picture_path)) {
                     ?>
                 </div>
                 <div class="forgot-password">
-                    <a href="/forget-password">ลืมรหัสผ่าน</a>
+                    <a href="/forget-password" id="forget-password-link">ลืมรหัสผ่าน</a>
                 </div>
             </div>
               
@@ -121,3 +121,18 @@ if (!empty($banner->picture_path)) {
     </div>
 
 </div>
+<?php
+$js = <<<JS
+$('#login-form').on('beforeValidate', function () {
+    $('#forget-password-link').css('pointer-events', 'none').addClass('text-muted');
+}).on('afterValidate', function (event, messages, errorAttributes) {
+    if (errorAttributes.length > 0) {
+        $('#forget-password-link').css('pointer-events', 'auto').removeClass('text-muted');
+    }
+});
+$('#login-form').on('submit', function () {
+    $('#forget-password-link').css('pointer-events', 'none').addClass('text-muted');
+});
+JS;
+$this->registerJs($js);
+?>
