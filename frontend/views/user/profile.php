@@ -247,54 +247,9 @@ if(!empty($banner->picture_path)){
                             ])->label(false);
                         ?>
 
-                        <div class="form-group field-school-add_new" >
-                            <div class="custom-control custom-checkbox custom-control-inline">
-                                <input type="checkbox" id="add_new_school" class="custom-control-input" name="add_new_school" value="1">
-                                <label class="custom-control-label" for="add_new_school">เพิ่มโรงเรียน</label>
-                                <small class="invalid-feedback"></small>
-                            </div>
-                        </div>
-
                         <?= $form->field($profileModel, 'major')->textInput()->input('text', ['placeholder' => "ประจำสาขา/วิชา"])->label('ประจำสาขา/วิชา');  ?>
 
                     <?php } ?>
-
-                    
-                    <div id="school-info">            
-                        <div class="mt-4 mb-2">
-                            <span class="h6">ที่อยู่สถานศึกษา</span>
-                        </div>
-                        
-                        <?= $form->field($schoolModel, 'name')->textInput()->input('text', ['placeholder' => "ชื่อโรงเรียน/มหาวิทยาลัย"])->label('ชื่อโรงเรียน/มหาวิทยาลัย');  ?>
-
-                        <?= $form->field($schoolModel, 'address')->textInput(['placeholder' => "บ้านเลขที่/หมู่ที่-หมู่บ้าน/ซอย/ถนน", 'readonly'=> true])->label('บ้านเลขที่/หมู่ที่-หมู่บ้าน/ซอย/ถนน');  ?>
-
-                        <div class="row">
-                            <div class="col">
-
-                                <?= $form->field($schoolModel, 'province_id')->dropDownList($province, ['prompt' => 'กรุณาเลือกจังหวัด','disabled' => 'disabled'])->label('จังหวัด'); ?>
-
-                            </div>
-                            <div class="col">
-                                <?= $form->field($schoolModel, 'district_id')->dropDownList($district, ['prompt' => 'กรุณาเลือกอำเภอ','disabled' => 'disabled'])->label('อำเภอ'); ?>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col">
-                                <?= $form->field($schoolModel, 'subdistrict_id')->dropDownList($subdistrict, ['prompt' => 'กรุณาเลือกตำบล','disabled' => 'disabled'])->label('ตำบล'); ?>
-                            </div>
-                            <div class="col">
-                                <?= $form->field($schoolModel, 'zipcode_id')->textInput(['placeholder' => "รหัสไปรษณีย์", 'readonly'=> true])->label('รหัสไปรษณีย์');  ?>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-12">
-                                <?= $form->field($schoolModel, 'phone')->textInput(['placeholder' => "หมายเลขโทรศัพท์", 'readonly'=> true])->label('หมายเลขโทรศัพท์');  ?>
-                            </div>
-                        </div>
-                    </div>
-
                     <?php
                         echo $form->field($studentTeacherModel, 'teacher')->widget(Select2::classname(), [
                             'data' => $dataTeacherSchool,
@@ -306,12 +261,6 @@ if(!empty($banner->picture_path)){
                         ])->label('เลือกคุณครูที่ปรึกษา');
 
                     ?>
-
-
-                   
-
-                    
-
                 </div>
 
             </div>

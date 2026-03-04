@@ -120,11 +120,6 @@ class ProfileController extends Controller
 
                         $post = Yii::$app->request->post();
 
-                        // print '<pre>';
-                        // print_r($studentTeacherModel);
-                        // print '</pre>';
-                        // exit();
-    
                         $del = 0;
                         if(!empty($_POST['deletePic'])){
                             $del = $_POST['deletePic'];
@@ -139,11 +134,6 @@ class ProfileController extends Controller
                                 $checkUpdate = false;
                             }
                         }
-    
-                        //  print '<pre>';
-                        // print_r($mainPicture);
-                        // print '</pre>';
-                        // exit();
     
                         $userModel->username = $userModel->email;
                         $userModel->created_at = date("Y-m-d H:i:s");
@@ -165,10 +155,6 @@ class ProfileController extends Controller
                                     if($userRole->role_id != 3){
                                         $userRole->role_id = 6;
                                     }
-                                    //remove student teacher
-                                    // $studentTeacherModel->teacher = array();
-                                    // $studentTeacherModel->deleteAll(["student_id = ${uid}"]);
-
                                 }
                             } else {
                                 $userRole->role_id = 5;
@@ -177,64 +163,14 @@ class ProfileController extends Controller
     
                             //check school
                             if (!empty($userModel->role)) {
-                              
-                                if (!empty($post['add_new_school'])) {
-                                    if (!empty($schoolModel->name)) {
-
-                                        \Yii::$app
-                                        ->db
-                                        ->createCommand()
-                                        ->delete('user_school', ['user_id' => $uid])
-                                        ->execute();
-
-                                        $schoolModel = new School();
-                                        $schoolModel->load(Yii::$app->request->post());
-                                        $checkDupSchool = School::find()->where(['name' => $schoolModel->name])->one();
-                                        if (empty($checkDupSchool)) {
-                                            $schoolModel->created_at = date("Y-m-d H:i:s");
-                                            $schoolModel->updated_at = date("Y-m-d H:i:s");
-                                            if ($schoolModel->save()) {
-                                                $userSchoolNew = new UserSchool();
-                                                $userSchoolNew->user_id = $uid;
-                                                $userSchoolNew->school_id = $schoolModel->id;
-                                                $userSchoolNew->created_at = date("Y-m-d H:i:s");
-                                                $userSchoolNew->updated_at = date("Y-m-d H:i:s");
-                                                $userSchoolNew->save();
-                                                $this->changeSchoolForteacher($uid, $userSchoolNew->id);
-                                                
-                                            }
-                                        } else {
-                                            $userSchool = new UserSchool();
-                                            $userSchool->user_id = $uid;
-                                            $userSchool->school_id = $checkDupSchool->id;
-                                            $userSchool->created_at = date("Y-m-d H:i:s");
-                                            $userSchool->updated_at = date("Y-m-d H:i:s");
-                                            $userSchool->save();
-                                            $this->changeSchoolForteacher($uid, $checkDupSchool->id);
-                                            // $error[] = "มีชื่อโรงเรียนอยู่แล้วในระบบ";
-                                            // $checkUpdate = false;
-                                        }
-                                    }else {
-                                        $error[] = "กรุณากรอกชื่อโรงเรียน";
-                                        $checkUpdate = false;
-                                    }
-                                } elseif (!empty($schoolModel->school_id)) {
+                                if (!empty($schoolModel->school_id)) {
                                     if ($schoolModel->school_id != $schoolModel->getOldAttribute('id')) {
 
                                         if ($userModel->role == 'teacher') {
                                             $this->changeSchoolForteacher($uid, $schoolModel->getOldAttribute('id'));
                                         }
-                                    
-                                        // print '<pre>';
-                                        // print_r($schoolModel);
-                                        // print '</pre>';
-                                        // exit();
+       
                                         $checkDupSchool = School::find()->where(['id' => $schoolModel->school_id])->one();
-
-                                        // print '<pre>';
-                                        // print_r($userSchool);
-                                        // print '</pre>';
-                                        // exit();
 
                                         if (!empty($checkDupSchool)) {
                                             if (!empty($userSchool)) {

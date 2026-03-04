@@ -30,15 +30,6 @@ class RegisterController extends Controller
 
         $userModel->scenario = 'create';
 
-        //defalue test
-        // $userModel->email = "khunakorn.konai".time()."@biog.com";
-        // $userModel->new_password = "tong4577";
-        // $userModel->confirm_password = "tong4577";
-
-        // $profileModel->display_name = "Tong4577";
-        // $profileModel->firstname = "Khunakorn";
-        // $profileModel->lastname = "Konai";
-
         if ($userModel->load(Yii::$app->request->post())) {
 
             $post = Yii::$app->request->post();
@@ -68,7 +59,6 @@ class RegisterController extends Controller
                         }
                     }
 
-
                     $userModel->username = $userModel->email;
                     $userModel->created_at = date("Y-m-d H:i:s");
                     $userModel->updated_at = date("Y-m-d H:i:s");
@@ -79,7 +69,6 @@ class RegisterController extends Controller
                         $userModel->password_hash = \Yii::$app->security->generatePasswordHash($userModel->new_password);
                     }
 
-        
                     if ($userModel->save()) {
                         $uid = $userModel->id;
 
@@ -105,43 +94,14 @@ class RegisterController extends Controller
 
                         //check school
                         if (!empty($userModel->role)) {
-                            if (!empty($post['add_new_school'])) {
-                                if (!empty($schoolModel->name)) {
-                                    $checkDupSchool = School::find()->where(['name' => $schoolModel->name])->one();
-                                    if (empty($checkDupSchool)) {
-                                        $schoolModel->created_at = date("Y-m-d H:i:s");
-                                        $schoolModel->updated_at = date("Y-m-d H:i:s");
-                                        if ($schoolModel->save()) {
-                                            $userSchool = new UserSchool();
-                                            $userSchool->user_id = $uid;
-                                            $userSchool->school_id = $schoolModel->id;
-                                            $userSchool->created_at = date("Y-m-d H:i:s");
-                                            $userSchool->updated_at = date("Y-m-d H:i:s");
-                                            $userSchool->save();
-                                        }
-                                    } else {
-                                        $userSchool = new UserSchool();
-                                        $userSchool->user_id = $uid;
-                                        $userSchool->school_id = $checkDupSchool->id;
-                                        $userSchool->created_at = date("Y-m-d H:i:s");
-                                        $userSchool->updated_at = date("Y-m-d H:i:s");
-                                        $userSchool->save();
-                                    }
-                                }else{
-                                    $error[] = "กรุณาเพิ่มชื่อโรงเรียน";
-                                    $checkUpdate = false;
-                                }
-                                
-                            } elseif (!empty($schoolModel->school_id)) {
-                                $checkDupSchool = School::find()->where(['name' => $schoolModel->name])->one();
-                                if (!empty($checkDupSchool)) {
-                                    $userSchool = new UserSchool();
-                                    $userSchool->user_id = $uid;
-                                    $userSchool->school_id = $checkDupSchool->id;
-                                    $userSchool->created_at = date("Y-m-d H:i:s");
-                                    $userSchool->updated_at = date("Y-m-d H:i:s");
-                                    $userSchool->save();
-                                }
+                            $checkDupSchool = School::find()->where(['name' => $schoolModel->name])->one();
+                            if (!empty($checkDupSchool)) {
+                                $userSchool = new UserSchool();
+                                $userSchool->user_id = $uid;
+                                $userSchool->school_id = $checkDupSchool->id;
+                                $userSchool->created_at = date("Y-m-d H:i:s");
+                                $userSchool->updated_at = date("Y-m-d H:i:s");
+                                $userSchool->save();
                             }
                         }
 
