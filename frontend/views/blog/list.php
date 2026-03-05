@@ -55,28 +55,20 @@ if (!empty($banner->picture_path)) {
 
 
         <div class="order-1 flex-fill create-content-form">
-            <div class="d-flex">
-                <div>
+            <div class="row mb-1">
+                <div class="col-md-3 col-sm-12">
                     <p class="menu mb-4 mr-5">บล็อกของฉัน</p>
                 </div>
-                <div>
+                <div class="col-md-6 col-sm-6 ">
                     <p class="summary-all mb-4">จำนวนข้อมูลทั้งหมด <?= $dataProvider->getTotalCount() ?> รายการ</p>
                 </div>
-
-
-
-                <div class="ml-auto">
+                <div class="col-md-3 col-sm-6">
                     <?php if (!empty(Yii::$app->user->id)) { ?>
                         <a href="/blog/create">
                             <button class="btn btn-purple float-right"><img src="/images/icon/Create_Blog.svg" class="icon-btn">สร้างบล็อกใหม่</button>
                         </a>
                     <?php }   ?>
                 </div>
-
-
-
-
-
             </div>
 
             <div class="table-responsive">
