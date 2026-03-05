@@ -14,7 +14,7 @@ use frontend\components\FrontendHelper;
     <a href="https://www.thaibiodiversity.org/bedo/index.php" class="bg-icon d-block tooltip-sidebar tooltip-sidebar-1" target="_blank" title="Thai Bio"><img src="/images/icon/S_Biodiversity.png"></a>
     </div>
 </div>
-<div class="menu-block menu-desktop" style="overflow-x: hidden;">
+<div class="menu-block menu-desktop">
     <div class="content-group">
         <?php if (FrontendHelper::isContentTypeVisible(1)): ?>
         <div class="menu-side-item">
