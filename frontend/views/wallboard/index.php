@@ -80,6 +80,7 @@ $this->registerCss("nav {background-image: url('/images/banner/News_Banner.png')
                             <div class="pagin justify-content-center mt-5">
                                 <?php echo \yii\widgets\LinkPager::widget([
                                     'pagination' => $pagination,
+                                    'maxButtonCount' => 4,
                                 ]); ?>
                             </div>
                         </div>

@@ -110,6 +110,7 @@ $banner = Banner::find()->where(['slug_url' => 'Content Plant'])->one();
                             <div class="pagin justify-content-center mt-5">
                                 <?php echo \yii\widgets\LinkPager::widget([
                                     'pagination' => $pagination,
+                                    'maxButtonCount' => 4,
                                 ]); ?>
                             </div>
                         </div>

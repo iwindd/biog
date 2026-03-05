@@ -99,6 +99,7 @@ $_SESSION['currentUrl'] = $linkMain . $_SERVER['REQUEST_URI'];
                             <div class="pagin justify-content-center mt-5">
                                 <?php echo \yii\widgets\LinkPager::widget([
                                     'pagination' => $pagination,
+                                    'maxButtonCount' => 4,
                                 ]); ?>
                             </div>
                         </div>

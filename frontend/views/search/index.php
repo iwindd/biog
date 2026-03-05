@@ -350,6 +350,7 @@ $banner = Banner::find()->where(['slug_url' => 'Search'])->one();
                             <div class="pagin justify-content-center mt-5">
                                 <?php echo \yii\widgets\LinkPager::widget([
                                     'pagination' => $pagination,
+                                    'maxButtonCount' => 4,
                                 ]); ?>
                             </div>
                         </div>
@@ -422,6 +423,7 @@ $banner = Banner::find()->where(['slug_url' => 'Search'])->one();
                             <div class="pagin justify-content-center mt-5">
                                 <?php echo \yii\widgets\LinkPager::widget([
                                     'pagination' => $paginationKnowledge,
+                                    'maxButtonCount' => 4,
                                 ]); ?>
                             </div>
                         </div>

@@ -90,6 +90,7 @@ $banner = Banner::find()->where(['slug_url' => 'Knowledge'])->one();
                             <div class="pagin justify-content-center mt-5">
                                 <?php echo \yii\widgets\LinkPager::widget([
                                     'pagination' => $pagination_infographic,
+                                    'maxButtonCount' => 4,
                                 ]); ?>
                             </div>
                         </div>
@@ -102,7 +103,7 @@ $banner = Banner::find()->where(['slug_url' => 'Knowledge'])->one();
                 <div class="content-video-list">
                     <div class="d-flex">
                         <div class="col-6 pl-0">
-                            <p class="menu text-left">Videos</p>
+                            <p class="menu text-left">Videos</p> <!-- TODO: FIX RESPONSIVE -->
                         </div>
                         <div class="col-6 pr-0">
                             <p class="menu text-right view-all"></p>
@@ -154,6 +155,7 @@ $banner = Banner::find()->where(['slug_url' => 'Knowledge'])->one();
                         <?php echo \yii\widgets\LinkPager::widget([
                             //'options'  =>array(),
                             'pagination' => $pagination_videos,
+                            'maxButtonCount' => 4,
                         ]); ?>
                     </div>
                 </div>

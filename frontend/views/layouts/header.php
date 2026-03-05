@@ -17,6 +17,7 @@ $countCount  = Yii::$app->db->createCommand('SELECT COUNT(content.id) as count_c
     <div class="container banner-content ">
         <?php if ($this->context->route == "site/index") { ?>
             <div class="analysis">
+            <!-- TODO: FIX RESPONSIVE -->
                 <div class="row justify-content-center">
                     <div class="col-5 mobile-analysis">
                         <p class="number"><?php echo FrontendHelper::getStatisticsMemeber(); ?></p>

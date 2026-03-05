@@ -49,9 +49,6 @@ $_SESSION['currentUrl'] = $linkMain . $_SERVER['REQUEST_URI'];
                             <div class="col-6 pl-0">
                                 <p class="menu text-left">ข่าวและกิจกรรม</p>
                             </div>
-                            <div class="col-6 pr-0">
-                                <!-- <p class="menu text-right view-all">ดูทั้งหมด</p> -->
-                            </div>
                         </div>
 
                         <div class="news-content">
@@ -92,9 +89,10 @@ $_SESSION['currentUrl'] = $linkMain . $_SERVER['REQUEST_URI'];
                             <div class="pagin justify-content-center mt-5">
                                 <?php echo \yii\widgets\LinkPager::widget([
                                     'pagination' => $pagination,
+                                    'maxButtonCount' => 4,
                                 ]); ?>
                             </div>
-                        </div>
+                        </div> 
                     </div>
 
                 </div>
