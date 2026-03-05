@@ -16,14 +16,13 @@ $countCount  = Yii::$app->db->createCommand('SELECT COUNT(content.id) as count_c
 
     <div class="container banner-content ">
         <?php if ($this->context->route == "site/index") { ?>
-            <div class="analysis">
-            <!-- TODO: FIX RESPONSIVE -->
+            <div class="analysis ">
                 <div class="row justify-content-center">
-                    <div class="col-5 mobile-analysis">
+                    <div class="col-lg-5 col-md-6 mobile-analysis">
                         <p class="number"><?php echo FrontendHelper::getStatisticsMemeber(); ?></p>
                         <p class="banner-text">บัญชีสมาชิก</p>
                     </div>
-                    <div class="col-5 mobile-analysis">
+                    <div class="col-lg-5 col-md-6 mobile-analysis">
                         <p class="number"><?php echo number_format($countCount); ?></p>
                         <p class="banner-text">ข้อมูลในระบบ</p>
                     </div>
