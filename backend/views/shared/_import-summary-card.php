@@ -17,16 +17,39 @@ $displayEmpty = function($value) {
 };
 ?>
 <div class="col-md-12 import-item-card" data-error="<?= $hasError ? '1' : '0' ?>">
-    <div class="panel <?= $hasError ? 'panel-danger' : 'panel-default' ?>" style="box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden; margin-bottom: 20px;">
-        <div class="panel-heading" style="display: flex; align-items: center; justify-content: space-between;">
-            <h4 class="panel-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80%;">
-                <strong>#<?= $index + 1 ?>:</strong> <?= Html::encode($item['name']) ?>
-            </h4>
-            <span class="label <?= $hasError ? 'label-danger' : 'label-success' ?>">
-                <?= $hasError ? 'มีข้อผิดพลาด' : 'ปกติ' ?>
-            </span>
+    <div class="panel <?= $hasError ? 'panel-warning' : 'panel-success' ?>" style="box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden; margin-bottom: 20px;">
+        <div class="panel-heading">
+            <div class="row">
+                <div class="col-sm-8">
+                    <h3 class="panel-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        <strong>#<?= $index + 1 ?></strong> — <?= Html::encode($item['name'] ?? 'ไม่มีชื่อ') ?>
+                        <?php if ($hasError): ?>
+                            <span class="label label-warning"><i class="glyphicon glyphicon-warning-sign"></i> <?= count($errors) ?> ข้อผิดพลาด</span>
+                        <?php else: ?>
+                            <span class="label label-success"><i class="glyphicon glyphicon-ok"></i> ผ่าน</span>
+                        <?php endif; ?>
+                    </h3>
+                </div>
+                <div class="col-sm-4 text-right">
+                    <small class="text-muted" style="font-size: 13px;">
+                        สถานะ: <strong><?= Html::encode($item['status'] ?? 'pending') ?></strong>
+                        | การแสดงผล: <strong><?= ($item['is_hidden'] ?? 0) ? 'ซ่อน' : 'แสดงผล' ?></strong>
+                    </small>
+                </div>
+            </div>
         </div>
         <div class="panel-body">
+            <?php if ($hasError): ?>
+                <div class="alert alert-danger" style="margin-bottom: 10px; padding: 8px 12px;">
+                    <strong><i class="glyphicon glyphicon-exclamation-sign"></i> ข้อผิดพลาด:</strong>
+                    <ul style="margin-bottom: 0; padding-left: 20px;">
+                        <?php foreach ($errors as $error): ?>
+                            <li><?= Html::encode($error) ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            <?php endif; ?>
+
             <div class="row">
                 <div class="col-xs-4">
                     <strong>รูปภาพหน้าปก:</strong>
@@ -130,15 +153,6 @@ $displayEmpty = function($value) {
                 </div>
             </div>
 
-            <?php if ($hasError): ?>
-                <div class="error-box" style="margin-top: 10px; background: #fdf2f2; padding: 10px; border-radius: 4px; border-left: 3px solid #d9534f;">
-                    <ul class="text-danger" style="margin:0; padding-left: 20px;">
-                        <?php foreach ($errors as $error): ?>
-                            <li><small><?= Html::encode($error) ?></small></li>
-                        <?php endforeach; ?>
-                    </ul>
-                </div>
-            <?php endif; ?>
         </div>
     </div>
 </div>
