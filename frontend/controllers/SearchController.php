@@ -32,7 +32,14 @@ class SearchController extends \yii\web\Controller
         }
         $offset2 = ($page_knowledge - 1) * $limit2;
 
-        $query = Content::find()->where(['active' =>1, 'status' => 'approved' ]);
+        $query = Content::find()
+            ->leftJoin('content_type', 'content_type.id = content.type_id')
+            ->where([
+                'content.active' => 1,
+                'content.status' => 'approved',
+                'content.is_hidden' => false,
+                'content_type.is_visible' => 1,
+            ]);
 
         $query2 = Knowledge::find()->where(['active' =>1]);
 
