@@ -109,6 +109,7 @@ $banner = Banner::find()->where(['slug_url' => 'Search'])->one();
                                     <div role="radiogroup" aria-required="true" aria-invalid="false">
 
 
+                                        <?php if (FrontendHelper::isContentTypeVisible(1)): ?>
                                         <div class="custom-control custom-radio custom-control-inline">
                                             <input type="checkbox" class="custom-control-input is-valid "
                                                 name="content_plant" value="1"
@@ -116,9 +117,11 @@ $banner = Banner::find()->where(['slug_url' => 'Search'])->one();
                                                 id="search-plant">
                                             <label class="custom-control-label" for="search-plant">พืช</label>
                                         </div>
+                                        <?php endif; ?>
 
 
 
+                                        <?php if (FrontendHelper::isContentTypeVisible(2)): ?>
                                         <div class="custom-control custom-radio custom-control-inline">
                                             <input type="checkbox" class="custom-control-input is-valid "
                                                 name="content_animal" value="1"
@@ -126,9 +129,11 @@ $banner = Banner::find()->where(['slug_url' => 'Search'])->one();
                                                 id="search-animal">
                                             <label class="custom-control-label" for="search-animal">สัตว์</label>
                                         </div>
+                                        <?php endif; ?>
 
 
 
+                                        <?php if (FrontendHelper::isContentTypeVisible(3)): ?>
                                         <div class="custom-control custom-radio custom-control-inline">
                                             <input type="checkbox" class="custom-control-input is-valid "
                                                 name="content_fungi" value="1"
@@ -136,9 +141,11 @@ $banner = Banner::find()->where(['slug_url' => 'Search'])->one();
                                                 id="search-fungi">
                                             <label class="custom-control-label" for="search-fungi">จุลินทรีย์</label>
                                         </div>
+                                        <?php endif; ?>
 
 
 
+                                        <?php if (FrontendHelper::isContentTypeVisible(4)): ?>
                                         <div class="custom-control custom-radio custom-control-inline">
                                             <input type="checkbox" class="custom-control-input is-valid "
                                                 name="content_expert" value="1"
@@ -147,9 +154,11 @@ $banner = Banner::find()->where(['slug_url' => 'Search'])->one();
                                             <label class="custom-control-label" for="search-expert">ภูมิปัญญา /
                                                 ปราชญ์</label>
                                         </div>
+                                        <?php endif; ?>
 
 
 
+                                        <?php if (FrontendHelper::isContentTypeVisible(5)): ?>
                                         <div class="custom-control custom-radio custom-control-inline">
                                             <input type="checkbox" class="custom-control-input is-valid "
                                                 name="content_ecotourism" value="1"
@@ -158,9 +167,11 @@ $banner = Banner::find()->where(['slug_url' => 'Search'])->one();
                                             <label class="custom-control-label"
                                                 for="search-ecotourism">การท่องเที่ยวเชิงนิเวศ</label>
                                         </div>
+                                        <?php endif; ?>
 
 
 
+                                        <?php if (FrontendHelper::isContentTypeVisible(6)): ?>
                                         <div class="custom-control custom-radio custom-control-inline">
                                             <input type="checkbox" class="custom-control-input is-valid "
                                                 name="content_product" value="1"
@@ -169,6 +180,7 @@ $banner = Banner::find()->where(['slug_url' => 'Search'])->one();
                                             <label class="custom-control-label"
                                                 for="search-product">ผลิตภัณฑ์ชุมชน</label>
                                         </div>
+                                        <?php endif; ?>
 
                                         <div class="custom-control custom-radio custom-control-inline">
                                             <input type="checkbox" class="custom-control-input is-valid "
