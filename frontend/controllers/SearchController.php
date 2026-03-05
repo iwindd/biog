@@ -37,8 +37,9 @@ class SearchController extends \yii\web\Controller
         $query2 = Knowledge::find()->where(['active' =>1]);
 
         if(!empty($_GET['keyword'])){
-            $query->andWhere(['like', 'content.name', $_GET['keyword']]);
-            $query2->andWhere(['like', 'title', $_GET['keyword']]);
+            $keyword = $_GET['keyword'];
+            $query->andWhere('MATCH(content.name) AGAINST(:keyword IN BOOLEAN MODE)', [':keyword' => '*' . $keyword . '*']);
+            $query2->andWhere(['like', 'title', $keyword]);
         }
 
         if(!empty($_GET['region_id'])){
@@ -96,29 +97,23 @@ class SearchController extends \yii\web\Controller
             $query2 = Knowledge::find()->where(['id' => 0]);
         }
 
-        // print '<pre>';
-        // print_r($queryType);
-        // print "</pre>";
-        // exit();
-
         if(!empty($queryType)){
             $query->andWhere(['in', 'content.type_id', $queryType]);  
         }
         //content
         $countQuery = clone $query;
-        $pagination = new Pagination(['totalCount' => $countQuery->count(), 'pageSize'=>$limit]);
+        $contentCount = $countQuery->count();
+        $pagination = new Pagination(['totalCount' => $contentCount, 'pageSize'=>$limit]);
         $search = $query->limit($limit)->offset($offset)->asArray()->orderBy(['updated_at' => SORT_DESC])->all();
 
         //knowledge
         $countQuery2 = clone $query2;
-        $paginationKnowledge = new Pagination(['totalCount' => $countQuery2->count(), 'pageSize'=>$limit2, 'pageParam' => 'page-knowledge']);
+        $knowledgeCount = $countQuery2->count();
+        $paginationKnowledge = new Pagination(['totalCount' => $knowledgeCount, 'pageSize'=>$limit2, 'pageParam' => 'page-knowledge']);
         $knowledge = $query2->limit($limit2)->offset($offset2)->asArray()->orderBy(['updated_at' => SORT_DESC])->all();
 
-        $totalCount =  $countQuery->count()+$countQuery2->count();
-        // print '<pre>';
-        // print_r($knowledge);
-        // print "<pre>";
-        // exit();
+        $totalCount = $contentCount + $knowledgeCount;
+
         return $this->render('index', [
             'search' => $search,
             'pagination' => $pagination,
