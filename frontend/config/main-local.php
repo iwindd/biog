@@ -8,7 +8,7 @@ $config = [
     ],
 ];
 
-if (!YII_ENV_TEST) {
+if (YII_ENV_DEV) {
     // เปิดใช้งาน Debug Module
     $config['bootstrap'][] = 'debug';
     $config['modules']['debug'] = [

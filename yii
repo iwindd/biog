@@ -4,8 +4,11 @@
  * Yii console bootstrap file.
  */
 
-defined('YII_DEBUG') or define('YII_DEBUG', true); // TODO: Prod fix
-defined('YII_ENV') or define('YII_ENV', 'dev'); ;// TODO: Prod fix 
+$isDebug = filter_var(getenv('YII_DEBUG'), FILTER_VALIDATE_BOOLEAN);
+$env = getenv('YII_ENV') ?: 'prod';
+
+defined('YII_DEBUG') || define('YII_DEBUG', $isDebug);
+defined('YII_ENV') || define('YII_ENV', $env);
 
 require __DIR__ . '/vendor/autoload.php';
 require __DIR__ . '/vendor/yiisoft/yii2/Yii.php';

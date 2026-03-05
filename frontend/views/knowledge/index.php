@@ -103,7 +103,7 @@ $banner = Banner::find()->where(['slug_url' => 'Knowledge'])->one();
                 <div class="content-video-list">
                     <div class="d-flex">
                         <div class="col-6 pl-0">
-                            <p class="menu text-left">Videos</p> <!-- TODO: FIX RESPONSIVE -->
+                            <p class="menu text-left">Videos</p>
                         </div>
                         <div class="col-6 pr-0">
                             <p class="menu text-right view-all"></p>

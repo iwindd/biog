@@ -2,6 +2,6 @@
 return [
     'adminEmail' => 'admin@example.com',
     //'urlWebBiog' => 'http://biogang.net/',
-    'urlWebBiog' => 'http://localhost:20080/', // TODO: remove this when deploy to production
+    'urlWebBiog' => getenv("FRONTEND_URL"),
     'bsVersion' => '3.x',
 ];
