@@ -437,15 +437,15 @@ function checkSearchParams() {
   if (urlParams.has("region_id")) {
     searchData.region_id = urlParams.get("region_id");
     $("#map-region_id").val(searchData.region_id);
-    showProvinceMap("#map-form", "get");
+    showProvinceMap("#map", "get");
   }
   if (urlParams.has("province_id")) {
     searchData.province_id = urlParams.get("province_id");
-    showDistrictMap("#map-form", "get");
+    showDistrictMap("#map", "get");
   }
   if (urlParams.has("district_id")) {
     searchData.district_id = urlParams.get("district_id");
-    showSubDistrictMap("#map-form", "get");
+    showSubDistrictMap("#map", "get");
   }
   if (urlParams.has("subdistrict_id")) {
     searchData.subdistrict_id = urlParams.get("subdistrict_id");
@@ -501,7 +501,7 @@ function readMore(e) {
         $("button.btn-read-more").show();
       }
       if (result.data.content.length > 0) {
-        setContentMapMarker(result.data);
+        // setContentMapMarker(result.data); // Disabled 
         setContentList(result.data);
       } else {
         searchData.page = searchData.page - 1;
@@ -568,7 +568,7 @@ function search() {
           $("button.btn-read-more").show();
         }
         showCountAllType(result.data.type_count); // Ensure it's passed correct property
-        setContentMapMarker(result.data);
+        // setContentMapMarker(result.data); // Disabled by user request
         setContentList(result.data);
       }
     }
@@ -621,7 +621,7 @@ $("#map-region_id").on("change", function () {
   searchData.district_id = "";
   searchData.subdistrict_id = "";
   search();
-  showProvinceMap("#map-form");
+  showProvinceMap("#map");
   
   // Custom pan logic based on region
   if (searchData.region_id == 1) {
@@ -646,14 +646,14 @@ $("#map-province_id").on("change", function () {
   searchData.district_id = "";
   searchData.subdistrict_id = "";
   search();
-  showDistrictMap("#map-form");
+  showDistrictMap("#map");
 });
 
 $("#map-district_id").on("change", function () {
   searchData.district_id = $(this).val();
   searchData.subdistrict_id = "";
   search();
-  showSubDistrictMap("#map-form");
+  showSubDistrictMap("#map");
 });
 
 $("#map-subdistrict_id").on("change", function () {
