@@ -907,7 +907,9 @@ class ApiController extends \yii\web\Controller
         if ($data === false) {
             $sql = "SELECT p.name_en, p.name_th, p.id as province_id, COUNT(c.id) as total 
                     FROM province p 
-                    LEFT JOIN content c ON c.province_id = p.id AND c.status = 'approved' AND c.active = 1 AND c.is_hidden = 0
+                    LEFT JOIN content c ON c.province_id = p.id AND c.status = 'approved' AND c.active = 1 AND (c.is_hidden = 0 OR c.is_hidden IS NULL)
+                    LEFT JOIN content_type ct ON c.type_id = ct.id AND ct.is_visible = 1
+                    WHERE c.id IS NULL OR ct.id IS NOT NULL
                     GROUP BY p.id, p.name_en, p.name_th";
             $data = Yii::$app->db->createCommand($sql)->queryAll();
 
@@ -941,8 +943,9 @@ class ApiController extends \yii\web\Controller
             $sql = "SELECT d.name_en, d.name_th, d.id as district_id, COUNT(c.id) as total 
                     FROM district d 
                     INNER JOIN province p ON d.province_id = p.id
-                    LEFT JOIN content c ON c.district_id = d.id AND c.status = 'approved' AND c.active = 1 AND c.is_hidden = 0
-                    WHERE p.name_th = :province_name
+                    LEFT JOIN content c ON c.district_id = d.id AND c.status = 'approved' AND c.active = 1 AND (c.is_hidden = 0 OR c.is_hidden IS NULL)
+                    LEFT JOIN content_type ct ON c.type_id = ct.id AND ct.is_visible = 1
+                    WHERE p.name_th = :province_name AND (c.id IS NULL OR ct.id IS NOT NULL)
                     GROUP BY d.id, d.name_en, d.name_th";
             $data = Yii::$app->db->createCommand($sql)->bindValue(':province_name', $province_name)->queryAll();
 
