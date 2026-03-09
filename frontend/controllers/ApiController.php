@@ -475,12 +475,10 @@ class ApiController extends \yii\web\Controller
             $jsonResponse = json_encode($resultData);
             Yii::$app->cache->set($cacheKey, $jsonResponse, 300); // Cache for 5 minutes
 
-            dd($jsonResponse);
             return $jsonResponse;
         }
 
 
-        dd($resultData);
         // print "<pre>";
         // print_r($resultData);
         // print "</pre>";
