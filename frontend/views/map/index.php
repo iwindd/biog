@@ -186,41 +186,54 @@ $banner = Banner::find()->where(['slug_url' => 'Interactive Map'])->one();
                             </div>
                         <?php ActiveForm::end(); ?>
                         <div class="row check-content-type">
+                            <?php if (FrontendHelper::isContentTypeVisible(1)): ?>
                             <div class="col-sm-12 col-md-2 pull-left">
                                 <label class="container">พืช (<span class="number" id="span-type-1">0</span>)
                                     <input type="checkbox" name="content-type[]" checked="checked" value="1" onChange="checkboxType()">
                                     <span class="checkmark"></span>
                                 </label>
                             </div>
+                            <?php endif; ?>
+                            <?php if (FrontendHelper::isContentTypeVisible(2)): ?>
                             <div class="col-sm-12 col-md-2 pull-left">
                                 <label class="container">สัตว์ (<span class="number" id="span-type-2">0</span>)
                                     <input type="checkbox" name="content-type[]" checked="checked" value="2" onChange="checkboxType()">
                                     <span class="checkmark"></span>
                                 </label>
                             </div>
+                            <?php endif; ?>
+                            <?php if (FrontendHelper::isContentTypeVisible(3)): ?>
                             <div class="col-sm-12 col-md-2 pull-left">
                                 <label class="container">จุลินทรีย์ (<span class="number" id="span-type-3">0</span>)
                                     <input type="checkbox" name="content-type[]" checked="checked" value="3" onChange="checkboxType()">
                                     <span class="checkmark"></span>
                                 </label>
                             </div>
+                            <?php endif; ?>
+                            <?php if (FrontendHelper::isContentTypeVisible(4)): ?>
                             <div class="col-sm-12 col-md-2 pull-left">
                                 <label class="container">ภูมิปัญญา / ปราชญ์ <br>Expert (<span class="number" id="span-type-4">0</span>)
                                     <input type="checkbox" name="content-type[]" checked="checked" value="4" onChange="checkboxType()">
                                     <span class="checkmark"></span>
                                 </label>
                             </div>
+                            <?php endif; ?>
+                            <?php if (FrontendHelper::isContentTypeVisible(5)): ?>
                             <div class="col-sm-12 col-md-2 pull-left">
                                 <label class="container">การท่องเที่ยวเชิงนิเวศ (<span class="number" id="span-type-5">0</span>)
                                     <input type="checkbox" name="content-type[]" checked="checked" value="5" onChange="checkboxType()">
                                     <span class="checkmark"></span>
                                 </label>
-                            </div><div class="col-sm-12 col-md-2 pull-left">
+                            </div>
+                            <?php endif; ?>
+                            <?php if (FrontendHelper::isContentTypeVisible(6)): ?>
+                            <div class="col-sm-12 col-md-2 pull-left">
                                 <label class="container">ผลิตภัณฑ์ชุมชน (<span class="number" id="span-type-6">0</span>)
                                     <input type="checkbox" name="content-type[]" checked="checked" value="6" onChange="checkboxType()">
                                     <span class="checkmark"></span>
                                 </label>
                             </div>
+                            <?php endif; ?>
                         </div>
                         </div>
                     </div>

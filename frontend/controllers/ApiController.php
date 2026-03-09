@@ -357,23 +357,26 @@ class ApiController extends \yii\web\Controller
 
              // Query for Type Counts (Ignores $array_type filter so it counts all types for the map scope)
             $query = (new \yii\db\Query())
-                ->select(['type_id', 'COUNT(id) as count'])
+                ->select(['content.type_id', 'COUNT(content.id) as count'])
                 ->from('content')
-                ->where(['active' => 1, 'status' => 'approved'])
-                ->andFilterWhere(['region_id' => $get['region_id']])
-                ->andFilterWhere(['province_id' => $get['province_id']])
-                ->andFilterWhere(['district_id' => $get['district_id']])
-                ->andFilterWhere(['subdistrict_id' => $get['subdistrict_id']])
-                ->andWhere(['!=', 'latitude', ''])
-                ->andWhere(['!=', 'longitude', ''])
-                ->andFilterWhere(['like', 'name', (!empty($get['keyword']) ? $get['keyword'] : '')]);
+                ->leftJoin('content_type', 'content_type.id = content.type_id')
+                ->where(['content.active' => 1, 'content.status' => 'approved'])
+                ->andWhere(['!=', 'content.is_hidden', 1])
+                ->andWhere(['content_type.is_visible' => 1])
+                ->andFilterWhere(['content.region_id' => $get['region_id']])
+                ->andFilterWhere(['content.province_id' => $get['province_id']])
+                ->andFilterWhere(['content.district_id' => $get['district_id']])
+                ->andFilterWhere(['content.subdistrict_id' => $get['subdistrict_id']])
+                ->andWhere(['!=', 'content.latitude', ''])
+                ->andWhere(['!=', 'content.longitude', ''])
+                ->andFilterWhere(['like', 'content.name', (!empty($get['keyword']) ? $get['keyword'] : '')]);
             
             // Total Count for Pagination (Includes $array_type filter)
             $query_total = clone $query;
-            $query_total->andWhere(['in', 'type_id', $array_type]);
+            $query_total->andWhere(['in', 'content.type_id', $array_type]);
             $totalCountResult = $query_total->count();
             
-            $query = $query->groupBy('type_id')->all();
+            $query = $query->groupBy('content.type_id')->all();
 
             $query_conetnt = (new \yii\db\Query())
                 ->select([
@@ -398,8 +401,11 @@ class ApiController extends \yii\web\Controller
                 ->leftJoin('province', 'province.id = content.province_id')
                 ->leftJoin('district', 'district.id = content.district_id')
                 ->leftJoin('subdistrict', 'subdistrict.id = content.subdistrict_id')
+                ->leftJoin('content_type', 'content_type.id = content.type_id')
                 ->where(['content.active' => 1])
                 ->andWhere(['content.status' => 'approved'])
+                ->andWhere(['!=', 'content.is_hidden', 1])
+                ->andWhere(['content_type.is_visible' => 1])
                 ->andFilterWhere(['content.region_id' => $get['region_id']])
                 ->andFilterWhere(['content.province_id' => $get['province_id']])
                 ->andFilterWhere(['content.district_id' => $get['district_id']])
@@ -468,8 +474,13 @@ class ApiController extends \yii\web\Controller
             
             $jsonResponse = json_encode($resultData);
             Yii::$app->cache->set($cacheKey, $jsonResponse, 300); // Cache for 5 minutes
+
+            dd($jsonResponse);
             return $jsonResponse;
         }
+
+
+        dd($resultData);
         // print "<pre>";
         // print_r($resultData);
         // print "</pre>";
