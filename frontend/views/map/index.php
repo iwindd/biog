@@ -22,12 +22,51 @@ $zipcode =  array();//ArrayHelper::map(Zipcode::find()->all(), 'id', 'name_th');
 use yii\helpers\Url;
 
 $this->registerJsFile(Url::base().'/js/jquery.preloaders.js', ['depends' => [\frontend\assets\AppAsset::className()]]);
-$this->registerJsFile(Url::base().'/js/map.js?v='.time(), ['depends' => [\frontend\assets\AppAsset::className()]]);
+$this->registerCssFile('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css');
+$this->registerJsFile('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js');
+$this->registerJsFile('https://unpkg.com/topojson-client@3');
+$this->registerJsFile(Url::base().'/js/leaflet-map.js?v='.time(), ['depends' => [\frontend\assets\AppAsset::className()]]);
 
 $this->title = 'Interactive Map';
 $this->registerCss("nav {background-image: url('/images/banner/News_Banner.png'); }");
 
-$this->registerCssFile("@web/css/map.css?v='.time()", ['depends' => 'frontend\assets\AppAsset']);
+$this->registerCss("
+.legend-map {
+    line-height: 18px;
+    color: #333;
+    background: white;
+    padding: 12px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border: 1px solid #ddd;
+    font-family: inherit;
+    font-size: 13px;
+}
+.legend-map i {
+    width: 18px;
+    height: 18px;
+    float: left;
+    margin-right: 8px;
+    opacity: 0.8;
+    border: 1px solid #ccc;
+    border-radius: 2px;
+}
+.area-label {
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: #333;
+    font-weight: bold;
+    text-shadow: 0 0 3px white, 0 0 5px white;
+    font-size: 11px;
+    pointer-events: none;
+}
+.area-label-hidden {
+    display: none !important;
+}
+");
+
+$this->registerCssFile("@web/css/map.css?v=".time(), ['depends' => 'frontend\assets\AppAsset']);
 
 
 use frontend\models\Banner;
@@ -72,8 +111,9 @@ $banner = Banner::find()->where(['slug_url' => 'Interactive Map'])->one();
                         </div>
                         <div class="map-title mb-3">
                             <div class="d-flex">
-                                <p class="menu mb-4 mr-auto">ขอบเขต</p>
+                                <p class="menu mb-4 mr-auto" id="main-title-map">ขอบเขต</p>
                                 <div>
+                                <button id="btn-back-map" class="btn btn-map mr-2" style="display: none;" type="button">⬅ กลับไปหน้าประเทศ</button>
                                 <button class="btn btn-map" type="button" onclick="getLocation()"><i class="fas fa-map-marker-alt"></i> My location</button>
                                 <button class="btn btn-map d-none"type="button" onclick="getLocation()"><i class="fas fa-sync"></i> Reset</button>
                                 <button class="btn btn-map d-none"type="button" onclick="getLocation()"><i class="fas fa-expand"></i> Full Screen</button>
@@ -82,9 +122,9 @@ $banner = Banner::find()->where(['slug_url' => 'Interactive Map'])->one();
                             
                             
                         </div>
-                        <div class="news-content">
-                            
-                            <div id="map" class="map"></div>
+                        <div class="news-content" style="position: relative;">
+                            <div id="loading" class="loading-map" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10000; background: rgba(255,255,255,0.9); padding: 10px 20px; border-radius: 8px;">Loading Map...</div>
+                            <div id="map" class="map" style="height: 600px; background-color: transparent !important; border-radius: 8px; border: 1px solid #eaeaea;"></div>
                         </div>
 
                         <div class="block-filter-search-map">

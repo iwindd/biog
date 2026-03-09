@@ -1,0 +1,17 @@
+{
+  "skill_name": "thailand-gis-heatmap",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Create an interactive web map that shows Thailand's provinces as a heatmap. When I click on a province like Chiang Mai, it should zoom in and show the heatmap for its amphoes.",
+      "expected_output": "An HTML file using Leaflet.js that dynamically loads province_simplify.json, handles click events, and smoothly transitions to amphoe data from thailand_province_amphoe_simplify.json.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I need a Thailand map for my dashboard, but I don't want a world map background, just the country boundary itself. It's for data visualization.",
+      "expected_output": "An HTML file with Leaflet initialized without any L.tileLayer, using the Thailand geoJson files instead for a clean vector look.",
+      "files": []
+    }
+  ]
+}

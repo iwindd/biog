@@ -68,6 +68,10 @@
     ✔ ปรับปรุงการแสดงผล สถานะ และ filter สถานะ ของเนื้อหาทุกประเภท @done(26-03-04 15:50)
 
 2026-03-05 BioGang:
-    - จัดทำ responsive
-        - ในหน้า blog ส่วนของ content เกิดการ overflow
-    - ปรับปรุง index , cache ของเว็บ
+    ✔ จัดทำ responsive 
+    ✔ ปรับปรุง index , cache ของเว็บ
+    ✔ Integrate กับ ThaiD @done(26-03-09 11:22)
+    
+2026-03-09 BioGang:
+    ✔ Interactive Map @done(26-03-09 11:22)
+    ☐ แก้ไขข้อมูลโรงเรียน (รอรายละเอียดจากทาง bedo)

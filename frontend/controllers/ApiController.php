@@ -857,6 +857,71 @@ class ApiController extends \yii\web\Controller
         ];
         return $data_type_count;
     }
+
+    public function actionHeatmapProvince()
+    {
+        $cacheKey = 'heatmap_province_count';
+        $data = Yii::$app->cache->get($cacheKey);
+
+        if ($data === false) {
+            $sql = "SELECT p.name_en, p.name_th, p.id as province_id, COUNT(c.id) as total 
+                    FROM province p 
+                    LEFT JOIN content c ON c.province_id = p.id AND c.status = 'approved' AND c.active = 1 AND c.is_hidden = 0
+                    GROUP BY p.id, p.name_en, p.name_th";
+            $data = Yii::$app->db->createCommand($sql)->queryAll();
+
+            $formattedData = [];
+            foreach ($data as $row) {
+                $formattedData[] = [
+                    'id' => $row['province_id'],
+                    'name_en' => $row['name_en'],
+                    'name_th' => $row['name_th'],
+                    'total' => (int)$row['total']
+                ];
+            }
+            $data = $formattedData;
+
+            Yii::$app->cache->set($cacheKey, $data, 3600); // Cache for 1 hour
+        }
+
+        $this->_response(200, "success", $data);
+    }
+
+    public function actionHeatmapDistrict($province_name = null)
+    {
+        if (empty($province_name)) {
+            $this->_response(400, "province_name is required");
+        }
+
+        $cacheKey = 'heatmap_district_count_' . $province_name;
+        $data = Yii::$app->cache->get($cacheKey);
+
+        if ($data === false) {
+            $sql = "SELECT d.name_en, d.name_th, d.id as district_id, COUNT(c.id) as total 
+                    FROM district d 
+                    INNER JOIN province p ON d.province_id = p.id
+                    LEFT JOIN content c ON c.district_id = d.id AND c.status = 'approved' AND c.active = 1 AND c.is_hidden = 0
+                    WHERE p.name_th = :province_name
+                    GROUP BY d.id, d.name_en, d.name_th";
+            $data = Yii::$app->db->createCommand($sql)->bindValue(':province_name', $province_name)->queryAll();
+
+            $formattedData = [];
+            foreach ($data as $row) {
+                $formattedData[] = [
+                    'id' => $row['district_id'],
+                    'name_en' => $row['name_en'],
+                    'name_th' => $row['name_th'],
+                    'total' => (int)$row['total']
+                ];
+            }
+            $data = $formattedData;
+
+            Yii::$app->cache->set($cacheKey, $data, 3600); // Cache for 1 hour
+        }
+
+        $this->_response(200, "success", $data);
+    }
+
     private function _response($status = 200, $message = "", $content = "", $total = "0")
     {
         header('Access-Control-Allow-Origin: *');
