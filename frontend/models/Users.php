@@ -123,8 +123,9 @@ class Users extends \yii\db\ActiveRecord
     public function usersValidate()
     {
         if (!$this->validate()) {
-            return null;
+            return $this->getErrors();
         }
+        return [];
     }
 
     /**
