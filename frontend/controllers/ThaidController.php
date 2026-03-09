@@ -12,7 +12,7 @@ class ThaidController extends Controller
 {
     private function getThaidBaseUrl()
     {
-        $env = getenv('THAID_ENV') ?: 'sandbox';
+        $env = Yii::$app->params['thaid_env'];
         if ($env === 'production') {
             return 'https://imauth.bora.dopa.go.th';
         }
@@ -21,7 +21,7 @@ class ThaidController extends Controller
 
     public function actionAuth()
     {
-        $clientId = getenv('THAID_CLIENT_ID');
+        $clientId = Yii::$app->params['thaid_client_id'];
         $redirectUri = Url::to(['/thaid/callback'], true);
         
         $state = Yii::$app->security->generateRandomString(16);
@@ -60,11 +60,11 @@ class ThaidController extends Controller
         $baseUrl = $this->getThaidBaseUrl();
         $tokenUrl = $baseUrl . '/api/v2/oauth2/token/';
         $redirectUri = Url::to(['/thaid/callback'], true);
-        $basicToken = getenv('THAID_BASIC_TOKEN');
+        $basicToken = Yii::$app->params['thaid_basic_token'];
 
         if (!$basicToken) {
-            $clientId = getenv('THAID_CLIENT_ID');
-            $clientSecret = getenv('THAID_SECRET');
+            $clientId = Yii::$app->params['thaid_client_id'];
+            $clientSecret = Yii::$app->params['thaid_secret'];
             $basicToken = base64_encode($clientId . ':' . $clientSecret);
         }
 

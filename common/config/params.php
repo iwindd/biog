@@ -18,4 +18,8 @@ return [
             'maxSize' => 25 * 1024 * 1024, // 25MB
         ]
     ],
+    'thaid_env' => getenv('THAID_ENV') ?: 'sandbox',
+    'thaid_client_id' => getenv('THAID_CLIENT_ID'),
+    'thaid_basic_token' => getenv('THAID_BASIC_TOKEN'),
+    'thaid_secret' => getenv('THAID_SECRET'),
 ];
