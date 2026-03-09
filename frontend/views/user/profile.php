@@ -113,31 +113,45 @@ if(!empty($banner->picture_path)){
 
                 <div class="col-lg-6 col-md-12 col-border -left">
 
-                    <div class="mb-4">
+                    <div class="mb-4 d-flex justify-content-between align-items-center">
                         <span class="h6">ข้อมูลส่วนตัว</span>
-
-                        <?php 
-                            if(!empty($userRole->role_id)){
-                                if($userRole->role_id == 6){
-                                    ?>  
-                                        <br>
-                                        <div class="alert alert-warning" role="alert">
-                                            สถานะอาจารย์: กำลังรอตรวจสอบโดยแอดมิน
-                                        </div>
-                                        
-                                    <?php
-                                }elseif($userRole->role_id == 7){
-                                    ?>  
-                                        <br>
-                                        <div class="alert alert-warning" role="alert">
-                                            สถานะนักเรียน: กำลังรอตรวจสอบโดยแอดมิน
-                                        </div>
-                                        
-                                    <?php
-                                }
-                            }
-                        ?>
+                        <div>
+                            <?php if ($userModel->userThaid): ?>
+                                <span class="badge badge-success px-3 py-2 mr-2" style="font-size: 0.9rem;">
+                                    <i class="fas fa-check-circle mr-1"></i> เชื่อมต่อกับ ThaID แล้ว
+                                </span>
+                                <a href="<?= Url::to(['/thaid/disconnect']) ?>" 
+                                   class="btn btn-outline-danger btn-sm"
+                                   onclick="return confirm('คุณต้องการยกเลิกการเชื่อมต่อกับ ThaID ใช่หรือไม่?')">
+                                    ยกเลิกการเชื่อมต่อ
+                                </a>
+                            <?php else: ?>
+                                <a href="<?= Url::to(['/thaid/auth']) ?>" class="btn btn-primary btn-sm">
+                                    เชื่อมต่อบัญชีด้วย ThaID
+                                </a>
+                            <?php endif; ?>
+                        </div>
                     </div>
+
+                    <?php 
+                        if(!empty($userRole->role_id)){
+                            if($userRole->role_id == 6){
+                                ?>  
+                                    <div class="alert alert-warning mb-3" role="alert">
+                                        สถานะอาจารย์: กำลังรอตรวจสอบโดยแอดมิน
+                                    </div>
+                                    
+                                <?php
+                            }elseif($userRole->role_id == 7){
+                                ?>  
+                                    <div class="alert alert-warning mb-3" role="alert">
+                                        สถานะนักเรียน: กำลังรอตรวจสอบโดยแอดมิน
+                                    </div>
+                                    
+                                <?php
+                            }
+                        }
+                    ?>
 
                     
 

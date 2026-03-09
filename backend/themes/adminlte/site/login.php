@@ -1,7 +1,8 @@
 <?php
-use yii\helpers\Html;
 use yii\bootstrap\ActiveForm;
 use yii\helpers\ArrayHelper;
+use yii\helpers\Html;
+use yii\helpers\Url;
 
 /* @var $this yii\web\View */
 /* @var $form yii\bootstrap\ActiveForm */
@@ -21,19 +22,17 @@ $fieldOptions2 = [
 ?>
 
 <div class="login-box">
-    <div class="login-logo">
-        <a href="#"><b>Admin</b>LTE</a>
-    </div>
+
     <!-- /.login-logo -->
     <div class="login-box-body">
         <p class="login-box-msg">Login for backend site</p>
 
 
-        <?php if(Yii::$app->session->hasFlash('alert-login')):?>
+        <?php if (Yii::$app->session->hasFlash('alert-login')): ?>
             <?= \yii\bootstrap\Alert::widget([
-            'body'=>ArrayHelper::getValue(Yii::$app->session->getFlash('alert-login'), 'body'),
-            'options'=>ArrayHelper::getValue(Yii::$app->session->getFlash('alert-login'), 'options'),
-            ])?>
+                'body' => ArrayHelper::getValue(Yii::$app->session->getFlash('alert-login'), 'body'),
+                'options' => ArrayHelper::getValue(Yii::$app->session->getFlash('alert-login'), 'options'),
+            ]) ?>
         <?php endif; ?>
 
         <?php $form = ActiveForm::begin(['id' => 'login-form', 'enableClientValidation' => false]); ?>
@@ -49,18 +48,21 @@ $fieldOptions2 = [
             ->passwordInput(['placeholder' => $model->getAttributeLabel('password')]) ?>
 
         <div class="row">
-
             <!-- /.col -->
-            <div class="col-xs-4 f-right">
+            <div class="col-xs-12">
                 <?= Html::submitButton('Login', ['class' => 'btn btn-primary btn-block btn-flat', 'name' => 'login-button']) ?>
             </div>
             <!-- /.col -->
+            <div class="col-xs-12">
+                <p class=" text-center" style="margin: 10px 0;">หรือ</p>
+                <a href="<?= Url::to(['/thaid/auth']) ?>" class="btn btn-primary " style="width: 100%;">
+                    เข้าสู่ระบบด้วย ThaID
+                </a>
+            </div>
         </div>
 
 
         <?php ActiveForm::end(); ?>
-
-
     </div>
     <!-- /.login-box-body -->
 </div><!-- /.login-box -->

@@ -43,9 +43,6 @@ dmstr\web\AdminLteAsset::register($this);
     	.panel-default > .panel-heading{
     		background-color: #ffff;
 		}
-		.login-page a{
-        	display: none;
-		}
 		.form-group.field-login-form-password.required label{
  			width: 80px;
      		overflow: hidden;

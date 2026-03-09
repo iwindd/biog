@@ -134,6 +134,11 @@ return [
                     '/approved-student/update/<id:\d+>' => 'approved-student/update',
                     '/approved-student/delete/<id:\d+>' => 'approved-student/delete',
 
+                    '/thaid/auth' => 'thaid/auth',
+                    '/thaid/callback' => 'thaid/callback',
+                    '/thaid/disconnect/<id:\d+>' => 'thaid/disconnect',
+                    '/thaid/disconnect' => 'thaid/disconnect',
+
                     '/content-animal/<id:\d+>' => 'content-animal/view',
                     '/content-animal/update/<id:\d+>' => 'content-animal/update',
                     '/content-animal/delete/<id:\d+>' => 'content-animal/delete',

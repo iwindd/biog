@@ -1010,9 +1010,8 @@ class FrontendHelper
                 ->andWhere('user_school.user_id =' . $user_id)
                 ->asArray()
                 ->one();
-            return $userSchool['school_name'];
 
-            // $userSchool = UserSchool::find()->where(['user_id'])->asArray()->one();
+            return empty($userSchool['school_name']) ? '-' : $userSchool['school_name'];
         }
         return '-';
     }

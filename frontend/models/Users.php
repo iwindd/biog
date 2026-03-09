@@ -138,6 +138,14 @@ class Users extends \yii\db\ActiveRecord
     /**
      * @return \yii\db\ActiveQuery
      */
+    public function getUserThaid()
+    {
+        return $this->hasOne(\common\models\UserThaid::className(), ['user_id' => 'id']);
+    }
+
+    /**
+     * @return \yii\db\ActiveQuery
+     */
     public function getSocialAccounts()
     {
         return $this->hasMany(SocialAccount::className(), ['user_id' => 'id']);

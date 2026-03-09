@@ -107,6 +107,12 @@ if (!empty($banner->picture_path)) {
                     'name' => 'login-button'
                 ]) ?>
             </div>
+            
+            <div class="text-center mt-3">
+                <a class="btn btn-outline-primary btn-block" href="/thaid/auth" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    เข้าสู่ระบบด้วย ThaID
+                </a>
+            </div>
             <?php ActiveForm::end(); ?>
 
             <div class="text-center text-bold my-4 ">

@@ -90,7 +90,34 @@ $this->params['breadcrumbs'][] = $this->title;
                                 'value' =>  BackendHelper::getDate($model->last_login_at),
                             ],
 
-
+                            [
+                                'format' => 'raw',
+                                'label' => 'การเชื่อมต่อ ThaID',
+                                'value' => function($model) {
+                                    $userThaid = \common\models\UserThaid::findOne(['user_id' => $model->id]);
+                                    if ($userThaid) {
+                                        return '<span class="label label-success" style="font-size: 14px; padding: 5px 10px;">
+                                                    <i class="glyphicon glyphicon-ok-sign"></i> เชื่อมต่อกับ ThaID แล้ว
+                                                </span> ' . 
+                                               Html::a('ยกเลิกการเชื่อมต่อ', ['/thaid/disconnect', 'id' => $model->id], [
+                                                   'class' => 'btn btn-danger btn-xs',
+                                                   'style' => 'margin-left: 10px;',
+                                                   'data' => [
+                                                       'confirm' => 'คุณต้องการยกเลิกการเชื่อมต่อบัญชีกับ ThaID ใช่หรือไม่?',
+                                                       'method' => 'post',
+                                                   ],
+                                               ]);
+                                    } else {
+                                        if ($model->id == Yii::$app->user->id) {
+                                            return Html::a(' เชื่อมต่อด้วย ThaID', ['/thaid/auth'], [
+                                                'class' => 'btn btn-default',
+                                                'style' => 'background-color: #004d99; color: white; border: none;'
+                                            ]);
+                                        }
+                                        return '<span class="text-muted">ยังไม่ได้เชื่อมต่อ</span>';
+                                    }
+                                }
+                            ],
                         ],
                     ]) ?>
 
