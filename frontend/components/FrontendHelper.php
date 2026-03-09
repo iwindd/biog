@@ -778,15 +778,20 @@ class FrontendHelper
 
     public static function getStatisticsMemeber()
     {
-        /*$model = Users::find()->select('user.id')->innerJoin('user_role', 'user.id = user_role.user_id')->where([
-            'or',
-            ['user_role.role_id' => 4],
-            ['user_role.role_id' => 5],
-        ])->count(); */
+        return Yii::$app->cache->getOrSet("statistics_memeber", function ()  {
+            $countUser = Yii::$app->db->createCommand('SELECT COUNT(user.id) FROM `user` INNER JOIN `user_role` ON user.id = user_role.user_id WHERE (`user_role`.`role_id`=4 OR `user_role`.`role_id`=5) AND ( `user`.`blocked_at` is null or `user`.`blocked_at` = 0)')->queryScalar();
 
-        $countUser = Yii::$app->db->createCommand('SELECT COUNT(user.id) FROM `user` INNER JOIN `user_role` ON user.id = user_role.user_id WHERE (`user_role`.`role_id`=4 OR `user_role`.`role_id`=5) AND ( `user`.`blocked_at` is null or `user`.`blocked_at` = 0)')->queryScalar();
+            return number_format($countUser);
+        }, 60 * 5);
+    }
 
-        return number_format($countUser);
+    public static function getStatisticsContent()
+    {
+        return Yii::$app->cache->getOrSet("statistics_content", function ()  {
+            $countContent  = Yii::$app->db->createCommand('SELECT COUNT(content.id) as count_content FROM `content` WHERE (`active`=1) AND (`status`="approved")')->queryScalar();
+
+            return number_format($countContent);
+        }, 60 * 5);
     }
 
     public static function getContentPicture($type, $file_name)

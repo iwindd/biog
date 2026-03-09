@@ -5,7 +5,6 @@ use yii\widgets\Block;
 use frontend\models\Content;
 use frontend\models\Users;
 // $countUser  = Yii::$app->db->createCommand('SELECT COUNT(user.id) FROM `user` INNER JOIN `user_role` ON user.id = user_role.user_id WHERE (`user_role`.`role_id`=4) OR (`user_role`.`role_id`=5)')->queryScalar();
-$countCount  = Yii::$app->db->createCommand('SELECT COUNT(content.id) as count_content FROM `content` WHERE (`active`=1) AND (`status`="approved")')->queryScalar();
 // print "<pre>";
 // print_r($countCount);
 // print "</pre>";
@@ -23,7 +22,7 @@ $countCount  = Yii::$app->db->createCommand('SELECT COUNT(content.id) as count_c
                         <p class="banner-text">บัญชีสมาชิก</p>
                     </div>
                     <div class="col-lg-5 col-md-6 mobile-analysis">
-                        <p class="number"><?php echo number_format($countCount); ?></p>
+                        <p class="number"><?php echo FrontendHelper::getStatisticsContent(); ?></p>
                         <p class="banner-text">ข้อมูลในระบบ</p>
                     </div>
                 </div>
