@@ -60,7 +60,7 @@ $getMenuTemplate = function ($typeId) use ($contentTypes) {
                         'icon' => 'cog',
                         'url' => '#',
                         'items' => [
-                            ['label' => 'จัดการการแสดงผล Content', 'icon' => 'minus', 'url' => ['/content-type'], 'active' => BackendHelper::menuActive('content-type', $this->context->route)],
+                            ['label' => 'จัดการการแสดงผลเนื้อหา', 'icon' => 'minus', 'url' => ['/content-type'], 'active' => BackendHelper::menuActive('content-type', $this->context->route)],
                             ['label' => 'หมวดหมู่ภูมิปัญญา', 'icon' => 'minus', 'url' => ['/expert-category'], 'active' => BackendHelper::menuActive('expert-category', $this->context->route)],
                             ['label' => 'หมวดหมู่ผลิตภัณฑ์', 'icon' => 'minus', 'url' => ['/product-category'], 'active' => BackendHelper::menuActive('product-category', $this->context->route)],
                             ['label' => 'ตั้งค่าภูมิปัญญา', 'icon' => 'minus', 'url' => ['/setting/expert']],

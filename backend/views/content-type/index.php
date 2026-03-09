@@ -9,7 +9,7 @@ use yii\helpers\Url;
 /* @var $searchModel backend\models\ContentTypeSearch */
 /* @var $dataProvider yii\data\ActiveDataProvider */
 
-$this->title = 'จัดการการแสดงผล Content';
+$this->title = 'จัดการการแสดงผลเนื้อหา';
 $this->params['breadcrumbs'][] = $this->title;
 ?>
 <div class="content-type-index">

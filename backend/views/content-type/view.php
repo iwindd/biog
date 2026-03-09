@@ -7,7 +7,7 @@ use yii\widgets\DetailView;
 /* @var $model backend\models\ContentType */
 
 $this->title = $model->title;
-$this->params['breadcrumbs'][] = ['label' => 'จัดการการแสดงผล Content', 'url' => ['index']];
+$this->params['breadcrumbs'][] = ['label' => 'จัดการการแสดงผลเนื้อหา', 'url' => ['index']];
 $this->params['breadcrumbs'][] = $this->title;
 \yii\web\YiiAsset::register($this);
 ?>
