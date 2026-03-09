@@ -114,7 +114,7 @@ $banner = Banner::find()->where(['slug_url' => 'Interactive Map'])->one();
                                 <p class="menu mb-4 mr-auto" id="main-title-map">ขอบเขต</p>
                                 <div>
                                 <button id="btn-back-map" class="btn btn-map mr-2" style="display: none;" type="button">⬅ กลับไปหน้าประเทศ</button>
-                                <button class="btn btn-map" type="button" onclick="getLocation()"><i class="fas fa-map-marker-alt"></i> My location</button>
+                                <!-- <button class="btn btn-map" type="button" onclick="getLocation()"><i class="fas fa-map-marker-alt"></i> My location</button> // -->
                                 <button class="btn btn-map d-none"type="button" onclick="getLocation()"><i class="fas fa-sync"></i> Reset</button>
                                 <button class="btn btn-map d-none"type="button" onclick="getLocation()"><i class="fas fa-expand"></i> Full Screen</button>
                             </div>
