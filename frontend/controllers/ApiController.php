@@ -129,6 +129,32 @@ class ApiController extends \yii\web\Controller
         $this->_response(200, 'success', $data);
     }
 
+    public function actionProvinceInfo()
+    {
+        $request = Yii::$app->request;
+        $get    = $request->get();
+        
+        if (!isset($get['province_name'])) {
+            $this->_response(400, 'province_name is required', []);
+        }
+        
+        $province_name = $get['province_name'];
+        $clean_name = str_replace(['จ.', 'จังหวัด', ' '], '', $province_name);
+        
+        $province = Province::find()
+            ->select('id, region_id, name_th, name_en')
+            ->where(['name_th' => $province_name])
+            ->orWhere(['like', 'name_th', $clean_name])
+            ->asArray()
+            ->one();
+            
+        if ($province) {
+            $this->_response(200, 'success', $province);
+        } else {
+            $this->_response(404, 'province not found', []);
+        }
+    }
+
     public function actionDistrict()
     {
         $request = Yii::$app->request;

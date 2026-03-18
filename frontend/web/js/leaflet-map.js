@@ -295,6 +295,72 @@ async function handleProvinceClick(feature, layer) {
   setLoading(true);
 
   try {
+    // Update filters based on selected province
+    try {
+      const provInfoRes = await fetch(host + `/api/province-info?province_name=${provName}`);
+      const provInfo = await provInfoRes.json();
+      
+      if (provInfo.status === 200 && provInfo.data) {
+        // 1. Update searchData
+        searchData.region_id = provInfo.data.region_id;
+        searchData.province_id = provInfo.data.id;
+        searchData.district_id = "";
+        searchData.subdistrict_id = "";
+        
+        // 2. Update dropdowns
+        $("#map-region_id").val(searchData.region_id);
+        
+        // Wait for province dropdown to populate, then set value and load districts
+        await new Promise((resolve, reject) => {
+            $.ajax({
+                method: "GET",
+                url: host + "/api/province?region_id=" + searchData.region_id,
+                cache: false,
+                dataType: "json",
+                contentType: "application/json; charset=utf-8",
+                success: function (result) {
+                    $("#map-province_id").empty().append($("<option></option>").attr("value", "").html("กรุณาเลือกจังหวัด"));
+                    for (let i = 0; i < result.data.length; i++) {
+                        $("#map-province_id").append($("<option></option>").attr("value", +(result.data[i].id)).html(result.data[i].name).attr("selected", false));
+                    }
+                    $("#map-province_id").val(searchData.province_id);
+                    resolve();
+                },
+                error: reject
+            });
+        });
+
+        // Wait for district dropdown to populate
+        await new Promise((resolve, reject) => {
+            $.ajax({
+                method: "GET",
+                url: host + "/api/district?province_id=" + searchData.province_id,
+                cache: false,
+                dataType: "json",
+                contentType: "application/json; charset=utf-8",
+                success: function (result) {
+                    $("#map-district_id").empty().append($("<option></option>").attr("value", "").html("กรุณาเลือกอำเภอ"));
+                    for (let i = 0; i < result.data.length; i++) {
+                        $("#map-district_id").append($("<option></option>").attr("value", +(result.data[i].id)).html(result.data[i].name).attr("selected", false));
+                    }
+                    resolve();
+                },
+                error: reject
+            });
+        });
+        
+        // Clear subdistrict dropdown
+        $("#map-subdistrict_id").empty().append($("<option></option>").attr("value", "").html("กรุณาเลือกตำบล"));
+        
+        setContentBreadcrumb();
+        
+        // 3. Search and update content list
+        search();
+      }
+    } catch (err) {
+      console.error("Error updating filters:", err);
+    }
+
     const countRes = await fetch(host + `/api/heatmap-district?province_name=${feature.properties.ADM1_TH}`);
     const countResult = await countRes.json();
     if (countResult.status === 200) {
