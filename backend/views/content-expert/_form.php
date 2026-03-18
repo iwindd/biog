@@ -212,20 +212,21 @@ $licenseList = ArrayHelper::map(License::find()->all(), 'id', 'name');
             <?= $form->field($model, 'zipcode_id')->dropDownList($zipcode, ['prompt' => 'กรุณาเลือกรหัสไปรษณีย์']) ?>
 
 
-            <?= $form->field($model, 'picture_path', [
-                'template' => "{label}\n{input}\n<div> รูปภาพควรมีขนาด 1532x800 pixel มีขนาดไม่เกิน 5 MB และ ต้องเป็นไฟล์นามสกุล jpg, jpeg, png หรือ gif เท่านั้น </div>\n{hint}\n{error}",
+            <?php 
+            $picInputId = Html::getInputId($model, 'picture_path');
+            echo $form->field($model, 'picture_path', [
+                'template' => "{label}\n{input}\n<div id=\"{$picInputId}-preview\" style=\"margin-top: 15px; margin-bottom: 15px;\">{$initialPreview}</div>\n<div> รูปภาพควรมีขนาด 1532x800 pixel มีขนาดไม่เกิน 8 MB และ ต้องเป็นไฟล์นามสกุล jpg, jpeg, png หรือ gif เท่านั้น </div>\n{hint}\n{error}",
                 'labelOptions' => ['class' => 'control-label']
-            ])->widget(FileInput::classname(), [
-                // 'options' => ['accept' => 'image/*'],
-                'pluginOptions' => [
-                    'initialPreview' => $initialPreview,
-                    'allowedFileExtensions' => ['jpg', 'jpeg', 'png', 'gif', 'PNG'],
-                    'showPreview' => true,
-                    'showRemove' => false,
-                    'showUpload' => false,
-                    'maxFileSize' => 5120
-                ]
-            ]); ?> 
+            ])->hiddenInput()->label('รูปภาพหน้าปก');
+            
+            echo \backend\components\FileCenterPickerWidget::widget([
+                'inputId' => $picInputId,
+                'extensions' => ['jpg', 'jpeg', 'png', 'gif', 'PNG'],
+                'clearable' => true,
+                'maxSize' => 8 * 1024,
+                'multiple' => false,
+            ]);
+            ?> 
 
 
             <input type="hidden" name="deletePic" id="deletePic" value="0" >
@@ -258,23 +259,20 @@ $licenseList = ArrayHelper::map(License::find()->all(), 'id', 'name');
             <?php
             }
             ?>
-            <?=
-            $form->field($model, 'files', [
-                'template' => "{label}\n{input}\n<div> รูปภาพมีขนาดไม่เกิน 5 MB และต้องเป็นไฟล์นามสกุล jpg, jpeg, png หรือ gif เท่านั้น </div>\n{hint}\n{error}",
+            <?php
+            $filesInputId = Html::getInputId($model, 'files');
+            echo $form->field($model, 'files', [
+                'template' => "{label}\n{input}\n<div id=\"{$filesInputId}-preview\" style=\"margin-top: 15px; margin-bottom: 15px;\"></div>\n<div> รูปภาพมีขนาดไม่เกิน 8 MB และต้องเป็นไฟล์นามสกุล jpg, jpeg, png หรือ gif เท่านั้น </div>\n{hint}\n{error}",
                 'labelOptions' => ['class' => 'control-label']
-            ])->widget(FileInput::classname(), [
-                'options' => [
-                    // 'accept' => 'image/*',
-                    'class' => 'caractboxes-img',
-                    'multiple' => true
-                ],
-                'pluginOptions' => [
-                    'allowedFileExtensions' => ['jpg', 'jpeg', 'png', 'gif'],
-                    'showPreview' => true,
-                    'showRemove' => true,
-                    'showUpload' => false,
-                    'maxFileSize' => 5120
-                ]
+            ])->hiddenInput();
+            
+            echo \backend\components\FileCenterPickerWidget::widget([
+                'inputId' => $filesInputId,
+                'buttonText' => '<i class="fa fa-folder-open"></i> เลือกรูปภาพประกอบจาก FileCenter',
+                'extensions' => ['jpg', 'jpeg', 'png', 'gif'],
+                'clearable' => true,
+                'maxSize' => 8 * 1024,
+                'multiple' => true,
             ]);
             ?>
             <!-- end multi image -->
