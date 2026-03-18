@@ -36,7 +36,7 @@ $subdistrict = ArrayHelper::map(Subdistrict::find()->all(), 'id', 'name_th');
         
     ]); ?>
 
-    <?= $form->field($model, 'name')->textInput(['maxlength' => true]) ?>
+    <?= $form->field($model, 'name')->textInput(['maxlength' => true])->label('ชื่อโรงเรียน *') ?>
 
     <?= $form->field($model, 'phone')->textInput(['maxlength' => true]) ?>
 
@@ -44,11 +44,11 @@ $subdistrict = ArrayHelper::map(Subdistrict::find()->all(), 'id', 'name_th');
 
     <?= $form->field($model, 'address')->textInput(['maxlength' => true]) ?>
 
-    <?= $form->field($model, 'province_id')->dropDownList($province, ['prompt' => 'กรุณาเลือกจังหวัด']) ?>
+    <?= $form->field($model, 'province_id')->dropDownList($province, ['prompt' => 'กรุณาเลือกจังหวัด'])->label('จังหวัด *') ?>
 
-    <?= $form->field($model, 'district_id')->dropDownList($district, ['prompt' => 'กรุณาเลือกอำเภอ']) ?>
+    <?= $form->field($model, 'district_id')->dropDownList($district, ['prompt' => 'กรุณาเลือกอำเภอ'])->label('อำเภอ *') ?>
 
-    <?= $form->field($model, 'subdistrict_id')->dropDownList($subdistrict, ['prompt' => 'กรุณาเลือกตำบล']) ?>
+    <?= $form->field($model, 'subdistrict_id')->dropDownList($subdistrict, ['prompt' => 'กรุณาเลือกตำบล'])->label('ตำบล *') ?>
 
 
     <div class="panel panel-default">

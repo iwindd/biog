@@ -14,9 +14,9 @@ use yii\widgets\ActiveForm;
 
     <div class="box box-primary">
         <div class="box-body">
-            <?= $form->field($model, 'name')->textInput(['maxlength' => true]) ?>
+            <?= $form->field($model, 'name')->textInput(['maxlength' => true])->label('ชื่อใบอนุญาต *') ?>
 
-            <?= $form->field($model, 'code')->textInput(['maxlength' => true]) ?>
+            <?= $form->field($model, 'code')->textInput(['maxlength' => true])->label('รหัสใบอนุญาต (ห้ามซ้ำ) *') ?>
 
             <?= $form->field($model, 'description')->textarea(['rows' => 6]) ?>
 

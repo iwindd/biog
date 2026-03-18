@@ -65,13 +65,13 @@ $subdistrict = ArrayHelper::map(Subdistrict::find()->all(), 'id', 'name_th');
     <div class="panel panel-default">
         <div class="panel-heading">ข้อมูลผู้ใช้</div>
         <div class="panel-body">
-            <?= $form->field($model, 'username')->textInput(['maxlength' => true]) ?>
+            <?= $form->field($model, 'username')->textInput(['maxlength' => true])->label('ชื่อผู้ใช้ *') ?>
 
-            <?= $form->field($model, 'email')->textInput(['maxlength' => true]) ?>
+            <?= $form->field($model, 'email')->textInput(['maxlength' => true])->label('อีเมล *') ?>
 
-            <?= $form->field($user, 'new_password')->passwordInput()->label('รหัสผ่าน') ?>
+            <?= $form->field($user, 'new_password')->passwordInput()->label('รหัสผ่าน *') ?>
 
-            <?= $form->field($user, 'confirm_password')->passwordInput()->label('ยืนยันรหัสผ่าน') ?>
+            <?= $form->field($user, 'confirm_password')->passwordInput()->label('ยืนยันรหัสผ่าน *') ?>
 
 
             <?php /*
@@ -113,11 +113,11 @@ $subdistrict = ArrayHelper::map(Subdistrict::find()->all(), 'id', 'name_th');
         <div class="panel-heading">ข้อมูลส่วนตัวผู้ใช้</div>
         <div class="panel-body">
 
-            <?= $form->field($profile, 'display_name')->textInput(['maxlength' => true]) ?>
+            <?= $form->field($profile, 'display_name')->textInput(['maxlength' => true])->label('ชื่อแสดงผล *') ?>
 
-            <?= $form->field($profile, 'firstname')->textInput(['maxlength' => true]) ?>
+            <?= $form->field($profile, 'firstname')->textInput(['maxlength' => true])->label('ชื่อ *') ?>
 
-            <?= $form->field($profile, 'lastname')->textInput(['maxlength' => true]) ?>
+            <?= $form->field($profile, 'lastname')->textInput(['maxlength' => true])->label('นามสกุล *') ?>
 
             <?=
                 $form->field($profile, 'gender')
