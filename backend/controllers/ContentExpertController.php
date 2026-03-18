@@ -156,15 +156,8 @@ class ContentExpertController extends Controller
                 $model->created_at = date("Y-m-d H:i:s");
                 $model->updated_at = date("Y-m-d H:i:s");
 
-                $mainPicture = Upload::uploadPictureNoPermission($model, 'content-expert', '', 0, 'picture_path');
-                if (!empty($mainPicture)) {
-    
-                    if ($mainPicture != 'error') {
-                        $model->picture_path = $mainPicture;
-                    }else{
-                        $case_error[] = "อัพโหลดรูปภาพไม่สำเร็จ";
-                    }
-                }
+                $post = Yii::$app->request->post();
+                Upload::handleFileCenterPicture($model, 'content-expert', $case_error);
 
                 
 
@@ -174,30 +167,7 @@ class ContentExpertController extends Controller
 
                 if ($model->save()) {
                     // upload multiple image
-                    $files = Upload::uploadsNoPermimission($model, 'content-expert');
-                    if (!empty($files)) {
-                        if ($files['success_upload'] == 1) {
-                            if (!empty($files['data'])) {
-                                foreach ($files['data'] as $value) {
-                                    $mediaModel = new Picture();
-                                    $mediaModel->content_id = $model->id;
-                                    $mediaModel->name = $value['file_display_name'];
-                                    $mediaModel->path = $value['file_key'];
-                                    $mediaModel->created_by_user_id = Yii::$app->user->identity->id;
-                                    $mediaModel->updated_by_user_id = Yii::$app->user->identity->id;
-                                    $mediaModel->created_at = date("Y-m-d H:i:s");
-                                    $mediaModel->updated_at = date("Y-m-d H:i:s");
-                                    if (!$mediaModel->save()) {
-                                        $checkUpdate = false;
-                                        $case_error[] = array("message" => "ไฟล์ " . $value['file_display_name'] . " อัพโหลดไม่สำเร็จ");
-                                    }
-                                }
-                            }
-                        } else {
-                            $checkUpdate = false;
-                            $case_error[] = array("message" => "อัพโหลดไฟล์ไม่สำเร็จ");
-                        }
-                    }
+                    Upload::handleFileCenterGallery($model, 'content-expert', $case_error, $checkUpdate);
                     if(!empty($post['Content']['taxonomy'])){
                         foreach ($post['Content']['taxonomy'] as $value) {
                             $modelTax = new ContentTaxonomy();

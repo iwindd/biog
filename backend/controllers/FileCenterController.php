@@ -67,6 +67,12 @@ class FileCenterController extends Controller
     {
         Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
         
+        // Debug logging for troubleshooting "No file uploaded" error
+        Yii::info('Upload method: ' . Yii::$app->request->getMethod(), 'filecenter');
+        Yii::info('$_FILES content: ' . json_encode($_FILES), 'filecenter');
+        Yii::info('Content-Type: ' . Yii::$app->request->getContentType(), 'filecenter');
+        Yii::info('Content-Length: ' . Yii::$app->request->headers->get('Content-Length'), 'filecenter');
+        
         $uploadFile = UploadedFile::getInstanceByName('file');
         
         if ($uploadFile) {
@@ -148,6 +154,11 @@ class FileCenterController extends Controller
             }
         }
         
+        // Additional logging when no file is detected
+        Yii::error('No file uploaded - UploadFile result: ' . var_export($uploadFile, true), 'filecenter');
+        Yii::error('Request headers: ' . json_encode(Yii::$app->request->headers->toArray()), 'filecenter');
+        Yii::error('POST data: ' . json_encode(Yii::$app->request->post()), 'filecenter');
+        
         return ['status' => 'error', 'message' => 'No file uploaded'];
     }
 
@@ -162,16 +173,34 @@ class FileCenterController extends Controller
     {
         $model = $this->findModel($id);
         
-        // Remove file from disk
-        $filePath = Yii::getAlias('@frontend/web') . $model->file_path;
-        if (file_exists($filePath)) {
-            @unlink($filePath);
+        // Check if this is an AJAX request
+        if (Yii::$app->request->isAjax) {
+            Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+            
+            // Remove file from disk
+            $filePath = Yii::getAlias('@frontend/web') . $model->file_path;
+            if (file_exists($filePath)) {
+                @unlink($filePath);
+            }
+
+            if ($model->delete()) {
+                return ['status' => 'success', 'message' => 'File deleted successfully.'];
+            } else {
+                return ['status' => 'error', 'message' => 'Failed to delete file.'];
+            }
+        } else {
+            // Normal web request - use flash message and redirect
+            // Remove file from disk
+            $filePath = Yii::getAlias('@frontend/web') . $model->file_path;
+            if (file_exists($filePath)) {
+                @unlink($filePath);
+            }
+
+            $model->delete();
+
+            Yii::$app->session->setFlash('success', 'File deleted successfully.');
+            return $this->redirect(['index']);
         }
-
-        $model->delete();
-
-        Yii::$app->session->setFlash('success', 'File deleted successfully.');
-        return $this->redirect(['index']);
     }
     
     /**

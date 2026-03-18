@@ -111,7 +111,7 @@ $licenseList = ArrayHelper::map(License::find()->all(), 'id', 'name');
             <?php 
             $picInputId = Html::getInputId($model, 'picture_path');
             echo $form->field($model, 'picture_path', [
-                'template' => "{label}\n{input}\n<div id=\"{$picInputId}-preview\" style=\"margin-top: 15px; margin-bottom: 15px;\">{$initialPreview}</div>\n<div> รูปภาพควรมีขนาด 1532x800 pixel มีขนาดไม่เกิน 5 MB และ ต้องเป็นไฟล์นามสกุล jpg, jpeg, png หรือ gif เท่านั้น </div>\n{hint}\n{error}",
+                'template' => "{label}\n{input}\n<div id=\"{$picInputId}-preview\" style=\"margin-top: 15px; margin-bottom: 15px;\">{$initialPreview}</div>\n<div> รูปภาพควรมีขนาด 1532x800 pixel มีขนาดไม่เกิน 8 MB และ ต้องเป็นไฟล์นามสกุล jpg, jpeg, png หรือ gif เท่านั้น </div>\n{hint}\n{error}",
                 'labelOptions' => ['class' => 'control-label']
             ])->hiddenInput()->label('รูปภาพหน้าปก');
             
@@ -119,7 +119,7 @@ $licenseList = ArrayHelper::map(License::find()->all(), 'id', 'name');
                 'inputId' => $picInputId,
                 'extensions' => ['jpg', 'jpeg', 'png', 'gif', 'PNG'],
                 'clearable' => true,
-                'maxSize' => 5120 * 1024,
+                'maxSize' => 8 * 1024,
                 'multiple' => false,
             ]);
             ?>
@@ -169,7 +169,7 @@ $licenseList = ArrayHelper::map(License::find()->all(), 'id', 'name');
             <?php
             $filesInputId = Html::getInputId($model, 'files');
             echo $form->field($model, 'files', [
-                'template' => "{label}\n{input}\n<div id=\"{$filesInputId}-preview\" style=\"margin-top: 15px; margin-bottom: 15px;\"></div>\n<div> รูปภาพมีขนาดไม่เกิน 5 MB และต้องเป็นไฟล์นามสกุล jpg, jpeg, png หรือ gif เท่านั้น </div>\n{hint}\n{error}",
+                'template' => "{label}\n{input}\n<div id=\"{$filesInputId}-preview\" style=\"margin-top: 15px; margin-bottom: 15px;\"></div>\n<div> รูปภาพมีขนาดไม่เกิน 8 MB และต้องเป็นไฟล์นามสกุล jpg, jpeg, png หรือ gif เท่านั้น </div>\n{hint}\n{error}",
                 'labelOptions' => ['class' => 'control-label']
             ])->hiddenInput();
             
@@ -178,7 +178,7 @@ $licenseList = ArrayHelper::map(License::find()->all(), 'id', 'name');
                 'buttonText' => '<i class="fa fa-folder-open"></i> เลือกรูปภาพประกอบจาก FileCenter',
                 'extensions' => ['jpg', 'jpeg', 'png', 'gif'],
                 'clearable' => true,
-                'maxSize' => 5120 * 1024,
+                'maxSize' => 8 * 1024,
                 'multiple' => true,
             ]);
             ?>

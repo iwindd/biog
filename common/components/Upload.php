@@ -439,4 +439,85 @@ class Upload
 
         readfile($localPath);
     }
+
+    /**
+     * Handle FileCenter picture upload for content forms
+     * @param object $model Content model
+     * @param string $contentType Content type (e.g., 'content-expert', 'content-fungi')
+     * @param array &$case_error Error array reference
+     * @return bool Success status
+     */
+    public static function handleFileCenterPicture($model, $contentType, &$case_error)
+    {
+        if (!empty($model->picture_path) && strpos($model->picture_path, '/uploads/filecenter/') !== false) {
+            $sourcePath = Yii::getAlias('@frontend/web') . $model->picture_path;
+            if (file_exists($sourcePath)) {
+                $ext = pathinfo($sourcePath, PATHINFO_EXTENSION);
+                $newName = 'pic_' . uniqid() . time() . '.' . $ext;
+                $destDir = Yii::getAlias('@frontend/web/files/' . $contentType);
+                \yii\helpers\FileHelper::createDirectory($destDir);
+                
+                if (copy($sourcePath, $destDir . '/' . $newName)) {
+                    $model->picture_path = $newName;
+                    return true;
+                } else {
+                    $model->picture_path = '';
+                    $case_error[] = "พบข้อผิดพลาดขณะคัดลอกไฟล์รูปภาพ";
+                    return false;
+                }
+            } else {
+                $model->picture_path = '';
+                return false;
+            }
+        } else if ($model->picture_path !== '') {
+            $model->picture_path = '';
+        }
+        return true;
+    }
+
+    /**
+     * Handle FileCenter gallery upload for content forms
+     * @param object $model Content model
+     * @param string $contentType Content type (e.g., 'content-expert', 'content-fungi')
+     * @param array &$case_error Error array reference
+     * @param bool &$checkUpdate Update status reference
+     * @return bool Success status
+     */
+    public static function handleFileCenterGallery($model, $contentType, &$case_error, &$checkUpdate)
+    {
+        $filesPaths = Yii::$app->request->post('Content')['files'] ?? '';
+        if (!empty($filesPaths)) {
+            $filesArray = explode(',', $filesPaths);
+            foreach ($filesArray as $fcPath) {
+                if (strpos($fcPath, '/uploads/filecenter/') !== false) {
+                    $sourcePath = Yii::getAlias('@frontend/web') . $fcPath;
+                    if (file_exists($sourcePath)) {
+                        $ext = pathinfo($sourcePath, PATHINFO_EXTENSION);
+                        $newName = 'pic_' . uniqid() . time() . '.' . $ext;
+                        $destDir = Yii::getAlias('@frontend/web/files/' . $contentType);
+                        \yii\helpers\FileHelper::createDirectory($destDir);
+                        
+                        if (copy($sourcePath, $destDir . '/' . $newName)) {
+                            $mediaModel = new \backend\models\Picture();
+                            $mediaModel->content_id = $model->id;
+                            $mediaModel->name = basename($fcPath);
+                            $mediaModel->path = $newName;
+                            $mediaModel->created_by_user_id = Yii::$app->user->identity->id;
+                            $mediaModel->updated_by_user_id = Yii::$app->user->identity->id;
+                            $mediaModel->created_at = date("Y-m-d H:i:s");
+                            $mediaModel->updated_at = date("Y-m-d H:i:s");
+                            if (!$mediaModel->save()) {
+                                $checkUpdate = false;
+                                $case_error[] = array("message" => "ไฟล์รูปประกอบ " . basename($fcPath) . " บันทึกไม่สำเร็จ");
+                            }
+                        } else {
+                            $checkUpdate = false;
+                            $case_error[] = array("message" => "ไฟล์รูปประกอบ " . basename($fcPath) . " คัดลอกไม่สำเร็จ");
+                        }
+                    }
+                }
+            }
+        }
+        return true;
+    }
 }
