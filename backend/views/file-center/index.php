@@ -85,10 +85,19 @@ $this->registerCss($css);
                 $urlFrontend = isset(Yii::$app->params['urlFrontend']) ? Yii::$app->params['urlFrontend'] : '';
                 $previewUrl = $isImage ? $urlFrontend . $model->file_path : '/images/default.png'; // Should replace with appropriate icon if not image
                 
+                // Helper function to truncate text
+                $truncateText = function($text, $maxLength = 20) {
+                    if (mb_strlen($text, 'UTF-8') <= $maxLength) {
+                        return $text;
+                    }
+                    return mb_substr($text, 0, $maxLength, 'UTF-8') . '...';
+                };
+                
                 $html = '<div class="file-item">';
                 $html .= '<img src="' . $previewUrl . '" alt="' . Html::encode($model->alt_text) . '" title="' . Html::encode($model->file_name) . '">';
-                $html .= '<div class="file-name" title="' . Html::encode($model->file_name) . '">' . Html::encode($model->file_name) . '</div>';
-                $html .= '<div class="file-label" title="' . Html::encode($model->label) . '" style="font-size: 11px; color: #007bff; margin-bottom: 5px;">' . Html::encode($model->label ? 'ป้ายกำกับ: ' . $model->label : 'ไม่มีป้ายกำกับ') . '</div>';
+                $html .= '<div class="file-name" title="' . Html::encode($model->file_name) . '">' . Html::encode($truncateText($model->file_name, 25)) . '</div>';
+                $labelText = $model->label ? 'ป้ายกำกับ: ' . $model->label : 'ไม่มีป้ายกำกับ';
+                $html .= '<div class="file-label" title="' . Html::encode($model->label) . '" style="font-size: 11px; color: #007bff; margin-bottom: 5px;">' . Html::encode($truncateText($labelText, 30)) . '</div>';
                 $html .= '<div class="file-size">' . $model->getFileSizeText() . '</div>';
                 $html .= '<div class="file-item-actions">';
                 $html .= Html::a('<i class="fa fa-trash"></i>', ['delete', 'id' => $model->id], [
