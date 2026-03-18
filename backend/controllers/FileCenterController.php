@@ -173,16 +173,34 @@ class FileCenterController extends Controller
     {
         $model = $this->findModel($id);
         
-        // Remove file from disk
-        $filePath = Yii::getAlias('@frontend/web') . $model->file_path;
-        if (file_exists($filePath)) {
-            @unlink($filePath);
+        // Check if this is an AJAX request
+        if (Yii::$app->request->isAjax) {
+            Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+            
+            // Remove file from disk
+            $filePath = Yii::getAlias('@frontend/web') . $model->file_path;
+            if (file_exists($filePath)) {
+                @unlink($filePath);
+            }
+
+            if ($model->delete()) {
+                return ['status' => 'success', 'message' => 'File deleted successfully.'];
+            } else {
+                return ['status' => 'error', 'message' => 'Failed to delete file.'];
+            }
+        } else {
+            // Normal web request - use flash message and redirect
+            // Remove file from disk
+            $filePath = Yii::getAlias('@frontend/web') . $model->file_path;
+            if (file_exists($filePath)) {
+                @unlink($filePath);
+            }
+
+            $model->delete();
+
+            Yii::$app->session->setFlash('success', 'File deleted successfully.');
+            return $this->redirect(['index']);
         }
-
-        $model->delete();
-
-        Yii::$app->session->setFlash('success', 'File deleted successfully.');
-        return $this->redirect(['index']);
     }
     
     /**
