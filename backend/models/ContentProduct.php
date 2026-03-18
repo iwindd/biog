@@ -39,13 +39,61 @@ class ContentProduct extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-            [['content_id', 'product_category_id'], 'required', 'message' => '{attribute} ต้องไม่เป็นค่าว่าง'],
-            [['content_id', 'product_category_id'], 'integer'],
+            // =========================
+            // REQUIRED
+            // =========================
+            [
+                [
+                    'contact',
+                    'product_category_id',
+                    'content_id'
+                ],
+                'required'
+            ],
+    
+            // =========================
+            // INTEGER
+            // =========================
+            [['content_id', 'product_category_id', 'product_price'], 'integer'],
+    
+            // =========================
+            // TEXT
+            // =========================
             [['product_features', 'other_information', 'product_main_material', 'found_source'], 'string'],
-            [['product_price'], 'number'],
+    
+            // =========================
+            // STRING LENGTH
+            // =========================
+            [
+                [
+                    'contact',
+                    'product_sources_material',
+                    'product_distribution_location',
+                    'product_address',
+                ],
+                'string',
+                'max' => 255
+            ],
+            [
+                ['product_phone'],
+                'string',
+                'max' => 10
+            ],
+            // =========================
+            // FOREIGN KEY
+            // =========================
+            [
+                ['content_id'],
+                'exist',
+                'skipOnError' => true,
+                'targetClass' => Content::class,
+                'targetAttribute' => ['content_id' => 'id']
+            ],
+    
+            // =========================
+            // SAFE TIMESTAMP
+            // =========================
             [['created_at', 'updated_at'], 'safe'],
-            [['product_sources_material', 'product_distribution_location', 'product_address', 'contact'], 'string', 'max' => 255],
-            [['product_phone'], 'string', 'max' => 255],
         ];
     }
 
