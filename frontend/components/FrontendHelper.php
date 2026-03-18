@@ -816,7 +816,7 @@ class FrontendHelper
     public static function getProfileImage($user_id)
     {
         $profileImg = Profile::find('picture')->where(['user_id' => $user_id])->asArray()->one();
-        return $profileImg['picture'];
+        return $profileImg && !empty($profileImg['picture']) ? $profileImg['picture'] : '/images/default-avatar.png';
     }
 
     public static function maskName($name)
