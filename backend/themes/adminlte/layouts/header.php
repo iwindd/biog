@@ -24,8 +24,11 @@ use yii\helpers\Html;
                     <a href="#" class="dropdown-toggle" data-toggle="dropdown">
                         <img src="/images/admin_icon.png" class="user-image" alt="User Image"/>
                         <span class="hidden-xs">
-                            <?php echo Yii::$app->user->identity->profile->firstname; ?> 
-                            <?php echo Yii::$app->user->identity->profile->lastname; ?>                                
+                            <?php 
+                            $profile = Yii::$app->user->identity->profile;
+                            echo $profile ? $profile->firstname : '';
+                            echo $profile ? ' ' . $profile->lastname : '';
+                            ?>                                
                         </span> 
                     </a>
                     <ul class="dropdown-menu">
