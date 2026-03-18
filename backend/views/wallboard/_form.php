@@ -32,7 +32,7 @@ use yii\helpers\Url;
 
     ]); ?> */ ?>
 
-    <?= $form->field($model, 'description')->textarea(['rows' => '6', 'class' => 'summernote-description']) ?>
+    <?= $form->field($model, 'description')->textarea(['rows' => '6', 'class' => 'summernote-description'])->label('รายละเอียด *') ?>
 
     <div class="form-group">
         <?= Html::submitButton('บันทึก', ['class' => 'btn btn-success']) ?>
