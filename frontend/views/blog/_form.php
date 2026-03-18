@@ -43,7 +43,7 @@ $this->registerJsFile('@web/js/blog.js', ['depends' => \yii\web\JqueryAsset::cla
 
 
 
-            <?= $form->field($model, 'title')->textInput(['maxlength' => true]) ?>
+            <?= $form->field($model, 'title')->textInput(['maxlength' => true])->label('ชื่อเรื่อง *') ?>
 
             <?= $form->field($model, 'picture_path', [
                           'template' => "{label}\n{input}\n<div> รูปภาพควรมีขนาด 766x400 pixel มีขนาดไม่เกิน 2 MB และ ต้องเป็นไฟล์นามสกุล jpg, jpeg, png หรือ gif เท่านั้น </div>\n{hint}\n{error}",
