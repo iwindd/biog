@@ -1,6 +1,6 @@
 const CONFIG = {
   center: [13.736717, 100.523186],
-  minZoom: 5,
+  minZoom: 3,
   maxZoom: 12,
   zoomSnap: 0.5,
   zoomDelta: 0.5,
@@ -8,6 +8,7 @@ const CONFIG = {
   paths: {
     province: "/data/province_simplify.json",
     amphoe: "/data/thailand_province_amphoe_simplify.json",
+    world: "/data/world-countries.json",
   },
   heatmapColors: ["#d4d4d4", "#e0e7ff", "#818cf8", "#4f46e5", "#3730a3"],
   heatmapRanges: [0, 1, 10, 50, 100],
@@ -85,6 +86,7 @@ const map = L.map("map", {
 // LAYERS
 let provinceLayer = null;
 let amphoeLayer = null;
+let worldCountriesLayer = null;
 let provinceLabelsLayer = L.layerGroup().addTo(map);
 let amphoeLabelsLayer = L.layerGroup().addTo(map);
 let markersLayerGroup = L.layerGroup().addTo(map);
@@ -148,10 +150,44 @@ function parseMapData(data) {
   return data;
 }
 
+// LOAD WORLD COUNTRIES LAYER
+async function loadWorldCountries() {
+  try {
+    const res = await fetch(CONFIG.paths.world);
+    const data = await res.json();
+    const geoJsonData = parseMapData(data);
+
+    worldCountriesLayer = L.geoJson(geoJsonData, {
+      style: {
+        fillColor: "#f0f0f0",
+        weight: 1,
+        opacity: 0.6,
+        color: "#cccccc",
+        fillOpacity: 0.4,
+      },
+      onEachFeature: function (feature, layer) {
+        const countryName = feature.properties.NAME || feature.properties.name || "Unknown";
+        layer.bindTooltip(countryName, {
+          sticky: false,
+          direction: "center"
+        });
+      },
+    });
+
+  } catch (err) {
+    console.error("Error loading world countries:", err);
+  }
+}
+
 // PROVINCE MAP
 async function loadProvinceMap() {
   setLoading(true);
   try {
+    // Load world countries layer first (if not already loaded)
+    if (!worldCountriesLayer) {
+      await loadWorldCountries();
+    }
+
     const countRes = await fetch(host + "/api/heatmap-province");
     const countResult = await countRes.json();
     if (countResult.status === 200) {
@@ -239,6 +275,11 @@ function highlightFeature(e) {
 // LOAD AMPHOE MAP
 async function handleProvinceClick(feature, layer) {
   provinceLayer.resetStyle(layer);
+
+  // Hide world countries when clicking into a province
+  if (worldCountriesLayer && map.hasLayer(worldCountriesLayer)) {
+    map.removeLayer(worldCountriesLayer);
+  }
 
   const provName = feature.properties.provName;
   if (Elements.mainTitle) Elements.mainTitle.innerText = `ขอบเขต: ${provName}`;
@@ -370,6 +411,12 @@ function switchMode(mode) {
     if (provinceLabelsLayer && !map.hasLayer(provinceLabelsLayer))
       provinceLabelsLayer.addTo(map);
 
+    // Show world countries when in province mode
+    if (worldCountriesLayer && !map.hasLayer(worldCountriesLayer)) {
+      worldCountriesLayer.addTo(map);
+      worldCountriesLayer.bringToBack();
+    }
+
     if (provinceLayer)
       map.fitBounds(provinceLayer.getBounds(), {
         animate: true,
@@ -379,6 +426,11 @@ function switchMode(mode) {
     if (Elements.btnBack) Elements.btnBack.style.display = "none";
     if (Elements.mainTitle) Elements.mainTitle.innerText = "ขอบเขตระดับประเทศ";
   } else if (mode === "amphoe") {
+    // Hide world countries when entering amphoe mode
+    if (worldCountriesLayer && map.hasLayer(worldCountriesLayer)) {
+      map.removeLayer(worldCountriesLayer);
+    }
+
     if (provinceLayer) map.removeLayer(provinceLayer);
     if (provinceLabelsLayer) map.removeLayer(provinceLabelsLayer);
 
