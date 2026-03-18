@@ -96,7 +96,7 @@ if (!empty($banner->picture_path)) {
                         ->textInput()
                         ->input('text', [
                             'placeholder' => 'อีเมล'
-                        ]); ?>
+                        ])->label('อีเมล *'); ?>
 
                     <div class="form-group ">
                         <?= $form
@@ -104,7 +104,7 @@ if (!empty($banner->picture_path)) {
                             ->textInput()
                             ->input('password', [
                                 'placeholder' => 'รหัสผ่าน'
-                            ]); ?>
+                            ])->label('รหัสผ่าน *'); ?>
                     </div>
                     <div class="form-group ">
                         <?= $form
@@ -112,7 +112,7 @@ if (!empty($banner->picture_path)) {
                             ->textInput()
                             ->input('password', [
                                 'placeholder' => 'ยืนยันรหัสผ่าน'
-                            ]); ?>
+                            ])->label('ยืนยันรหัสผ่าน *'); ?>
                     </div>
 
                 </div>
@@ -147,9 +147,9 @@ if (!empty($banner->picture_path)) {
                         <span class="h6">ข้อมูลส่วนตัว</span>
                     </div>
 
-                    <?= $form->field($profileModel, 'display_name')->textInput()->input('text', ['placeholder' => 'ชื่อที่ใช้แสดง'])->label('ชื่อที่ใช้แสดง'); ?>
-                    <?= $form->field($profileModel, 'firstname')->textInput()->input('text', ['placeholder' => 'ชื่อ'])->label('ชื่อ'); ?>
-                    <?= $form->field($profileModel, 'lastname')->textInput()->input('text', ['placeholder' => 'นามสกุล'])->label('นามสกุล'); ?>
+                    <?= $form->field($profileModel, 'display_name')->textInput()->input('text', ['placeholder' => 'ชื่อที่ใช้แสดง'])->label('ชื่อที่ใช้แสดง *'); ?>
+                    <?= $form->field($profileModel, 'firstname')->textInput()->input('text', ['placeholder' => 'ชื่อ'])->label('ชื่อ *'); ?>
+                    <?= $form->field($profileModel, 'lastname')->textInput()->input('text', ['placeholder' => 'นามสกุล'])->label('นามสกุล *'); ?>
                     <?= $form->field($profileModel, 'phone')->textInput()->input('text', ['placeholder' => 'หมายเลขโทรศัพท์มือถือ'])->label('หมายเลขโทรศัพท์มือถือ'); ?>
 
                     <?php
