@@ -33,12 +33,56 @@ class ContentEcotourism extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-            [['content_id', 'created_at', 'updated_at'], 'required'],
+            // =========================
+            // REQUIRED
+            // =========================
+            [
+                [
+                    'name',
+                    'content_id'
+                ],
+                'required'
+            ],
+    
+            // =========================
+            // INTEGER
+            // =========================
             [['content_id'], 'integer'],
-            [['travel_information', 'contact'], 'string'],
+    
+            // =========================
+            // TEXT
+            // =========================
+            [['description', 'travel_information'], 'string'],
+    
+            // =========================
+            // STRING LENGTH
+            // =========================
+            [
+                [
+                    'name',
+                    'contact',
+                    'phone',
+                    'address'
+                ],
+                'string',
+                'max' => 255
+            ],
+    
+            // =========================
+            // FOREIGN KEY
+            // =========================
+            [
+                ['content_id'],
+                'exist',
+                'skipOnError' => true,
+                'targetClass' => Content::class,
+                'targetAttribute' => ['content_id' => 'id']
+            ],
+    
+            // =========================
+            // SAFE TIMESTAMP
+            // =========================
             [['created_at', 'updated_at'], 'safe'],
-            [['address', 'name', 'phone'], 'string', 'max' => 255],
-
         ];
     }
 
