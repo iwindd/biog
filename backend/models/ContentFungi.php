@@ -40,12 +40,60 @@ class ContentFungi extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-            [['content_id', 'created_at', 'updated_at'], 'required'],
+            // =========================
+            // REQUIRED
+            // =========================
+            [
+                [
+                    'content_id',
+                    'features',
+                    'scientific_name'
+                ],
+                'required'
+            ],
+    
+            // =========================
+            // INTEGER
+            // =========================
             [['content_id'], 'integer'],
-            [['features', 'benefit', 'other_information', 'found_source', 'ability', 'common_name', 'scientific_name', 'family_name'], 'string'],
+    
+            // =========================
+            // TEXT
+            // =========================
+            [['features', 'benefit', 'other_information'], 'string'],
+    
+            // =========================
+            // STRING LENGTH
+            // =========================
+            [
+                [
+                    'other_name',
+                    'season',
+                    'found_source',
+                    'ability',
+                    'common_name',
+                    'scientific_name',
+                    'family_name'
+                ],
+                'string',
+                'max' => 255
+            ],
+    
+            // =========================
+            // FOREIGN KEY
+            // =========================
+            [
+                ['content_id'],
+                'exist',
+                'skipOnError' => true,
+                'targetClass' => Content::class,
+                'targetAttribute' => ['content_id' => 'id']
+            ],
+    
+            // =========================
+            // SAFE TIMESTAMP
+            // =========================
             [['created_at', 'updated_at'], 'safe'],
-            [['other_name', 'season'], 'string', 'max' => 255],
-            [['content_id'], 'exist', 'skipOnError' => true, 'targetClass' => Content::className(), 'targetAttribute' => ['content_id' => 'id']],
         ];
     }
 
