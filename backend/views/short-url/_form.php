@@ -12,7 +12,7 @@ use yii\widgets\ActiveForm;
 
     <?php $form = ActiveForm::begin(); ?>
 
-    <?= $form->field($model, 'target_url')->textInput(['maxlength' => true, 'placeholder' => 'https://example.com/very/long/url...']) ?>
+    <?= $form->field($model, 'target_url')->textInput(['maxlength' => true, 'placeholder' => 'https://example.com/very/long/url...'])->label('ลิงก์ปลายทาง (Target URL) *') ?>
 
     <?= $form->field($model, 'code')->textInput(['maxlength' => true, 'placeholder' => 'เว้นว่างไว้หากต้องการให้ระบบสุ่มรหัสให้อัตโนมัติ']) ?>
 

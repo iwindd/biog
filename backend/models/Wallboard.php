@@ -32,7 +32,7 @@ class Wallboard extends \yii\db\ActiveRecord
     {
         return [
             [['description'], 'string'],
-            [['created_by_user_id', 'updated_by_user_id'], 'required'],
+            [['description', 'created_by_user_id', 'updated_by_user_id'], 'required'],
             [['created_by_user_id', 'updated_by_user_id', 'active'], 'integer'],
             [['created_at', 'updated_at'], 'safe'],
         ];

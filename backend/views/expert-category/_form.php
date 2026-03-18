@@ -12,7 +12,7 @@ use yii\widgets\ActiveForm;
 
     <?php $form = ActiveForm::begin(); ?>
 
-    <?= $form->field($model, 'name')->textInput(['maxlength' => true]) ?>
+    <?= $form->field($model, 'name')->textInput(['maxlength' => true])->label('ชื่อหมวดหมู่ *') ?>
 
     <div class="form-group">
         <?= Html::submitButton('บันทึก', ['class' => 'btn btn-success']) ?>

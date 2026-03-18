@@ -61,7 +61,7 @@ $post_facebook= [
         <div class="panel-heading">ข้อมูลข่าวสาร</div>
         <div class="panel-body">
 
-            <?= $form->field($model, 'title')->textInput(['maxlength' => true]) ?>
+            <?= $form->field($model, 'title')->textInput(['maxlength' => true])->label('หัวข้อข่าว *') ?>
             <?php /*
             <?= $form->field($model, 'description')->widget(\yii2jodit\JoditWidget::className(), [
                     'settings' => [
@@ -89,7 +89,7 @@ $post_facebook= [
                 'pluginOptions' => [
                     'autoclose' => true
                 ]
-            ]); ?>
+            ])->label('วันที่เผยแพร่ *'); ?>
 
             <?= $form->field($model, 'picture_path', [
                           'template' => "{label}\n{input}\n<div> รูปภาพควรมีขนาด 766x400 pixel มีขนาดไม่เกิน 2 MB และ ต้องเป็นไฟล์นามสกุล jpg, jpeg, png หรือ gif เท่านั้น </div>\n{hint}\n{error}",
