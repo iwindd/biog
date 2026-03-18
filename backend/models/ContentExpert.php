@@ -37,12 +37,61 @@ class ContentExpert extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-            [['content_id', 'expert_category_id'], 'required'],
-            [['content_id', 'expert_category_id'], 'integer'],
-            [['expert_birthdate', 'created_at', 'updated_at'], 'safe'],
-            [['expert_expertise'], 'string'],
-            [['expert_firstname', 'expert_lastname', 'expert_occupation', 'expert_card_id', 'address'], 'string', 'max' => 255],
-            [['phone'], 'string', 'max' => 64],
+            // =========================
+            // REQUIRED
+            // =========================
+            [
+                [
+                    'content_id',
+                    'expert_category_id',
+                    'expert_firstname',
+                    'expert_lastname',
+                    'expert_expertise'
+                ],
+                'required'
+            ],
+    
+            // =========================
+            // INTEGER
+            // =========================
+            [['content_id'], 'integer'],
+    
+            // =========================
+            // TEXT
+            // =========================
+            [['description'], 'string'],
+    
+            // =========================
+            // STRING LENGTH
+            // =========================
+            [
+                [
+                    'expert_firstname',
+                    'expert_lastname',
+                    'expert_occupation',
+                    'expert_card_id',
+                    'phone',
+                    'address'
+                ],
+                'string',
+                'max' => 255
+            ],
+    
+            // =========================
+            // FOREIGN KEY
+            // =========================
+            [
+                ['content_id'],
+                'exist',
+                'skipOnError' => true,
+                'targetClass' => Content::class,
+                'targetAttribute' => ['content_id' => 'id']
+            ],
+    
+            // =========================
+            // SAFE TIMESTAMP
+            // =========================
+            [['created_at', 'updated_at'], 'safe'],
         ];
     }
 

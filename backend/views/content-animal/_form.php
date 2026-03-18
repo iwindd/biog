@@ -80,11 +80,11 @@ $licenseList = ArrayHelper::map(License::find()->all(), 'id', 'name');
         <div class="panel-heading">ข้อมูลสัตว์</div>
         <div class="panel-body">
 
-            <?= $form->field($model, 'name')->textInput(['maxlength' => true]) ?>
+            <?= $form->field($model, 'name')->textInput(['maxlength' => true])->label('ชื่อสัตว์ *') ?>
 
             <?= $form->field($modelAnimal, 'other_name')->textInput(['maxlength' => true]) ?>
 
-            <?= $form->field($modelAnimal, 'features')->textarea(['rows' => '6', 'class' => 'summernote-features']) ?>
+            <?= $form->field($modelAnimal, 'features')->textarea(['rows' => '6', 'class' => 'summernote-features'])->label('ลักษณะทางอนามัย *') ?>
             
             <?= $form->field($modelAnimal, 'benefit')->textarea(['rows' => '6', 'class' => 'summernote-benefit']) ?>
 
@@ -95,15 +95,15 @@ $licenseList = ArrayHelper::map(License::find()->all(), 'id', 'name');
                 'form' => $form,
             ]) ?>
 
-            <?= $form->field($model, 'region_id')->dropDownList($region, ['prompt' => 'กรุณาเลือกภูมิภาค']) ?>
+            <?= $form->field($model, 'region_id')->dropDownList($region, ['prompt' => 'กรุณาเลือกภูมิภาค'])->label('ภูมิภาค *') ?>
 
-            <?= $form->field($model, 'province_id')->dropDownList($province, ['prompt' => 'กรุณาเลือกจังหวัด']) ?>
+            <?= $form->field($model, 'province_id')->dropDownList($province, ['prompt' => 'กรุณาเลือกจังหวัด'])->label('จังหวัด *') ?>
 
-            <?= $form->field($model, 'district_id')->dropDownList($district, ['prompt' => 'กรุณาเลือกอำเภอ']) ?>
+            <?= $form->field($model, 'district_id')->dropDownList($district, ['prompt' => 'กรุณาเลือกอำเภอ'])->label('อำเภอ *') ?>
 
-            <?= $form->field($model, 'subdistrict_id')->dropDownList($subdistrict, ['prompt' => 'กรุณาเลือกตำบล']) ?>
+            <?= $form->field($model, 'subdistrict_id')->dropDownList($subdistrict, ['prompt' => 'กรุณาเลือกตำบล'])->label('ตำบล *') ?>
 
-            <?= $form->field($model, 'zipcode_id')->dropDownList($zipcode, ['prompt' => 'กรุณาเลือกรหัสไปรษณีย์']) ?>
+            <?= $form->field($model, 'zipcode_id')->dropDownList($zipcode, ['prompt' => 'กรุณาเลือกรหัสไปรษณีย์'])->label('รหัสไปรษณีย์ *') ?>
 
 
             <?php 
@@ -111,7 +111,7 @@ $licenseList = ArrayHelper::map(License::find()->all(), 'id', 'name');
             echo $form->field($model, 'picture_path', [
                 'template' => "{label}\n{input}\n<div id=\"{$picInputId}-preview\" style=\"margin-top: 15px; margin-bottom: 15px;\">{$initialPreview}</div>\n<div> รูปภาพควรมีขนาด 1532x800 pixel มีขนาดไม่เกิน 8 MB และ ต้องเป็นไฟล์นามสกุล jpg, jpeg, png หรือ gif เท่านั้น </div>\n{hint}\n{error}",
                 'labelOptions' => ['class' => 'control-label']
-            ])->hiddenInput()->label('รูปภาพหน้าปก');
+            ])->hiddenInput()->label('รูปภาพหน้าปก *');
             
             echo \backend\components\FileCenterPickerWidget::widget([
                 'inputId' => $picInputId,
@@ -133,7 +133,7 @@ $licenseList = ArrayHelper::map(License::find()->all(), 'id', 'name');
 
             <?= $form->field($modelAnimal, 'common_name')->textInput(['maxlength' => true]) ?>
 
-            <?= $form->field($modelAnimal, 'scientific_name')->textInput(['maxlength' => true]) ?>
+            <?= $form->field($modelAnimal, 'scientific_name')->textInput(['maxlength' => true])->label("ชื่อวิทยาศาสตร์ *") ?>
 
             <?= $form->field($modelAnimal, 'family_name')->textInput(['maxlength' => true]) ?>
 
@@ -246,7 +246,7 @@ $licenseList = ArrayHelper::map(License::find()->all(), 'id', 'name');
                 'pending' => 'Pending',
                 'approved' => 'Approved',
                 'rejected' => 'Rejected',
-            ], ['prompt' => 'เลือกสถานะ']) ?>
+            ], ['prompt' => 'เลือกสถานะ'])->label('สถานะ *') ?>
 
             <?= $form->field($model, 'license_id')->widget(Select2::classname(), [
                 'data' => $licenseList,
@@ -254,7 +254,7 @@ $licenseList = ArrayHelper::map(License::find()->all(), 'id', 'name');
                 'pluginOptions' => [
                     'allowClear' => true
                 ],
-            ]); ?>
+            ])->label('สัญญาอนุญาต *') ?>
 
             <?= $form->field($model, 'is_hidden')->dropDownList([
                 '0' => 'แสดงผล',

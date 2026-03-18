@@ -50,14 +50,14 @@ $longitude = $model->longitude ?? '';
             ])->textInput([
                 'maxlength' => true,
                 'placeholder' => 'เช่น 13.7563',
-            ])->label('Latitude (ละติจูด)') ?>
+            ])->label('Latitude (ละติจูด) *') ?>
 
             <?= $form->field($model, 'longitude', [
                 'options' => ['class' => 'form-group map-coord-field'],
             ])->textInput([
                 'maxlength' => true,
                 'placeholder' => 'เช่น 100.5018',
-            ])->label('Longitude (ลองจิจูด)') ?>
+            ])->label('Longitude (ลองจิจูด) *') ?>
         </div>
     </div>
 
@@ -65,15 +65,15 @@ $longitude = $model->longitude ?? '';
     <div class="map-coord-fields" id="map-utm-group" style="display:none;">
         <div class="map-coord-row">
             <div class="form-group utm-zone-field">
-                <label for="map-utm-zone">Zone</label>
+                <label for="map-utm-zone">Zone *</label>
                 <input type="text" id="map-utm-zone" class="form-control" placeholder="เช่น 47N" maxlength="3">
             </div>
             <div class="form-group">
-                <label for="map-utm-easting">Easting (ค่า X)</label>
+                <label for="map-utm-easting">Easting (ค่า X) *</label>
                 <input type="text" id="map-utm-easting" class="form-control" placeholder="เช่น 661234.56">
             </div>
             <div class="form-group">
-                <label for="map-utm-northing">Northing (ค่า Y)</label>
+                <label for="map-utm-northing">Northing (ค่า Y) *</label>
                 <input type="text" id="map-utm-northing" class="form-control" placeholder="เช่น 1521234.56">
             </div>
         </div>
