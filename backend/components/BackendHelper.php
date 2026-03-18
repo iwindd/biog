@@ -253,7 +253,13 @@ class BackendHelper
 
     public static function menuActive($site, $action)
     {
-        if ($site == "users") {
+        if ($site == "/") {
+            if ($action == "site/index" || $action == "/") {
+                return true;
+            } else {
+                return false;
+            }
+        } elseif ($site == "users") {
             if ($action == "users/index" || $action == "users/view" || $action == "users/create" || $action == "users/update") {
                 return true;
             } else {

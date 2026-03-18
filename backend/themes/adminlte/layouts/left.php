@@ -19,6 +19,7 @@ $getMenuTemplate = function ($typeId) use ($contentTypes) {
             [
                 'options' => ['class' => 'sidebar-menu tree', 'data-widget' => 'tree'],
                 'items' => [
+                    ['label' => 'ภาพรวม', 'icon' => 'home', 'url' => ['/'], 'active' => BackendHelper::menuActive('/', $this->context->route)],
                     [
                         'label' => 'เนื้อหา',
                         'icon' => 'list-alt',
