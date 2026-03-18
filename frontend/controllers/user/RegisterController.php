@@ -33,6 +33,7 @@ class RegisterController extends Controller
         if ($userModel->load(Yii::$app->request->post())) {
             $transaction = \Yii::$app->db->beginTransaction();
             try {
+                $this->setupUserCredentials($userModel);
                 if (empty($userModel->usersValidate())) {
                     $profileModel->load(Yii::$app->request->post());
                     $schoolModel->load(Yii::$app->request->post());
@@ -41,7 +42,6 @@ class RegisterController extends Controller
                     $checkUpdate = $this->handleHybridInvite($profileModel, $userModel) && $checkUpdate;
 
                     if ($checkUpdate) {
-                        $this->setupUserCredentials($userModel);
 
                         if ($userModel->save()) {
                             $uid = $userModel->id;
