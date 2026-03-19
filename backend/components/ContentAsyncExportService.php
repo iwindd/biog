@@ -315,7 +315,6 @@ class ContentAsyncExportService
             self::$mailerConfig = require Yii::getAlias('@common/config/mailer.php');
         }
 
-        error_log("DEBUG: " . json_encode(self::$mailerConfig));
         // Add detailed logging for debugging
         error_log("Export job {$job['id']}: Attempting to send email to {$job['user_email']} from {$mailSender['value']}");
         
