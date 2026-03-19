@@ -22,6 +22,7 @@ use backend\components\PermissionAccess;
 use backend\components\BackendHelper;
 use backend\components\BaseExportController;
 use backend\components\ContentAsyncExportService;
+use common\jobs\ExportJob;
     
 use common\components\Upload;
 use common\components\Helper;
@@ -856,23 +857,57 @@ class ContentPlantController extends Controller
         $filters['date_from'] = $dateFrom;
         $filters['date_to'] = $dateTo;
 
-        $job = ContentAsyncExportService::createJob('content_plant', $filters, Yii::$app->user->identity->id);
-        error_log("Export job created: {$job['id']}");
-
-        // Start processing in background (async)
-        // Note: In production, this should be handled by a queue system
-        // For now, we'll start processing but return immediately to allow polling
-        try {
-            // Don't process immediately - let polling handle it
-            error_log("Export job {$job['id']} ready for async processing");
-        } catch (Exception $e) {
-            error_log("Export job setup failed: {$job['id']} - " . $e->getMessage());
-            ContentAsyncExportService::failJob($job['id'], $e->getMessage());
+        $exportJob = new ExportJob([
+            'typeKey' => 'content_plant',
+            'filters' => $filters,
+            'userId' => Yii::$app->user->identity->id,
+            'baseFileName' => 'รายงานข้อมูลพืช',
+        ]);
+        
+        // Push the job to queue
+        $jobId = Yii::$app->queue->push($exportJob);
+        
+        // Make sure queue job ID is strictly saved as an integer or string representation of it
+        $queueJobIdStr = (string)$jobId;
+        
+        // Also save a fallback mapping in ContentAsyncExportService for direct lookups
+        $service = new ContentAsyncExportService();
+        $initialJobHash = $exportJob->getJobHash();
+        
+        // The export job hasn't started yet, but we create a tracking record for it
+        $placeholderJob = $service->createJob('content_plant', $filters, Yii::$app->user->identity->id);
+        
+        // Overwrite the placeholder job status to pending
+        $placeholderJob['status'] = ContentAsyncExportService::STATUS_PENDING;
+        $service->saveJob($placeholderJob);
+        
+        // Store both mappings for safety
+        $this->storeQueueToHashMapping($queueJobIdStr, $initialJobHash);
+        
+        // Tell the queue to map this hash to our placeholder immediately so UI doesn't hang
+        $mappingFile = Yii::getAlias('@backend/runtime/export-jobs') . '/job_mappings.json';
+        
+        // Ensure directory exists and is writable
+        $mappingDir = dirname($mappingFile);
+        if (!is_dir($mappingDir)) {
+            mkdir($mappingDir, 0777, true);
+        }
+        
+        $mappings = [];
+        if (file_exists($mappingFile)) {
+            $mappings = json_decode(file_get_contents($mappingFile), true) ?: [];
+        }
+        $mappings[$initialJobHash] = $placeholderJob['id'];
+        
+        // Use error suppression and check result
+        $result = @file_put_contents($mappingFile, json_encode($mappings, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+        if ($result === false) {
+            error_log("Warning: Could not write job mapping file: $mappingFile");
         }
 
         return [
             'status' => 'success',
-            'jobId' => $job['id'],
+            'jobId' => $placeholderJob['id'], // Return placeholder ID directly to UI to avoid mapping issues later
             'message' => 'เริ่มสร้างไฟล์ export แล้ว',
         ];
     }
@@ -881,56 +916,81 @@ class ContentPlantController extends Controller
     {
         Yii::$app->response->format = Response::FORMAT_JSON;
 
-        $job = ContentAsyncExportService::getJob($jobId);
         error_log("Export status request for job: $jobId");
         
-        if (empty($job)) {
-            error_log("Export job not found: $jobId");
+        // Check if the requested ID is our new formatted export ID (from placeholder)
+        $job = ContentAsyncExportService::getJob($jobId);
+        
+        if ($job) {
+            // Check if job is pending or processing but has error
+            if (($job['status'] === ContentAsyncExportService::STATUS_PENDING || 
+                 $job['status'] === ContentAsyncExportService::STATUS_PROCESSING) && 
+                 !empty($job['error_message'])) {
+                $job['status'] = ContentAsyncExportService::STATUS_FAILED;
+            }
+            
             return [
-                'status' => 'error',
-                'message' => 'ไม่พบงาน export ที่ระบุ',
+                'status' => 'success',
+                'job' => [
+                    'id' => $job['id'],
+                    'state' => $job['status'],
+                    'progressMessage' => $job['progress_message'],
+                    'totalRows' => $job['total_rows'],
+                    'totalFiles' => $job['total_files'],
+                    'currentPart' => !empty($job['current_part']) ? $job['current_part'] : 0,
+                    'chunkSize' => !empty($job['chunk_size']) ? $job['chunk_size'] : 0,
+                    'peakMemoryMb' => !empty($job['peak_memory_mb']) ? $job['peak_memory_mb'] : 0,
+                    'errorMessage' => $job['error_message'],
+                    'downloadReady' => (bool) $job['download_ready'],
+                    'downloadUrl' => $job['download_ready'] ? Yii::$app->urlManager->createUrl(['/content-plant/download-export', 'jobId' => $job['id']]) : '',
+                ],
             ];
         }
 
-        error_log("Export job status: {$job['status']}, message: {$job['progress_message']}");
-
-        if ($job['status'] === ContentAsyncExportService::STATUS_PENDING) {
-            try {
-                $query = $this->buildPlantExportQuery($job['filters']);
-                $job = ContentAsyncExportService::processJob(
-                    $jobId,
-                    $query,
-                    function ($rows, $filePath, $part, $totalFiles) {
-                        $this->generatePlantExportFile($rows, $filePath, $part, $totalFiles);
-                    },
-                    'รายงานข้อมูลพืช'
-                );
-                error_log("Export job processed: {$job['status']}");
-            } catch (\Exception $exception) {
-                error_log("Export job processing failed: " . $exception->getMessage());
-                $job = ContentAsyncExportService::failJob($jobId, $exception->getMessage());
+        // If it's a numeric ID (old queue logic check), just return generic status
+        if (is_numeric($jobId)) {
+            $isDone = Yii::$app->queue->isDone($jobId);
+            if ($isDone) {
+                return [
+                    'status' => 'success',
+                    'job' => [
+                        'id' => $jobId,
+                        'state' => 'completed',
+                        'progressMessage' => 'ดำเนินการเสร็จสิ้น (100%)',
+                        'totalRows' => 0,
+                        'totalFiles' => 0,
+                        'currentPart' => 0,
+                        'chunkSize' => 0,
+                        'peakMemoryMb' => 0,
+                        'errorMessage' => 'เกิดข้อผิดพลาดในการค้นหาไฟล์',
+                        'downloadReady' => false,
+                        'downloadUrl' => '',
+                    ],
+                ];
             }
+            
+            return [
+                'status' => 'success',
+                'job' => [
+                    'id' => $jobId,
+                    'state' => 'processing',
+                    'progressMessage' => 'กำลังประมวลผล',
+                    'totalRows' => 0,
+                    'totalFiles' => 0,
+                    'currentPart' => 0,
+                    'chunkSize' => 0,
+                    'peakMemoryMb' => 0,
+                    'errorMessage' => '',
+                    'downloadReady' => false,
+                    'downloadUrl' => '',
+                ],
+            ];
         }
 
-        $response = [
-            'status' => 'success',
-            'job' => [
-                'id' => $job['id'],
-                'state' => $job['status'],
-                'progressMessage' => $job['progress_message'],
-                'totalRows' => $job['total_rows'],
-                'totalFiles' => $job['total_files'],
-                'currentPart' => !empty($job['current_part']) ? $job['current_part'] : 0,
-                'chunkSize' => !empty($job['chunk_size']) ? $job['chunk_size'] : 0,
-                'peakMemoryMb' => !empty($job['peak_memory_mb']) ? $job['peak_memory_mb'] : 0,
-                'errorMessage' => $job['error_message'],
-                'downloadReady' => (bool) $job['download_ready'],
-                'downloadUrl' => $job['download_ready'] ? Yii::$app->urlManager->createUrl(['/content-plant/download-export', 'jobId' => $job['id']]) : '',
-            ],
+        return [
+            'status' => 'error',
+            'message' => 'ไม่พบงาน export ที่ระบุ',
         ];
-        
-        error_log("Export status response: " . json_encode($response));
-        return $response;
     }
 
     public function actionDownloadExport($jobId)
@@ -961,6 +1021,43 @@ class ContentPlantController extends Controller
             'status' => !empty($searchFilters['status']) ? $searchFilters['status'] : Yii::$app->request->get('status', ''),
             'updated_at' => !empty($searchFilters['updated_at']) ? $searchFilters['updated_at'] : Yii::$app->request->get('updated_at', ''),
         ];
+    }
+
+    private function storeQueueToHashMapping($queueJobId, $jobHash)
+    {
+        $mappingFile = Yii::getAlias('@backend/runtime/export-jobs') . '/queue_to_hash_mapping.json';
+        
+        // Ensure directory exists and is writable
+        $mappingDir = dirname($mappingFile);
+        if (!is_dir($mappingDir)) {
+            mkdir($mappingDir, 0777, true);
+        }
+        
+        $mappings = [];
+        
+        if (file_exists($mappingFile)) {
+            $mappings = json_decode(file_get_contents($mappingFile), true) ?: [];
+        }
+        
+        $mappings[$queueJobId] = $jobHash;
+        
+        // Use error suppression and check result
+        $result = @file_put_contents($mappingFile, json_encode($mappings, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+        if ($result === false) {
+            error_log("Warning: Could not write queue-to-hash mapping file: $mappingFile");
+        }
+    }
+
+    private function getJobHashFromQueueId($queueJobId)
+    {
+        $mappingFile = Yii::getAlias('@backend/runtime/export-jobs') . '/queue_to_hash_mapping.json';
+        
+        if (!file_exists($mappingFile)) {
+            return null;
+        }
+        
+        $mappings = json_decode(file_get_contents($mappingFile), true) ?: [];
+        return $mappings[$queueJobId] ?? null;
     }
 
     private function buildPlantExportQuery($filters = [])
