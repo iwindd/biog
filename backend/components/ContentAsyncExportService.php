@@ -22,7 +22,7 @@ class ContentAsyncExportService
             'type_key' => $typeKey,
             'filters' => $filters,
             'status' => self::STATUS_PENDING,
-            'progress_message' => 'กำลังเตรียม export',
+            'progress_message' => 'กำลังเตรียม export (0%)',
             'total_rows' => 0,
             'total_files' => 0,
             'chunk_size' => self::CHUNK_SIZE,
@@ -65,10 +65,48 @@ class ContentAsyncExportService
         file_put_contents(self::getJobFile($job['id']), json_encode($job, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
     }
 
+    private static function calculateProgressPercentage($job)
+    {
+        if ($job['status'] === self::STATUS_PENDING) {
+            return 0;
+        }
+        
+        if ($job['status'] === self::STATUS_FAILED) {
+            return null;
+        }
+        
+        if ($job['status'] === self::STATUS_COMPLETED) {
+            return 100;
+        }
+        
+        if ($job['total_files'] === 0) {
+            // Still calculating or initial phase
+            if (strpos($job['progress_message'], 'คำนวณจำนวนข้อมูล') !== false) {
+                return 5;
+            }
+            return 0;
+        }
+        
+        if ($job['current_part'] === 0) {
+            // Before file generation starts
+            return 5;
+        }
+        
+        if (strpos($job['progress_message'], 'บีบอัดไฟล์ ZIP') !== false) {
+            return 90;
+        }
+        
+        // File generation phase: 5% to 89%
+        $fileProgress = ($job['current_part'] - 1) / $job['total_files'];
+        $percentage = 5 + ($fileProgress * 84); // 84% to leave room for ZIP phase
+        return min(89, (int)$percentage);
+    }
+
     public static function processJob($jobId, $query, callable $chunkExporter, $baseFileName)
     {
         $job = self::getJob($jobId);
         if (empty($job)) {
+            error_log("Export job not found: $jobId");
             return null;
         }
 
@@ -83,8 +121,9 @@ class ContentAsyncExportService
         }
 
         $job['status'] = self::STATUS_PROCESSING;
-        $job['progress_message'] = 'กำลังคำนวณจำนวนข้อมูล';
+        $job['progress_message'] = 'กำลังคำนวณจำนวนข้อมูล (5%)';
         $job['peak_memory_mb'] = self::getPeakMemoryMb();
+        error_log("Export job $jobId: Starting processing");
         self::saveJob($job);
 
         $totalRows = (clone $query)->count();
@@ -111,7 +150,8 @@ class ContentAsyncExportService
             $rows = (clone $query)->offset($offset)->limit(self::CHUNK_SIZE)->asArray()->all();
 
             $job['current_part'] = $part;
-            $job['progress_message'] = 'กำลังสร้างไฟล์ ' . $part . '/' . $totalFiles;
+            $percentage = self::calculateProgressPercentage($job);
+            $job['progress_message'] = 'กำลังสร้างไฟล์ ' . $part . '/' . $totalFiles . ' (' . $percentage . '%)';
             $job['peak_memory_mb'] = max($job['peak_memory_mb'], self::getPeakMemoryMb());
             self::saveJob($job);
 
@@ -123,7 +163,7 @@ class ContentAsyncExportService
             gc_collect_cycles();
         }
 
-        $job['progress_message'] = 'กำลังบีบอัดไฟล์ ZIP';
+        $job['progress_message'] = 'กำลังบีบอัดไฟล์ ZIP (90%)';
         $job['peak_memory_mb'] = max($job['peak_memory_mb'], self::getPeakMemoryMb());
         self::saveJob($job);
 
@@ -135,7 +175,7 @@ class ContentAsyncExportService
         $job['zip_path'] = $zipPath;
         $job['download_ready'] = true;
         $job['status'] = self::STATUS_COMPLETED;
-        $job['progress_message'] = 'พร้อมดาวน์โหลด';
+        $job['progress_message'] = 'พร้อมดาวน์โหลด (100%)';
         $job['peak_memory_mb'] = max($job['peak_memory_mb'], self::getPeakMemoryMb());
         self::saveJob($job);
 

@@ -842,7 +842,10 @@ class ContentPlantController extends Controller
 
         $dateFrom = Yii::$app->request->post('date_from');
         $dateTo = Yii::$app->request->post('date_to');
+        error_log("Export request: date_from=$dateFrom, date_to=$dateTo");
+        
         if (empty($dateFrom) || empty($dateTo)) {
+            error_log("Export request failed: missing dates");
             return [
                 'status' => 'error',
                 'message' => 'กรุณาเลือกช่วงวันที่ให้ครบถ้วน',
@@ -854,6 +857,18 @@ class ContentPlantController extends Controller
         $filters['date_to'] = $dateTo;
 
         $job = ContentAsyncExportService::createJob('content_plant', $filters, Yii::$app->user->identity->id);
+        error_log("Export job created: {$job['id']}");
+
+        // Start processing in background (async)
+        // Note: In production, this should be handled by a queue system
+        // For now, we'll start processing but return immediately to allow polling
+        try {
+            // Don't process immediately - let polling handle it
+            error_log("Export job {$job['id']} ready for async processing");
+        } catch (Exception $e) {
+            error_log("Export job setup failed: {$job['id']} - " . $e->getMessage());
+            ContentAsyncExportService::failJob($job['id'], $e->getMessage());
+        }
 
         return [
             'status' => 'success',
@@ -867,12 +882,17 @@ class ContentPlantController extends Controller
         Yii::$app->response->format = Response::FORMAT_JSON;
 
         $job = ContentAsyncExportService::getJob($jobId);
+        error_log("Export status request for job: $jobId");
+        
         if (empty($job)) {
+            error_log("Export job not found: $jobId");
             return [
                 'status' => 'error',
                 'message' => 'ไม่พบงาน export ที่ระบุ',
             ];
         }
+
+        error_log("Export job status: {$job['status']}, message: {$job['progress_message']}");
 
         if ($job['status'] === ContentAsyncExportService::STATUS_PENDING) {
             try {
@@ -885,12 +905,14 @@ class ContentPlantController extends Controller
                     },
                     'รายงานข้อมูลพืช'
                 );
+                error_log("Export job processed: {$job['status']}");
             } catch (\Exception $exception) {
+                error_log("Export job processing failed: " . $exception->getMessage());
                 $job = ContentAsyncExportService::failJob($jobId, $exception->getMessage());
             }
         }
 
-        return [
+        $response = [
             'status' => 'success',
             'job' => [
                 'id' => $job['id'],
@@ -906,6 +928,9 @@ class ContentPlantController extends Controller
                 'downloadUrl' => $job['download_ready'] ? Yii::$app->urlManager->createUrl(['/content-plant/download-export', 'jobId' => $job['id']]) : '',
             ],
         ];
+        
+        error_log("Export status response: " . json_encode($response));
+        return $response;
     }
 
     public function actionDownloadExport($jobId)
@@ -1000,7 +1025,7 @@ class ContentPlantController extends Controller
         return $query;
     }
 
-    private function generatePlantExportFile($rows, $filePath, $part, $totalFiles)
+    public function generatePlantExportFile($rows, $filePath, $part, $totalFiles)
     {
         $protocol = stripos(Yii::$app->request->getHostInfo(), 'https://') === 0 ? 'https://' : 'http://';
         $hostname = Yii::$app->request->getHostName();
