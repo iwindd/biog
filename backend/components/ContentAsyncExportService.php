@@ -145,9 +145,17 @@ class ContentAsyncExportService
         FileHelper::createDirectory($jobDir);
 
         $generatedFiles = [];
+        $baseQuery = clone $query; // Clone once outside the loop
+        
         for ($part = 1; $part <= $totalFiles; $part++) {
             $offset = ($part - 1) * self::CHUNK_SIZE;
-            $rows = (clone $query)->offset($offset)->limit(self::CHUNK_SIZE)->asArray()->all();
+            
+            // Create a new query for each chunk to avoid memory buildup
+            $chunkQuery = clone $baseQuery;
+            $rows = $chunkQuery->offset($offset)->limit(self::CHUNK_SIZE)->asArray()->all();
+            
+            // Clear the query object immediately
+            unset($chunkQuery);
 
             $job['current_part'] = $part;
             $percentage = self::calculateProgressPercentage($job);
@@ -159,9 +167,20 @@ class ContentAsyncExportService
             $chunkExporter($rows, $xlsxPath, $part, $totalFiles);
             $generatedFiles[] = $xlsxPath;
 
+            // Explicit cleanup of rows and force garbage collection
             unset($rows);
-            gc_collect_cycles();
+            
+            // Force garbage collection more frequently for large datasets
+            if ($part % 5 === 0) {
+                gc_collect_cycles();
+            }
         }
+        
+        // Clear the base query object
+        unset($baseQuery);
+        
+        // Final garbage collection before ZIP creation
+        gc_collect_cycles();
 
         $job['progress_message'] = 'กำลังบีบอัดไฟล์ ZIP (90%)';
         $job['peak_memory_mb'] = max($job['peak_memory_mb'], self::getPeakMemoryMb());
@@ -213,10 +232,15 @@ class ContentAsyncExportService
         foreach ($files as $file) {
             if (is_file($file)) {
                 $zip->addFile($file, basename($file));
+                // Clear file from memory after adding to ZIP
+                clearstatcache(true, $file);
             }
         }
 
         $zip->close();
+        
+        // Force garbage collection after ZIP creation
+        gc_collect_cycles();
     }
 
     protected static function ensureBaseDirectories()
@@ -226,9 +250,20 @@ class ContentAsyncExportService
 
     protected static function prepareRuntime()
     {
-        ini_set('memory_limit', '512M');
+        // Set higher memory limit for large exports
+        ini_set('memory_limit', '1G');
+        
+        // Remove execution time limits
         ini_set('max_execution_time', '0');
         set_time_limit(0);
+        
+        // Disable unnecessary features for background processing
+        if (function_exists('xdebug_disable')) {
+            xdebug_disable();
+        }
+        
+        // Force garbage collection at the start
+        gc_collect_cycles();
     }
 
     protected static function getPeakMemoryMb()
