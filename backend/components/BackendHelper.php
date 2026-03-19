@@ -495,4 +495,82 @@ class BackendHelper
 
         return '-';
     }
+
+    /**
+     * Build standardized query for plant export data
+     * @param array $filters Filter conditions
+     * @param bool $addOrderBy Whether to add default ordering
+     * @return \yii\db\Query
+     */
+    public static function buildPlantExportQuery($filters = [], $addOrderBy = false)
+    {
+        $query = \backend\models\Content::find()->select([
+            'content.id as content_id',
+            'content.name',
+            'content.type_id',
+            'content_plant.other_name',
+            'content_plant.features',
+            'content_plant.benefit',
+            'content_plant.found_source',
+            'content_plant.common_name',
+            'content_plant.scientific_name',
+            'content_plant.family_name',
+            'content.region_id',
+            'content.province_id',
+            'content.district_id',
+            'content.subdistrict_id',
+            'content.zipcode_id',
+            'content.created_by_user_id',
+            'content.approved_by_user_id',
+            'content.status',
+            'content.note',
+            'content.created_at',
+        ]);
+
+        $query->leftJoin('content_plant', 'content_plant.content_id = content.id');
+        $query->leftJoin('profile', 'profile.user_id = content.created_by_user_id');
+        $query->andFilterWhere(['=', 'content.type_id', 1]);
+        $query->andFilterWhere(['=', 'content.active', 1]);
+
+        if (!empty($filters['name'])) {
+            $query->andFilterWhere(['like', 'content.name', $filters['name']]);
+        }
+
+        if (!empty($filters['created_by_user_id'])) {
+            $query->andFilterWhere(['=', 'created_by_user_id', $filters['created_by_user_id']]);
+        }
+
+        if (!empty($filters['updated_by_user_id'])) {
+            $query->andFilterWhere(['=', 'updated_by_user_id', $filters['updated_by_user_id']]);
+        }
+
+        if (!empty($filters['approved_by_user_id'])) {
+            $query->andFilterWhere(['=', 'approved_by_user_id', $filters['approved_by_user_id']]);
+        }
+
+        if (!empty($filters['note'])) {
+            $query->andFilterWhere(['like', 'note', $filters['note']]);
+        }
+
+        if (!empty($filters['status'])) {
+            $query->andFilterWhere(['like', 'status', $filters['status']]);
+        }
+
+        if (!empty($filters['updated_at'])) {
+            $query->andFilterWhere(['like', 'updated_at', $filters['updated_at']]);
+        }
+
+        // Use robust date filtering logic from controller
+        if (!empty($filters['date_from']) && !empty($filters['date_to'])) {
+            $dateStart = trim($filters['date_from']);
+            $dateEnd = date('Y-m-d', strtotime(trim($filters['date_to']) . ' +1 day'));
+            $query->andWhere(['between', 'content.created_at', $dateStart, $dateEnd]);
+        }
+
+        if ($addOrderBy) {
+            $query->orderBy(['content.created_at' => SORT_DESC, 'content.id' => SORT_DESC]);
+        }
+
+        return $query;
+    }
 }
