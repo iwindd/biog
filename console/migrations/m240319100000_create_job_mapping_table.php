@@ -25,6 +25,9 @@ class m240319100000_create_job_mapping_table extends Migration
         $this->createIndex('idx-job_mapping-job_hash', '{{%job_mapping}}', 'job_hash');
         $this->createIndex('idx-job_mapping-export_job_id', '{{%job_mapping}}', 'export_job_id');
         
+        // Add unique constraint on job_hash for ON DUPLICATE KEY UPDATE functionality
+        $this->createIndex('idx-job_mapping-unique_job_hash', '{{%job_mapping}}', 'job_hash', true);
+        
         // Add composite unique constraint to prevent exact duplicates (fixes constraint violation issue)
         $this->createIndex('idx-job_mapping-unique_queue_hash', '{{%job_mapping}}', ['queue_job_id', 'job_hash'], true);
         

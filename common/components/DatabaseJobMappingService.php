@@ -41,44 +41,22 @@ class DatabaseJobMappingService extends Component
         $transaction = Yii::$app->db->beginTransaction();
         
         try {
-            // First try to find exact match on both queue_job_id AND job_hash
-            $existing = Yii::$app->db->createCommand("
-                SELECT id FROM {{%job_mapping}} 
-                WHERE queue_job_id = :queueJobId AND job_hash = :jobHash
+            // Use INSERT ... ON DUPLICATE KEY UPDATE for atomic operation
+            // This eliminates the race condition between SELECT and INSERT/UPDATE
+            $command = Yii::$app->db->createCommand("
+                INSERT INTO {{%job_mapping}} (queue_job_id, job_hash, export_job_id, created_at, updated_at)
+                VALUES (:queueJobId, :jobHash, :exportJobId, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                ON DUPLICATE KEY UPDATE
+                    export_job_id = VALUES(export_job_id),
+                    queue_job_id = VALUES(queue_job_id),
+                    updated_at = CURRENT_TIMESTAMP
             ")->bindValues([
                 ':queueJobId' => $queueJobId,
-                ':jobHash' => $jobHash
-            ])->queryOne();
+                ':jobHash' => $jobHash,
+                ':exportJobId' => $exportJobId,
+            ]);
             
-            if ($existing) {
-                // Update existing exact match
-                $result = Yii::$app->db->createCommand()->update('{{%job_mapping}}', [
-                    'export_job_id' => $exportJobId,
-                    'updated_at' => new \yii\db\Expression('CURRENT_TIMESTAMP')
-                ], 'id = :id', ['id' => $existing['id']])->execute();
-            } else {
-                // Try to find existing record with same job_hash to update
-                $hashExisting = Yii::$app->db->createCommand("
-                    SELECT id FROM {{%job_mapping}} 
-                    WHERE job_hash = :jobHash LIMIT 1
-                ")->bindValue(':jobHash', $jobHash)->queryOne();
-                
-                if ($hashExisting) {
-                    // Update the existing record with new queue_job_id and export_job_id
-                    $result = Yii::$app->db->createCommand()->update('{{%job_mapping}}', [
-                        'queue_job_id' => $queueJobId,
-                        'export_job_id' => $exportJobId,
-                        'updated_at' => new \yii\db\Expression('CURRENT_TIMESTAMP')
-                    ], 'id = :id', ['id' => $hashExisting['id']])->execute();
-                } else {
-                    // Insert new record
-                    $result = Yii::$app->db->createCommand()->insert('{{%job_mapping}}', [
-                        'queue_job_id' => $queueJobId,
-                        'job_hash' => $jobHash,
-                        'export_job_id' => $exportJobId,
-                    ])->execute();
-                }
-            }
+            $result = $command->execute();
             
             $transaction->commit();
             
@@ -86,7 +64,39 @@ class DatabaseJobMappingService extends Component
                 error_log("Successfully stored mappings: queueJobId=$queueJobId, jobHash=$jobHash, exportJobId=$exportJobId");
             }
             
-            return (bool)$result;
+            return true;
+        } catch (\yii\db\IntegrityException $e) {
+            $transaction->rollBack();
+            
+            // Handle constraint violations (e.g., duplicate key)
+            if (strpos($e->getMessage(), 'Duplicate entry') !== false) {
+                // Try to update the existing record using the job_hash unique constraint
+                try {
+                    $updateCommand = Yii::$app->db->createCommand("
+                        UPDATE {{%job_mapping}} 
+                        SET export_job_id = :exportJobId, 
+                            queue_job_id = :queueJobId,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE job_hash = :jobHash
+                    ")->bindValues([
+                        ':exportJobId' => $exportJobId,
+                        ':queueJobId' => $queueJobId,
+                        ':jobHash' => $jobHash,
+                    ]);
+                    
+                    $updateResult = $updateCommand->execute();
+                    
+                    if ($updateResult) {
+                        error_log("Successfully updated existing mapping: jobHash=$jobHash, exportJobId=$exportJobId");
+                        return true;
+                    }
+                } catch (\Exception $updateException) {
+                    error_log("Failed to update existing mapping: " . $updateException->getMessage());
+                }
+            }
+            
+            error_log("Integrity constraint violation in job mappings: " . $e->getMessage());
+            return false;
         } catch (Exception $e) {
             $transaction->rollBack();
             error_log("Failed to store job mappings: " . $e->getMessage());
