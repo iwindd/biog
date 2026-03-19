@@ -4,6 +4,7 @@ namespace common\jobs;
 
 use yii\queue\JobInterface;
 use yii\base\BaseObject;
+use common\components\DatabaseJobMappingService;
 
 class ExportJob extends BaseObject implements JobInterface
 {
@@ -20,18 +21,46 @@ class ExportJob extends BaseObject implements JobInterface
         $service = new \backend\components\ContentAsyncExportService();
         $jobHash = $this->getJobHash();
         
-        // Find existing mapping or create new job
-        $exportJobId = self::getExportJobId($jobHash);
+        // Find existing mapping or create new job using database service
+        $mappingService = new DatabaseJobMappingService();
+        $exportJobId = $mappingService->getExportJobIdFromHash($jobHash);
+        
         if ($exportJobId) {
             $job = \backend\components\ContentAsyncExportService::getJob($exportJobId);
             if (!$job) {
                 // Mapping exists but job missing, create new one
                 $job = $service->createJob($this->typeKey, $this->filters, $this->userId);
-                $this->storeJobMapping($jobHash, $job['id']);
+                // Update the mapping with new export job ID
+                $queueJobId = $this->queueJobId ?? 'unknown';
+                $updateSuccess = $mappingService->storeMappings($queueJobId, $jobHash, $job['id']);
+                
+                if (!$updateSuccess) {
+                    // Try fallback service
+                    try {
+                        $fallbackService = new \common\components\JobMappingService();
+                        $fallbackService->storeMappings($queueJobId, $jobHash, $job['id']);
+                        error_log("Successfully updated mappings using fallback service");
+                    } catch (\Exception $e) {
+                        error_log("Failed to update mappings with both services: " . $e->getMessage());
+                    }
+                }
             }
         } else {
             $job = $service->createJob($this->typeKey, $this->filters, $this->userId);
-            $this->storeJobMapping($jobHash, $job['id']);
+            // Store mapping for this job
+            $queueJobId = $this->queueJobId ?? 'unknown';
+            $storeSuccess = $mappingService->storeMappings($queueJobId, $jobHash, $job['id']);
+            
+            if (!$storeSuccess) {
+                // Try fallback service
+                try {
+                    $fallbackService = new \common\components\JobMappingService();
+                    $fallbackService->storeMappings($queueJobId, $jobHash, $job['id']);
+                    error_log("Successfully stored mappings using fallback service");
+                } catch (\Exception $e) {
+                    error_log("Failed to store mappings with both services: " . $e->getMessage());
+                }
+            }
         }
         
         error_log("Export job executing with ID: " . $job['id']);
@@ -64,50 +93,6 @@ class ExportJob extends BaseObject implements JobInterface
         return md5(json_encode($data));
     }
 
-    private function storeJobMapping($queueJobId, $exportJobId)
-    {
-        $mappingFile = \Yii::getAlias('@backend/runtime/export-jobs') . '/job_mappings.json';
-        
-        // Ensure directory exists and is writable
-        $mappingDir = dirname($mappingFile);
-        if (!is_dir($mappingDir)) {
-            @mkdir($mappingDir, 0777, true);
-        }
-        
-        $mappings = [];
-        
-        if (file_exists($mappingFile)) {
-            $mappings = json_decode(file_get_contents($mappingFile), true) ?: [];
-        }
-        
-        $mappings[$queueJobId] = $exportJobId;
-        
-        // Use error suppression and check result
-        $result = @file_put_contents($mappingFile, json_encode($mappings, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
-        if ($result === false) {
-            error_log("Warning: Could not write job mapping file: $mappingFile");
-        }
-    }
-
-    public static function getExportJobId($queueJobId)
-    {
-        $mappingFile = \Yii::getAlias('@backend/runtime/export-jobs') . '/job_mappings.json';
-        
-        error_log("Looking for job mapping for queueJobId: $queueJobId in file: $mappingFile");
-        
-        if (!file_exists($mappingFile)) {
-            error_log("Job mapping file does not exist: $mappingFile");
-            return null;
-        }
-        
-        $mappings = json_decode(file_get_contents($mappingFile), true) ?: [];
-        error_log("Job mappings found: " . json_encode($mappings));
-        
-        $exportJobId = $mappings[$queueJobId] ?? null;
-        error_log("Export job ID for queueJobId $queueJobId: " . ($exportJobId ?? 'not found'));
-        
-        return $exportJobId;
-    }
 
     private function buildPlantExportQuery($filters = [])
     {

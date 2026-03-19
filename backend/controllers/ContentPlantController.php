@@ -23,6 +23,7 @@ use backend\components\BackendHelper;
 use backend\components\BaseExportController;
 use backend\components\ContentAsyncExportService;
 use common\jobs\ExportJob;
+use common\components\DatabaseJobMappingService;
     
 use common\components\Upload;
 use common\components\Helper;
@@ -881,28 +882,33 @@ class ContentPlantController extends Controller
         $placeholderJob['status'] = ContentAsyncExportService::STATUS_PENDING;
         $service->saveJob($placeholderJob);
         
-        // Store both mappings for safety
-        $this->storeQueueToHashMapping($queueJobIdStr, $initialJobHash);
+        // Store mappings using database service to prevent race condition
+        $mappingService = new DatabaseJobMappingService();
+        $success = $mappingService->storeMappings($queueJobIdStr, $initialJobHash, $placeholderJob['id']);
         
-        // Tell the queue to map this hash to our placeholder immediately so UI doesn't hang
-        $mappingFile = Yii::getAlias('@backend/runtime/export-jobs') . '/job_mappings.json';
-        
-        // Ensure directory exists and is writable
-        $mappingDir = dirname($mappingFile);
-        if (!is_dir($mappingDir)) {
-            mkdir($mappingDir, 0777, true);
-        }
-        
-        $mappings = [];
-        if (file_exists($mappingFile)) {
-            $mappings = json_decode(file_get_contents($mappingFile), true) ?: [];
-        }
-        $mappings[$initialJobHash] = $placeholderJob['id'];
-        
-        // Use error suppression and check result
-        $result = @file_put_contents($mappingFile, json_encode($mappings, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
-        if ($result === false) {
-            error_log("Warning: Could not write job mapping file: $mappingFile");
+        if (!$success) {
+            error_log("Warning: Failed to store job mappings using database service, attempting fallback...");
+            
+            // Fallback to file-based service
+            try {
+                $fallbackService = new \common\components\JobMappingService();
+                $fallbackSuccess = $fallbackService->storeMappings($queueJobIdStr, $initialJobHash, $placeholderJob['id']);
+                
+                if ($fallbackSuccess) {
+                    error_log("Successfully stored mappings using fallback service");
+                    $success = true;
+                } else {
+                    error_log("Warning: Both database and fallback mapping services failed");
+                }
+            } catch (\Exception $e) {
+                error_log("Fallback service failed: " . $e->getMessage());
+            }
+            
+            // Continue anyway - the placeholder job is still usable
+            // But add a warning to the response for debugging
+            if (!$success) {
+                error_log("Warning: Job mapping storage failed - UI polling may be affected");
+            }
         }
 
         return [
@@ -1023,42 +1029,6 @@ class ContentPlantController extends Controller
         ];
     }
 
-    private function storeQueueToHashMapping($queueJobId, $jobHash)
-    {
-        $mappingFile = Yii::getAlias('@backend/runtime/export-jobs') . '/queue_to_hash_mapping.json';
-        
-        // Ensure directory exists and is writable
-        $mappingDir = dirname($mappingFile);
-        if (!is_dir($mappingDir)) {
-            mkdir($mappingDir, 0777, true);
-        }
-        
-        $mappings = [];
-        
-        if (file_exists($mappingFile)) {
-            $mappings = json_decode(file_get_contents($mappingFile), true) ?: [];
-        }
-        
-        $mappings[$queueJobId] = $jobHash;
-        
-        // Use error suppression and check result
-        $result = @file_put_contents($mappingFile, json_encode($mappings, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
-        if ($result === false) {
-            error_log("Warning: Could not write queue-to-hash mapping file: $mappingFile");
-        }
-    }
-
-    private function getJobHashFromQueueId($queueJobId)
-    {
-        $mappingFile = Yii::getAlias('@backend/runtime/export-jobs') . '/queue_to_hash_mapping.json';
-        
-        if (!file_exists($mappingFile)) {
-            return null;
-        }
-        
-        $mappings = json_decode(file_get_contents($mappingFile), true) ?: [];
-        return $mappings[$queueJobId] ?? null;
-    }
 
     private function buildPlantExportQuery($filters = [])
     {
