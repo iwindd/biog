@@ -876,7 +876,9 @@ class ContentPlantController extends Controller
         $initialJobHash = $exportJob->getJobHash();
         
         // The export job hasn't started yet, but we create a tracking record for it
-        $placeholderJob = $service->createJob('content_plant', $filters, Yii::$app->user->identity->id);
+        $userId = Yii::$app->user->identity->id;
+        $userEmail = Yii::$app->user->identity->email;
+        $placeholderJob = $service->createJob('content_plant', $filters, $userId, $userEmail);
         
         // Overwrite the placeholder job status to pending
         $placeholderJob['status'] = ContentAsyncExportService::STATUS_PENDING;

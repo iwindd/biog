@@ -13,10 +13,18 @@ class ContentAsyncExportService
     const STATUS_COMPLETED = 'completed';
     const STATUS_FAILED = 'failed';
     const CHUNK_SIZE = 3000;
+    const FILE_RETENTION_HOURS = 48;
 
-    public static function createJob($typeKey, array $filters, $userId = null)
+    private static $mailerConfig = null;
+
+    public static function createJob($typeKey, array $filters, $userId = null, $userEmail = null)
     {
         $jobId = uniqid($typeKey . '_export_', true);
+        $createdAt = date('Y-m-d H:i:s');
+        $expiresAt = date('Y-m-d H:i:s', strtotime($createdAt . ' +' . self::FILE_RETENTION_HOURS . ' hours'));
+        
+
+        error_log("ContentAsyncExportService createJob - userId: " . $userId . ", userEmail: " . $userEmail);
         $job = [
             'id' => $jobId,
             'type_key' => $typeKey,
@@ -33,8 +41,10 @@ class ContentAsyncExportService
             'download_ready' => false,
             'error_message' => '',
             'created_by_user_id' => $userId,
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s'),
+            'user_email' => $userEmail,
+            'created_at' => $createdAt,
+            'updated_at' => $createdAt,
+            'expires_at' => $expiresAt,
         ];
 
         self::ensureBaseDirectories();
@@ -105,6 +115,7 @@ class ContentAsyncExportService
     public static function processJob($jobId, $query, callable $chunkExporter, $baseFileName)
     {
         $job = self::getJob($jobId);
+
         if (empty($job)) {
             error_log("Export job not found: $jobId");
             return null;
@@ -202,6 +213,9 @@ class ContentAsyncExportService
         $job['peak_memory_mb'] = max($job['peak_memory_mb'], self::getPeakMemoryMb());
         self::saveJob($job);
 
+        // Send email notification
+        self::sendExportCompletionEmail($job);
+
         return $job;
     }
 
@@ -288,5 +302,207 @@ class ContentAsyncExportService
     protected static function getJobFile($jobId)
     {
         return self::getBaseDirectory() . DIRECTORY_SEPARATOR . $jobId . '.json';
+    }
+
+    protected static function sendMail($job, $subject, $message) {
+        $mailSender = \backend\models\Variables::find()->where(['key' => 'sender_mail'])->one();
+        if (empty($mailSender)) {
+            error_log("Export job {$job['id']}: Mail sender not configured");
+            return false;
+        }
+        
+        if (self::$mailerConfig === null) {
+            self::$mailerConfig = require Yii::getAlias('@common/config/mailer.php');
+        }
+
+        error_log("DEBUG: " . json_encode(self::$mailerConfig));
+        // Add detailed logging for debugging
+        error_log("Export job {$job['id']}: Attempting to send email to {$job['user_email']} from {$mailSender['value']}");
+        
+        try {
+            $transport = new \Swift_SmtpTransport('smtp.gmail.com', 587, 'tls');
+            $transport->setUsername('biogang.smtp@gmail.com');
+            $transport->setPassword('nsrxdrammdozafgg');
+            $transport->start();
+            
+            $swiftMailer = new \Swift_Mailer($transport);
+            $swiftMessage = (new \Swift_Message($subject))
+                ->setFrom([$mailSender['value'] => 'BIOGANG'])
+                ->setTo($job['user_email'])
+                ->setBody($message);
+            
+            $swiftResult = $swiftMailer->send($swiftMessage);
+            $transport->stop();
+            
+            if ($swiftResult > 0) {
+                error_log("Export job {$job['id']}: Direct SwiftMailer email sent successfully to {$job['user_email']}");
+                return true;
+            } else {
+                error_log("Export job {$job['id']}: Direct SwiftMailer failed - no recipients accepted");
+                return false;
+            }
+            
+        } catch (\Swift_TransportException $e) {
+            error_log("Export job {$job['id']}: SMTP Transport Error - " . $e->getMessage());
+            return false;
+        } catch (\Exception $e) {
+            error_log("Export job {$job['id']}: General Email Error - " . $e->getMessage());
+            return false;
+        } 
+    }
+
+    public static function sendExportCompletionEmail($job)
+    {
+        if (empty($job['user_email'])) {
+            error_log("Export job {$job['id']}: No email address provided, skipping notification");
+            return false;
+        }
+        
+        // Validate email format
+        if (!filter_var($job['user_email'], FILTER_VALIDATE_EMAIL)) {
+            error_log("Export job {$job['id']}: Invalid email format: {$job['user_email']}");
+            return false;
+        }
+        
+        try {
+            $typeNames = [
+                'content_plant' => 'พืช',
+                'content_animal' => 'สัตว์',
+                'content_fungi' => 'จุลินทรีย์',
+                'content_product' => 'ผลิตภัณฑ์',
+                'content_expert' => 'ภูมิปัญญา',
+                'content_ecotourism' => 'แหล่งท่องเที่ยว',
+            ];
+            
+            $typeName = isset($typeNames[$job['type_key']]) ? $typeNames[$job['type_key']] : 'ข้อมูล';
+            $subject = 'BIOGANG: ไฟล์ Export ' . $typeName . ' พร้อมดาวน์โหลดแล้ว';
+            
+            // Get hostname and protocol
+            $hostname = getenv('BACKEND_URL');
+            if (empty($hostname)) {
+                $hostname = 'http://localhost:8080/admin';
+            }
+            
+            $downloadUrl = $hostname . '/export-downloads';
+            $expiresAt = date('d/m/Y H:i', strtotime($job['expires_at']));
+            
+            $message = "เรียน ผู้ใช้งาน BIOGANG\n\n";
+            $message .= "ไฟล์ Export ข้อมูล{$typeName} ของคุณพร้อมดาวน์โหลดแล้ว\n\n";
+            $message .= "รายละเอียด:\n";
+            $message .= "- จำนวนข้อมูล: " . number_format($job['total_rows']) . " รายการ\n";
+            $message .= "- จำนวนไฟล์: {$job['total_files']} ไฟล์\n";
+            $message .= "- ชื่อไฟล์: {$job['zip_file_name']}\n";
+            $message .= "- วันหมดอายุ: {$expiresAt} (เก็บไว้ 48 ชั่วโมง)\n\n";
+            $message .= "คลิกลิงก์ด้านล่างเพื่อดาวน์โหลดไฟล์:\n";
+            $message .= $downloadUrl . "\n\n";
+            $message .= "หมายเหตุ: ไฟล์จะถูกลบอัตโนมัติหลังจาก 48 ชั่วโมง\n\n";
+            $message .= "ขอบคุณที่ใช้บริการ BIOGANG";
+            
+            self::sendMail($job, $subject, $message);
+        } catch (\Exception $e) {
+            error_log("Export job {$job['id']}: Failed to send email - " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public static function getAllJobsForUser($userId)
+    {
+        $baseDir = self::getBaseDirectory();
+        if (!is_dir($baseDir)) {
+            return [];
+        }
+
+        $jobs = [];
+        $files = glob($baseDir . DIRECTORY_SEPARATOR . '*.json');
+        
+        foreach ($files as $file) {
+            $content = file_get_contents($file);
+            if ($content === false || $content === '') {
+                continue;
+            }
+            
+            $job = json_decode($content, true);
+            if (is_array($job) && isset($job['created_by_user_id']) && $job['created_by_user_id'] == $userId) {
+                $jobs[] = $job;
+            }
+        }
+        
+        // Sort by created_at descending
+        usort($jobs, function($a, $b) {
+            return strtotime($b['created_at']) - strtotime($a['created_at']);
+        });
+        
+        return $jobs;
+    }
+
+    public static function cleanupExpiredJobs()
+    {
+        $baseDir = self::getBaseDirectory();
+        if (!is_dir($baseDir)) {
+            return ['deleted' => 0, 'errors' => []];
+        }
+
+        $now = time();
+        $deleted = 0;
+        $errors = [];
+        $files = glob($baseDir . DIRECTORY_SEPARATOR . '*.json');
+        
+        foreach ($files as $file) {
+            try {
+                $content = file_get_contents($file);
+                if ($content === false || $content === '') {
+                    continue;
+                }
+                
+                $job = json_decode($content, true);
+                if (!is_array($job) || !isset($job['expires_at'])) {
+                    continue;
+                }
+                
+                $expiresAt = strtotime($job['expires_at']);
+                if ($expiresAt < $now) {
+                    // Delete job directory and files
+                    $jobDir = self::getJobDirectory($job['id']);
+                    if (is_dir($jobDir)) {
+                        FileHelper::removeDirectory($jobDir);
+                    }
+                    
+                    // Delete job metadata file
+                    if (is_file($file)) {
+                        unlink($file);
+                    }
+                    
+                    $deleted++;
+                    error_log("Cleaned up expired export job: {$job['id']}");
+                }
+            } catch (\Exception $e) {
+                $errors[] = "Failed to cleanup job file {$file}: " . $e->getMessage();
+                error_log("Cleanup error: " . $e->getMessage());
+            }
+        }
+        
+        return ['deleted' => $deleted, 'errors' => $errors];
+    }
+
+    public static function deleteJob($jobId)
+    {
+        try {
+            // Delete job directory and files
+            $jobDir = self::getJobDirectory($jobId);
+            if (is_dir($jobDir)) {
+                FileHelper::removeDirectory($jobDir);
+            }
+            
+            // Delete job metadata file
+            $jobFile = self::getJobFile($jobId);
+            if (is_file($jobFile)) {
+                unlink($jobFile);
+            }
+            
+            return true;
+        } catch (\Exception $e) {
+            error_log("Failed to delete job {$jobId}: " . $e->getMessage());
+            return false;
+        }
     }
 }

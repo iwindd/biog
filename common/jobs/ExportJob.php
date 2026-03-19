@@ -21,6 +21,16 @@ class ExportJob extends BaseObject implements JobInterface
         $service = new \backend\components\ContentAsyncExportService();
         $jobHash = $this->getJobHash();
         
+        // Get user email
+        $userEmail = null;
+        if ($this->userId) {
+            $user = \backend\models\Users::findOne($this->userId);
+            if ($user && !empty($user->email)) {
+                $userEmail = $user->email;
+            }
+        }
+        
+
         // Find existing mapping or create new job using database service
         $mappingService = new DatabaseJobMappingService();
         $exportJobId = $mappingService->getExportJobIdFromHash($jobHash);
@@ -29,7 +39,7 @@ class ExportJob extends BaseObject implements JobInterface
             $job = \backend\components\ContentAsyncExportService::getJob($exportJobId);
             if (!$job) {
                 // Mapping exists but job missing, create new one
-                $job = $service->createJob($this->typeKey, $this->filters, $this->userId);
+                $job = $service->createJob($this->typeKey, $this->filters, $this->userId, $userEmail);
                 // Update the mapping with new export job ID
                 $queueJobId = $this->queueJobId ?? 'unknown';
                 $updateSuccess = $mappingService->storeMappings($queueJobId, $jobHash, $job['id']);
@@ -40,7 +50,7 @@ class ExportJob extends BaseObject implements JobInterface
                 }
             }
         } else {
-            $job = $service->createJob($this->typeKey, $this->filters, $this->userId);
+            $job = $service->createJob($this->typeKey, $this->filters, $this->userId, $userEmail);
             // Store mapping for this job
             $queueJobId = $this->queueJobId ?? 'unknown';
             $storeSuccess = $mappingService->storeMappings($queueJobId, $jobHash, $job['id']);

@@ -239,28 +239,59 @@ $this->params['breadcrumbs'][] = $this->title;
                 <h4 class="modal-title">Export ข้อมูลพืช</h4>
             </div>
             <div class="modal-body">
-                <div class="row">
-                    <div class="col-sm-6">
-                        <div class="form-group">
-                            <label for="plantExportDateFrom">วันที่เริ่มต้น</label>
-                            <input type="date" class="form-control" id="plantExportDateFrom">
+                <!-- Initial Form State -->
+                <div id="plantExportFormState">
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label for="plantExportDateFrom">วันที่เริ่มต้น</label>
+                                <input type="date" class="form-control" id="plantExportDateFrom">
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label for="plantExportDateTo">วันที่สิ้นสุด</label>
+                                <input type="date" class="form-control" id="plantExportDateTo">
+                            </div>
                         </div>
                     </div>
-                    <div class="col-sm-6">
-                        <div class="form-group">
-                            <label for="plantExportDateTo">วันที่สิ้นสุด</label>
-                            <input type="date" class="form-control" id="plantExportDateTo">
+                    <div class="alert alert-info" style="margin-bottom: 10px;">
+                        <i class="fa fa-info-circle"></i> ระบบจะทำงานเบื้องหลัง คุณสามารถปิดหน้าต่างนี้ได้<br>
+                        <small>- ระบบจะส่งอีเมลแจ้งเตือนเมื่อ export เสร็จ พร้อมลิงก์ดาวน์โหลด<br>
+                        - ไฟล์จะเก็บไว้ 48 ชั่วโมง และสามารถดูย้อนหลังได้ที่ <a href="/admin/export-downloads" target="_blank">ไฟล์ Export ของฉัน</a></small>
+                    </div>
+                    <div id="plantExportStatusBox" class="alert alert-warning" style="display:none; margin-bottom: 0;"></div>
+                </div>
+                
+                <!-- Success State (Hidden initially) -->
+                <div id="plantExportSuccessState" style="display: none;">
+                    <div class="text-center" style="padding: 20px 0;">
+                        <div style="font-size: 48px; color: #28a745; margin-bottom: 20px;">
+                            <i class="fa fa-check-circle"></i>
+                        </div>
+                        <h4 style="color: #28a745; margin-bottom: 15px;">ระบบรับคำขอ Export แล้ว!</h4>
+                        <p style="font-size: 16px; color: #6c757d; margin-bottom: 15px;">
+                            ระบบกำลังสร้างไฟล์ Export ของคุณในเบื้องหลัง<br>
+                            คุณสามารถปิดหน้าต่างนี้ได้<br>
+                            เราจะแจ้งเตือนทางอีเมลเมื่อไฟล์พร้อมดาวน์โหลด
+                        </p>
+                        <div class="alert alert-success" style="margin-bottom: 0;">
+                            <i class="fa fa-envelope"></i> อีเมลแจ้งเตือนจะถูกส่งไปยังอีเมลของคุณเมื่อ Export เสร็จสมบูรณ์
                         </div>
                     </div>
                 </div>
-                <div class="alert alert-info" style="margin-bottom: 10px;">
-                    ระบบจะสร้างไฟล์ Excel ครั้งละไม่เกิน 5,000 รายการต่อไฟล์ และรวมทุกไฟล์เป็น ZIP ดาวน์โหลดครั้งเดียว
-                </div>
-                <div id="plantExportStatusBox" class="alert alert-warning" style="display:none; margin-bottom: 0;"></div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal" id="plantExportCancelBtn">ปิด</button>
-                <button type="button" class="btn btn-primary" id="plantExportSubmitBtn">เริ่ม Export</button>
+                <!-- Initial Footer -->
+                <div id="plantExportInitialFooter">
+                    <button type="button" class="btn btn-default" data-dismiss="modal" id="plantExportCancelBtn">ปิด</button>
+                    <button type="button" class="btn btn-primary" id="plantExportSubmitBtn">เริ่ม Export</button>
+                </div>
+                
+                <!-- Success Footer (Hidden initially) -->
+                <div id="plantExportSuccessFooter" style="display: none;">
+                    <button type="button" class="btn btn-success" data-dismiss="modal" id="plantExportSuccessCloseBtn">ปิด</button>
+                </div>
             </div>
         </div>
     </div>
@@ -283,8 +314,49 @@ function setPlantExportStatus(message, type) {
 }
 
 function togglePlantExportLoading(isLoading) {
-    $('#plantExportSubmitBtn').prop('disabled', isLoading);
-    $('#plantExportCancelBtn').prop('disabled', isLoading);
+    var submitBtn = $('#plantExportSubmitBtn');
+    var cancelBtn = $('#plantExportCancelBtn');
+    
+    if (isLoading) {
+        submitBtn.prop('disabled', true);
+        submitBtn.html('<i class="fa fa-spinner fa-spin"></i> กำลังดำเนินการ...');
+        cancelBtn.prop('disabled', true);
+    } else {
+        submitBtn.prop('disabled', false);
+        submitBtn.html('เริ่ม Export');
+        cancelBtn.prop('disabled', false);
+    }
+}
+
+function showPlantExportSuccessState() {
+    // Hide form state and show success state
+    $('#plantExportFormState').hide();
+    $('#plantExportSuccessState').show();
+    
+    // Hide initial footer and show success footer
+    $('#plantExportInitialFooter').hide();
+    $('#plantExportSuccessFooter').show();
+    
+    // Hide status box
+    $('#plantExportStatusBox').hide();
+}
+
+function resetPlantExportModal() {
+    // Show form state and hide success state
+    $('#plantExportFormState').show();
+    $('#plantExportSuccessState').hide();
+    
+    // Show initial footer and hide success footer
+    $('#plantExportInitialFooter').show();
+    $('#plantExportSuccessFooter').hide();
+    
+    // Clear form inputs
+    $('#plantExportDateFrom').val('');
+    $('#plantExportDateTo').val('');
+    
+    // Clear status and reset loading state
+    $('#plantExportStatusBox').hide().text('');
+    togglePlantExportLoading(false);
 }
 
 function pollPlantExport(jobId) {
@@ -295,17 +367,23 @@ function pollPlantExport(jobId) {
         data: {jobId: jobId},
         success: function (response) {
             if (!response || response.status !== 'success' || !response.job) {
-                setPlantExportStatus('ไม่สามารถตรวจสอบสถานะ export ได้', 'alert-danger');
-                togglePlantExportLoading(false);
+                // Don't show error in success state - just stop polling
+                clearTimeout(plantExportPollTimer);
                 return;
             }
 
-            setPlantExportStatus(response.job.progressMessage, response.job.state === 'failed' ? 'alert-danger' : 'alert-info');
+            // Only update status if we're still in form state (not success state)
+            if ($('#plantExportFormState').is(':visible')) {
+                setPlantExportStatus(response.job.progressMessage, response.job.state === 'failed' ? 'alert-danger' : 'alert-info');
+            }
 
             if (response.job.state === 'completed' && response.job.downloadReady) {
                 clearTimeout(plantExportPollTimer);
-                setPlantExportStatus('สร้างไฟล์เสร็จแล้ว กำลังเริ่มดาวน์โหลด', 'alert-success');
-                togglePlantExportLoading(false);
+                // If still in form state, show success state
+                if ($('#plantExportFormState').is(':visible')) {
+                    showPlantExportSuccessState();
+                }
+                // Auto-download and close modal
                 window.location.href = response.job.downloadUrl;
                 setTimeout(function () {
                     $('#plantExportModal').modal('hide');
@@ -315,26 +393,35 @@ function pollPlantExport(jobId) {
 
             if (response.job.state === 'failed') {
                 clearTimeout(plantExportPollTimer);
-                if (response.job.errorMessage) {
-                    setPlantExportStatus(response.job.errorMessage, 'alert-danger');
+                // Only show error if still in form state
+                if ($('#plantExportFormState').is(':visible')) {
+                    if (response.job.errorMessage) {
+                        setPlantExportStatus(response.job.errorMessage, 'alert-danger');
+                    }
+                    togglePlantExportLoading(false);
                 }
-                togglePlantExportLoading(false);
                 return;
             }
 
             plantExportPollTimer = setTimeout(function () {
                 pollPlantExport(jobId);
-            }, 2000);
+            }, 5000);
         },
         error: function () {
-            setPlantExportStatus('เกิดข้อผิดพลาดระหว่างตรวจสอบสถานะ export', 'alert-danger');
-            togglePlantExportLoading(false);
+            // Don't show error in success state - just stop polling
+            clearTimeout(plantExportPollTimer);
+            // Only reset if still in form state
+            if ($('#plantExportFormState').is(':visible')) {
+                setPlantExportStatus('เกิดข้อผิดพลาดระหว่างตรวจสอบสถานะ export', 'alert-danger');
+                togglePlantExportLoading(false);
+            }
         }
     });
 }
 
 $('#openPlantExportModal').on('click', function () {
-    $('#plantExportStatusBox').hide().text('');
+    // Reset modal to initial state before showing
+    resetPlantExportModal();
     $('#plantExportModal').modal('show');
 });
 
@@ -372,7 +459,10 @@ $('#plantExportSubmitBtn').on('click', function () {
                 return;
             }
 
-            setPlantExportStatus('ระบบรับคำขอแล้ว กำลังสร้างไฟล์ export', 'alert-info');
+            // Show success state immediately after successful submission
+            showPlantExportSuccessState();
+            
+            // Start polling for completion (but modal is now in success state)
             pollPlantExport(response.jobId);
         },
         error: function () {
@@ -384,7 +474,8 @@ $('#plantExportSubmitBtn').on('click', function () {
 
 $('#plantExportModal').on('hidden.bs.modal', function () {
     clearTimeout(plantExportPollTimer);
-    togglePlantExportLoading(false);
+    // Reset modal when closed so it's ready for next use
+    resetPlantExportModal();
 });
 
 $('td').click(function (e) {
