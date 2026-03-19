@@ -20,9 +20,13 @@ use yii\filters\AccessControl;
 use yii\filters\AccessRule;
 use backend\components\PermissionAccess;
 use backend\components\BackendHelper;
-
+use backend\components\BaseExportController;
+use backend\components\ContentAsyncExportService;
+    
 use common\components\Upload;
 use common\components\Helper;
+use yii\helpers\Json;
+use yii\web\Response;
 
 /**
  * ContentPlantController implements the CRUD actions for Content model.
@@ -43,13 +47,16 @@ class ContentPlantController extends Controller
                 'rules' => [
                     //dashboard_view
                     [
-                        'actions' => ['index', 'view', 'create', 'update', 'delete', 'export', 'import', 'import-summary', 'import-confirm'],
+                        'actions' => ['index', 'view', 'create', 'update', 'delete', 'export', 'start-export', 'export-status', 'download-export', 'import', 'import-summary', 'import-confirm'],
                         'allow' => true,
                         'matchCallback' => function ($rule, $action) 
                         {
                             switch($action->id){
                                 case 'index':
                                 case 'export':
+                                case 'start-export':
+                                case 'export-status':
+                                case 'download-export':
                                     return PermissionAccess::BackendAccess('content_list', 'controller');
                                 break;
 
@@ -827,6 +834,237 @@ class ContentPlantController extends Controller
 
 
         return $this->render('export',['model' => $model]);
+    }
+
+    public function actionStartExport()
+    {
+        Yii::$app->response->format = Response::FORMAT_JSON;
+
+        $dateFrom = Yii::$app->request->post('date_from');
+        $dateTo = Yii::$app->request->post('date_to');
+        if (empty($dateFrom) || empty($dateTo)) {
+            return [
+                'status' => 'error',
+                'message' => 'กรุณาเลือกช่วงวันที่ให้ครบถ้วน',
+            ];
+        }
+
+        $filters = $this->getPlantExportFilters();
+        $filters['date_from'] = $dateFrom;
+        $filters['date_to'] = $dateTo;
+
+        $job = ContentAsyncExportService::createJob('content_plant', $filters, Yii::$app->user->identity->id);
+
+        return [
+            'status' => 'success',
+            'jobId' => $job['id'],
+            'message' => 'เริ่มสร้างไฟล์ export แล้ว',
+        ];
+    }
+
+    public function actionExportStatus($jobId)
+    {
+        Yii::$app->response->format = Response::FORMAT_JSON;
+
+        $job = ContentAsyncExportService::getJob($jobId);
+        if (empty($job)) {
+            return [
+                'status' => 'error',
+                'message' => 'ไม่พบงาน export ที่ระบุ',
+            ];
+        }
+
+        if ($job['status'] === ContentAsyncExportService::STATUS_PENDING) {
+            try {
+                $query = $this->buildPlantExportQuery($job['filters']);
+                $job = ContentAsyncExportService::processJob(
+                    $jobId,
+                    $query,
+                    function ($rows, $filePath, $part, $totalFiles) {
+                        $this->generatePlantExportFile($rows, $filePath, $part, $totalFiles);
+                    },
+                    'รายงานข้อมูลพืช'
+                );
+            } catch (\Exception $exception) {
+                $job = ContentAsyncExportService::failJob($jobId, $exception->getMessage());
+            }
+        }
+
+        return [
+            'status' => 'success',
+            'job' => [
+                'id' => $job['id'],
+                'state' => $job['status'],
+                'progressMessage' => $job['progress_message'],
+                'totalRows' => $job['total_rows'],
+                'totalFiles' => $job['total_files'],
+                'currentPart' => !empty($job['current_part']) ? $job['current_part'] : 0,
+                'chunkSize' => !empty($job['chunk_size']) ? $job['chunk_size'] : 0,
+                'peakMemoryMb' => !empty($job['peak_memory_mb']) ? $job['peak_memory_mb'] : 0,
+                'errorMessage' => $job['error_message'],
+                'downloadReady' => (bool) $job['download_ready'],
+                'downloadUrl' => $job['download_ready'] ? Yii::$app->urlManager->createUrl(['/content-plant/download-export', 'jobId' => $job['id']]) : '',
+            ],
+        ];
+    }
+
+    public function actionDownloadExport($jobId)
+    {
+        $job = ContentAsyncExportService::getJob($jobId);
+        if (empty($job) || $job['status'] !== ContentAsyncExportService::STATUS_COMPLETED) {
+            throw new NotFoundHttpException('ไม่พบไฟล์ export ที่พร้อมดาวน์โหลด');
+        }
+
+        $zipPath = ContentAsyncExportService::getDownloadPath($job);
+        if (empty($zipPath) || !is_file($zipPath)) {
+            throw new NotFoundHttpException('ไม่พบไฟล์ ZIP สำหรับดาวน์โหลด');
+        }
+
+        return Yii::$app->response->sendFile($zipPath, $job['zip_file_name']);
+    }
+
+    private function getPlantExportFilters()
+    {
+        $searchFilters = Yii::$app->request->get('ContentPlantSearch', []);
+
+        return [
+            'name' => !empty($searchFilters['name']) ? $searchFilters['name'] : Yii::$app->request->get('name', ''),
+            'created_by_user_id' => !empty($searchFilters['created_by_user_id']) ? $searchFilters['created_by_user_id'] : Yii::$app->request->get('created_by_user_id', ''),
+            'updated_by_user_id' => !empty($searchFilters['updated_by_user_id']) ? $searchFilters['updated_by_user_id'] : Yii::$app->request->get('updated_by_user_id', ''),
+            'approved_by_user_id' => !empty($searchFilters['approved_by_user_id']) ? $searchFilters['approved_by_user_id'] : Yii::$app->request->get('approved_by_user_id', ''),
+            'note' => !empty($searchFilters['note']) ? $searchFilters['note'] : Yii::$app->request->get('note', ''),
+            'status' => !empty($searchFilters['status']) ? $searchFilters['status'] : Yii::$app->request->get('status', ''),
+            'updated_at' => !empty($searchFilters['updated_at']) ? $searchFilters['updated_at'] : Yii::$app->request->get('updated_at', ''),
+        ];
+    }
+
+    private function buildPlantExportQuery($filters = [])
+    {
+        $query = Content::find()->select([
+            'content.id as content_id',
+            'content.name',
+            'content.type_id',
+            'content_plant.other_name',
+            'content_plant.features',
+            'content_plant.benefit',
+            'content_plant.found_source',
+            'content_plant.common_name',
+            'content_plant.scientific_name',
+            'content_plant.family_name',
+            'content.region_id',
+            'content.province_id',
+            'content.district_id',
+            'content.subdistrict_id',
+            'content.zipcode_id',
+            'content.created_by_user_id',
+            'content.approved_by_user_id',
+            'content.status',
+            'content.note',
+            'content.created_at',
+        ]);
+
+        $query->leftJoin('content_plant', 'content_plant.content_id = content.id');
+        $query->leftJoin('profile', 'profile.user_id = content.created_by_user_id');
+        $query->andFilterWhere(['=', 'content.type_id', 1]);
+        $query->andFilterWhere(['=', 'content.active', 1]);
+
+        if (!empty($filters['name'])) {
+            $query->andFilterWhere(['like', 'content.name', $filters['name']]);
+        }
+        if (!empty($filters['created_by_user_id'])) {
+            $query->andFilterWhere(['=', 'created_by_user_id', $filters['created_by_user_id']]);
+        }
+        if (!empty($filters['updated_by_user_id'])) {
+            $query->andFilterWhere(['=', 'updated_by_user_id', $filters['updated_by_user_id']]);
+        }
+        if (!empty($filters['approved_by_user_id'])) {
+            $query->andFilterWhere(['=', 'approved_by_user_id', $filters['approved_by_user_id']]);
+        }
+        if (!empty($filters['note'])) {
+            $query->andFilterWhere(['like', 'note', $filters['note']]);
+        }
+        if (!empty($filters['status'])) {
+            $query->andFilterWhere(['like', 'status', $filters['status']]);
+        }
+        if (!empty($filters['updated_at'])) {
+            $query->andFilterWhere(['like', 'updated_at', $filters['updated_at']]);
+        }
+        if (!empty($filters['date_from']) && !empty($filters['date_to'])) {
+            $dateStart = trim($filters['date_from']);
+            $dateEnd = date('Y-m-d', strtotime(trim($filters['date_to']) . ' +1 day'));
+            $query->andWhere(['between', 'content.created_at', $dateStart, $dateEnd]);
+        }
+
+        $query->orderBy(['content.created_at' => SORT_DESC, 'content.id' => SORT_DESC]);
+
+        return $query;
+    }
+
+    private function generatePlantExportFile($rows, $filePath, $part, $totalFiles)
+    {
+        $protocol = stripos(Yii::$app->request->getHostInfo(), 'https://') === 0 ? 'https://' : 'http://';
+        $hostname = Yii::$app->request->getHostName();
+        if (empty($hostname)) {
+            $hostname = 'localhost:8080';
+        }
+
+        $headers = [
+            'ชื่อเรื่อง',
+            'ชื่ออื่น',
+            'ลิงก์',
+            'ลักษณะ',
+            'ประโยชน์',
+            'แหล่งที่พบ',
+            'ชื่อสามัญ',
+            'ชื่อวิทยาศาสตร์',
+            'ชื่อวงศ์',
+            'ภาค',
+            'จังหวัด',
+            'อำเภอ',
+            'ตำบล',
+            'รหัสไปรษณีย์',
+            'ชื่อผู้นำเข้าข้อมูล',
+            'ชื่อผู้อนุมัติข้อมูล',
+            'สถานะ',
+            'หมายเหตุ',
+            'วันที่นำเข้าข้อมูล',
+        ];
+
+        $exportRows = [];
+        foreach ($rows as $value) {
+            $exportRows[] = [
+                $value['name'],
+                $value['other_name'],
+                $protocol . $hostname . '/content-' . \frontend\components\FrontendHelper::getContentTypeById($value['type_id']) . '/' . $value['content_id'],
+                BaseExportController::cleanText($value['features']),
+                BaseExportController::cleanText($value['benefit']),
+                $value['found_source'],
+                $value['common_name'],
+                $value['scientific_name'],
+                $value['family_name'],
+                BackendHelper::getNameRegion($value['region_id']),
+                BackendHelper::getNameProvince($value['province_id']),
+                BackendHelper::getNameDistrict($value['district_id']),
+                BackendHelper::getNameSubdistrict($value['subdistrict_id']),
+                BackendHelper::getNameZipcode($value['zipcode_id']),
+                BackendHelper::getName($value['created_by_user_id']),
+                BackendHelper::getName($value['approved_by_user_id']),
+                ucfirst($value['status']),
+                $value['note'],
+                $value['created_at'],
+            ];
+        }
+
+        BaseExportController::saveRowsToStreamingXlsx(
+            $filePath,
+            $headers,
+            $exportRows,
+            'รายงานข้อมูลพืช',
+            'ข้อมูลพืชทั้งหมด (ไฟล์ ' . $part . '/' . $totalFiles . ')'
+        );
+
+        unset($exportRows, $headers, $rows);
+        gc_collect_cycles();
     }
 
     public function actionImport()

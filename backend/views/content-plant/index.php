@@ -12,14 +12,12 @@ use yii\web\JsExpression;
 $listUser = \yii\helpers\Url::to(['/api/userslist']);
 $listEditUser = \yii\helpers\Url::to(['/api/editslist']);
 $listApprovedUser = \yii\helpers\Url::to(['/api/approverlist']);
+$startExportUrl = Url::to(['/content-plant/start-export']);
+$exportStatusUrl = Url::to(['/content-plant/export-status']);
+$contentPlantViewBaseUrl = Url::to(['/content-plant']);
 
 $total = $dataProvider->totalCount;  // total records // 15
-$totalPage = ceil($total / 25000);
 
-// print '<pre>';
-// print_r($totalPage);
-// print '</pre>';
-// exit();
 
 use kartik\date\DatePicker;
 
@@ -38,75 +36,7 @@ $this->params['breadcrumbs'][] = $this->title;
     <p>
         <?= Html::a('เพิ่มข้อมูลพืช', ['create'], ['class' => 'btn btn-success']) ?>
         <?= Html::a('Import Excel', ['import'], ['class' => 'btn btn-primary']) ?>
-
-        <?php if ($totalPage > 0):
-            for ($i = 1; $i <= $totalPage; $i++): ?>
-        <?php
-
-        $url = '';
-        if (!empty($_GET['ContentPlantSearch'])) {
-            if (!empty($_GET['ContentPlantSearch']['name'])) {
-                $url = '?name=' . $_GET['ContentPlantSearch']['name'];
-            }
-
-            if (!empty($_GET['ContentPlantSearch']['created_by_user_id'])) {
-                if (!empty($url)) {
-                    $url = $url . '&created_by_user_id=' . $_GET['ContentPlantSearch']['created_by_user_id'];
-                } else {
-                    $url = '?created_by_user_id=' . $_GET['ContentPlantSearch']['created_by_user_id'];
-                }
-            }
-
-            if (!empty($_GET['ContentPlantSearch']['updated_by_user_id'])) {
-                if (!empty($url)) {
-                    $url = $url . '&updated_by_user_id=' . $_GET['ContentPlantSearch']['updated_by_user_id'];
-                } else {
-                    $url = '?updated_by_user_id=' . $_GET['ContentPlantSearch']['updated_by_user_id'];
-                }
-            }
-
-            if (!empty($_GET['ContentPlantSearch']['approved_by_user_id'])) {
-                if (!empty($url)) {
-                    $url = $url . '&approved_by_user_id=' . $_GET['ContentPlantSearch']['approved_by_user_id'];
-                } else {
-                    $url = '?approved_by_user_id=' . $_GET['ContentPlantSearch']['approved_by_user_id'];
-                }
-            }
-
-            if (!empty($_GET['ContentPlantSearch']['note'])) {
-                if (!empty($url)) {
-                    $url = $url . '&note=' . $_GET['ContentPlantSearch']['note'];
-                } else {
-                    $url = '?note=' . $_GET['ContentPlantSearch']['note'];
-                }
-            }
-
-            if (!empty($_GET['ContentPlantSearch']['status'])) {
-                if (!empty($url)) {
-                    $url = $url . '&status=' . $_GET['ContentPlantSearch']['status'];
-                } else {
-                    $url = '?status=' . $_GET['ContentPlantSearch']['status'];
-                }
-            }
-
-            if (!empty($_GET['ContentPlantSearch']['updated_at'])) {
-                if (!empty($url)) {
-                    $url = $url . '&updated_at=' . $_GET['ContentPlantSearch']['updated_at'];
-                } else {
-                    $url = '?updated_at=' . $_GET['ContentPlantSearch']['updated_at'];
-                }
-            }
-        }
-
-        if (!empty($url)) {
-            $url = $url . '&file=' . $i;
-        } else {
-            $url = '?file=' . $i;
-        }
-        ?>
-        <?= Html::a(Html::img('/images/csv.png', ['class' => 'csv-export']) . 'Export ข้อมูลพืช ไฟล์ที่ ' . ($i), ['export' . $url], ['class' => 'btn btn-info export-bakcground f-right ', 'title' => 'Export Excel']) ?>
-        <?php endfor;
-        endif; ?>
+        <?= Html::button(Html::img('/images/csv.png', ['class' => 'csv-export']) . 'Export ข้อมูลพืช', ['class' => 'btn btn-info export-bakcground f-right', 'title' => 'Export Excel', 'id' => 'openPlantExportModal']) ?>
     
     </p>
 
@@ -299,21 +229,172 @@ $this->params['breadcrumbs'][] = $this->title;
         ],
     ]); ?>
     </div>
+</div>
 
-
+<div class="modal fade" id="plantExportModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title">Export ข้อมูลพืช</h4>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-sm-6">
+                        <div class="form-group">
+                            <label for="plantExportDateFrom">วันที่เริ่มต้น</label>
+                            <input type="date" class="form-control" id="plantExportDateFrom">
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="form-group">
+                            <label for="plantExportDateTo">วันที่สิ้นสุด</label>
+                            <input type="date" class="form-control" id="plantExportDateTo">
+                        </div>
+                    </div>
+                </div>
+                <div class="alert alert-info" style="margin-bottom: 10px;">
+                    ระบบจะสร้างไฟล์ Excel ครั้งละไม่เกิน 5,000 รายการต่อไฟล์ และรวมทุกไฟล์เป็น ZIP ดาวน์โหลดครั้งเดียว
+                </div>
+                <div id="plantExportStatusBox" class="alert alert-warning" style="display:none; margin-bottom: 0;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal" id="plantExportCancelBtn">ปิด</button>
+                <button type="button" class="btn btn-primary" id="plantExportSubmitBtn">เริ่ม Export</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <?php
 
-$this->registerJs("
+$this->registerJs(<<<JS
+var plantExportPollTimer = null;
+var plantStartExportUrl = '{$startExportUrl}';
+var plantExportStatusUrl = '{$exportStatusUrl}';
+var contentPlantViewBaseUrl = '{$contentPlantViewBaseUrl}';
 
-        \$('td').click(function (e) {
-            var id = \$(this).closest('tr').data('id');
-            if(id){
-                if(e.target == this)
-                    location.href = '" . Url::to(['/content-plant/']) . "/' + id;
+function setPlantExportStatus(message, type) {
+    var statusBox = $('#plantExportStatusBox');
+    statusBox.removeClass('alert-warning alert-danger alert-success alert-info');
+    statusBox.addClass(type || 'alert-info');
+    statusBox.text(message);
+    statusBox.show();
+}
+
+function togglePlantExportLoading(isLoading) {
+    $('#plantExportSubmitBtn').prop('disabled', isLoading);
+    $('#plantExportCancelBtn').prop('disabled', isLoading);
+}
+
+function pollPlantExport(jobId) {
+    $.ajax({
+        url: plantExportStatusUrl,
+        type: 'GET',
+        dataType: 'json',
+        data: {jobId: jobId},
+        success: function (response) {
+            if (!response || response.status !== 'success' || !response.job) {
+                setPlantExportStatus('ไม่สามารถตรวจสอบสถานะ export ได้', 'alert-danger');
+                togglePlantExportLoading(false);
+                return;
             }
-        });
 
-    ");
+            setPlantExportStatus(response.job.progressMessage, response.job.state === 'failed' ? 'alert-danger' : 'alert-info');
+
+            if (response.job.state === 'completed' && response.job.downloadReady) {
+                clearTimeout(plantExportPollTimer);
+                setPlantExportStatus('สร้างไฟล์เสร็จแล้ว กำลังเริ่มดาวน์โหลด', 'alert-success');
+                togglePlantExportLoading(false);
+                window.location.href = response.job.downloadUrl;
+                setTimeout(function () {
+                    $('#plantExportModal').modal('hide');
+                }, 800);
+                return;
+            }
+
+            if (response.job.state === 'failed') {
+                clearTimeout(plantExportPollTimer);
+                if (response.job.errorMessage) {
+                    setPlantExportStatus(response.job.errorMessage, 'alert-danger');
+                }
+                togglePlantExportLoading(false);
+                return;
+            }
+
+            plantExportPollTimer = setTimeout(function () {
+                pollPlantExport(jobId);
+            }, 2000);
+        },
+        error: function () {
+            setPlantExportStatus('เกิดข้อผิดพลาดระหว่างตรวจสอบสถานะ export', 'alert-danger');
+            togglePlantExportLoading(false);
+        }
+    });
+}
+
+$('#openPlantExportModal').on('click', function () {
+    $('#plantExportStatusBox').hide().text('');
+    $('#plantExportModal').modal('show');
+});
+
+$('#plantExportSubmitBtn').on('click', function () {
+    var dateFrom = $('#plantExportDateFrom').val();
+    var dateTo = $('#plantExportDateTo').val();
+
+    if (!dateFrom || !dateTo) {
+        setPlantExportStatus('กรุณาเลือกช่วงวันที่ให้ครบถ้วน', 'alert-danger');
+        return;
+    }
+
+    if (dateFrom > dateTo) {
+        setPlantExportStatus('วันที่เริ่มต้นต้องไม่มากกว่าวันที่สิ้นสุด', 'alert-danger');
+        return;
+    }
+
+    togglePlantExportLoading(true);
+    setPlantExportStatus('กำลังเริ่มต้น export', 'alert-info');
+
+    var requestData = {date_from: dateFrom, date_to: dateTo};
+    if (window.yii) {
+        requestData[yii.getCsrfParam()] = yii.getCsrfToken();
+    }
+
+    $.ajax({
+        url: plantStartExportUrl + window.location.search,
+        type: 'POST',
+        dataType: 'json',
+        data: requestData,
+        success: function (response) {
+            if (!response || response.status !== 'success' || !response.jobId) {
+                setPlantExportStatus((response && response.message) ? response.message : 'ไม่สามารถเริ่ม export ได้', 'alert-danger');
+                togglePlantExportLoading(false);
+                return;
+            }
+
+            setPlantExportStatus('ระบบรับคำขอแล้ว กำลังสร้างไฟล์ export', 'alert-info');
+            pollPlantExport(response.jobId);
+        },
+        error: function () {
+            setPlantExportStatus('เกิดข้อผิดพลาดระหว่างเริ่ม export', 'alert-danger');
+            togglePlantExportLoading(false);
+        }
+    });
+});
+
+$('#plantExportModal').on('hidden.bs.modal', function () {
+    clearTimeout(plantExportPollTimer);
+    togglePlantExportLoading(false);
+});
+
+$('td').click(function (e) {
+    var id = $(this).closest('tr').data('id');
+    if (id) {
+        if (e.target == this) {
+            location.href = contentPlantViewBaseUrl + '/' + id;
+        }
+    }
+});
+JS
+);
 ?>
