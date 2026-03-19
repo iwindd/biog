@@ -12,7 +12,7 @@ class ContentAsyncExportService
     const STATUS_PROCESSING = 'processing';
     const STATUS_COMPLETED = 'completed';
     const STATUS_FAILED = 'failed';
-    const CHUNK_SIZE = 500;
+    const CHUNK_SIZE = 3000;
 
     public static function createJob($typeKey, array $filters, $userId = null)
     {
@@ -161,7 +161,11 @@ class ContentAsyncExportService
             $percentage = self::calculateProgressPercentage($job);
             $job['progress_message'] = 'กำลังสร้างไฟล์ ' . $part . '/' . $totalFiles . ' (' . $percentage . '%)';
             $job['peak_memory_mb'] = max($job['peak_memory_mb'], self::getPeakMemoryMb());
-            self::saveJob($job);
+            
+            // Save job status less frequently with larger chunks to reduce I/O
+            if ($part % 2 === 0 || $part === $totalFiles) {
+                self::saveJob($job);
+            }
 
             $xlsxPath = $jobDir . DIRECTORY_SEPARATOR . $baseFileName . '_part_' . $part . '.xlsx';
             $chunkExporter($rows, $xlsxPath, $part, $totalFiles);
@@ -170,8 +174,8 @@ class ContentAsyncExportService
             // Explicit cleanup of rows and force garbage collection
             unset($rows);
             
-            // Force garbage collection more frequently for large datasets
-            if ($part % 5 === 0) {
+            // Force garbage collection less frequently with larger chunks
+            if ($part % 3 === 0) {
                 gc_collect_cycles();
             }
         }
