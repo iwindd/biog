@@ -882,33 +882,15 @@ class ContentPlantController extends Controller
         $placeholderJob['status'] = ContentAsyncExportService::STATUS_PENDING;
         $service->saveJob($placeholderJob);
         
-        // Store mappings using database service to prevent race condition
+        // Store mappings using database service
         $mappingService = new DatabaseJobMappingService();
         $success = $mappingService->storeMappings($queueJobIdStr, $initialJobHash, $placeholderJob['id']);
         
         if (!$success) {
-            error_log("Warning: Failed to store job mappings using database service, attempting fallback...");
-            
-            // Fallback to file-based service
-            try {
-                $fallbackService = new \common\components\JobMappingService();
-                $fallbackSuccess = $fallbackService->storeMappings($queueJobIdStr, $initialJobHash, $placeholderJob['id']);
-                
-                if ($fallbackSuccess) {
-                    error_log("Successfully stored mappings using fallback service");
-                    $success = true;
-                } else {
-                    error_log("Warning: Both database and fallback mapping services failed");
-                }
-            } catch (\Exception $e) {
-                error_log("Fallback service failed: " . $e->getMessage());
-            }
-            
+            error_log("Warning: Failed to store job mappings in database: queueJobId=$queueJobIdStr, jobHash=$initialJobHash, exportJobId={$placeholderJob['id']}");
             // Continue anyway - the placeholder job is still usable
             // But add a warning to the response for debugging
-            if (!$success) {
-                error_log("Warning: Job mapping storage failed - UI polling may be affected");
-            }
+            error_log("Warning: Job mapping storage failed - UI polling may be affected");
         }
 
         return [

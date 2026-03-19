@@ -35,14 +35,8 @@ class ExportJob extends BaseObject implements JobInterface
                 $updateSuccess = $mappingService->storeMappings($queueJobId, $jobHash, $job['id']);
                 
                 if (!$updateSuccess) {
-                    // Try fallback service
-                    try {
-                        $fallbackService = new \common\components\JobMappingService();
-                        $fallbackService->storeMappings($queueJobId, $jobHash, $job['id']);
-                        error_log("Successfully updated mappings using fallback service");
-                    } catch (\Exception $e) {
-                        error_log("Failed to update mappings with both services: " . $e->getMessage());
-                    }
+                    error_log("Failed to update job mappings in database: queueJobId=$queueJobId, jobHash=$jobHash, exportJobId={$job['id']}");
+                    // Continue without mapping - job will still be created but may not be trackable
                 }
             }
         } else {
@@ -52,14 +46,8 @@ class ExportJob extends BaseObject implements JobInterface
             $storeSuccess = $mappingService->storeMappings($queueJobId, $jobHash, $job['id']);
             
             if (!$storeSuccess) {
-                // Try fallback service
-                try {
-                    $fallbackService = new \common\components\JobMappingService();
-                    $fallbackService->storeMappings($queueJobId, $jobHash, $job['id']);
-                    error_log("Successfully stored mappings using fallback service");
-                } catch (\Exception $e) {
-                    error_log("Failed to store mappings with both services: " . $e->getMessage());
-                }
+                error_log("Failed to store job mappings in database: queueJobId=$queueJobId, jobHash=$jobHash, exportJobId={$job['id']}");
+                // Continue without mapping - job will still be created but may not be trackable
             }
         }
         
