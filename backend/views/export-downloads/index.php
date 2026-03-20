@@ -59,6 +59,7 @@ $statusLabels = [
                         $isExpired = isset($job['expires_at']) && strtotime($job['expires_at']) < time();
                         $canDownload = $status === ContentAsyncExportService::STATUS_COMPLETED && !$isExpired;
                         $canCancel = in_array($status, [ContentAsyncExportService::STATUS_PENDING, ContentAsyncExportService::STATUS_PROCESSING]);
+                        $canDelete = $status === ContentAsyncExportService::STATUS_COMPLETED && !empty($job['zip_file_name']) && !empty($job['zip_path']);
                         ?>
                         <tr>
                             <td><?= Html::encode($typeName) ?></td>
@@ -126,14 +127,16 @@ $statusLabels = [
                                     ) ?>
                                 <?php endif; ?>
                                 
-                                <?= Html::button(
-                                    '<i class="fa fa-trash"></i> ลบ',
-                                    [
-                                        'class' => 'btn btn-danger btn-sm delete-export-btn',
-                                        'data-job-id' => $job['id'],
-                                        'data-file-name' => $job['zip_file_name'] ?? 'ไฟล์นี้'
-                                    ]
-                                ) ?>
+                                <?php if ($canDelete): ?>
+                                    <?= Html::button(
+                                        '<i class="fa fa-trash"></i> ลบ',
+                                        [
+                                            'class' => 'btn btn-danger btn-sm delete-export-btn',
+                                            'data-job-id' => $job['id'],
+                                            'data-file-name' => $job['zip_file_name'] ?? 'ไฟล์นี้'
+                                        ]
+                                    ) ?>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -169,11 +172,10 @@ $('.delete-export-btn').on('click', function() {
     btn.prop('disabled', true);
     
     $.ajax({
-        url: '{$deleteUrl}',
+        url: '{$deleteUrl}?jobId=' + encodeURIComponent(jobId),
         type: 'POST',
         dataType: 'json',
         data: {
-            jobId: jobId,
             _csrf: yii.getCsrfToken()
         },
         success: function(response) {

@@ -100,6 +100,21 @@ class ExportDownloadsController extends Controller
             ];
         }
 
+        // Check if job can be deleted (only completed jobs with files)
+        if ($job['status'] !== ContentAsyncExportService::STATUS_COMPLETED) {
+            return [
+                'status' => 'error',
+                'message' => 'ไม่สามารถลบงานที่สถานะ ' . $job['status'] . ' ได้'
+            ];
+        }
+
+        if (empty($job['zip_file_name']) || empty($job['zip_path'])) {
+            return [
+                'status' => 'error',
+                'message' => 'ไฟล์ถูกลบแล้วหรือไม่มีไฟล์อยู่'
+            ];
+        }
+
         $success = ContentAsyncExportService::deleteJob($jobId);
 
         if ($success) {
