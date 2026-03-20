@@ -18,8 +18,9 @@ return [
             'db' => 'db',
             'tableName' => '{{%queue}}',
             'channel' => 'default',
-            'deleteReleased' => true,
-            'ttr' => 3600,
+            'deleteReleased' => false, // Changed to false to allow retry on failure
+            'ttr' => 7200, // Increased to 2 hours for large exports
+            'attempts' => 3, // Allow up to 3 attempts before giving up
         ],
     ],
     'modules' => [

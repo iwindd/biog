@@ -141,14 +141,19 @@ class ContentAsyncExportService
 
     public static function processJob($jobId, $query, callable $chunkExporter, $baseFileName)
     {
+        error_log("[ContentAsyncExportService] processJob called for jobId: $jobId");
+        
         $job = self::getJob($jobId);
 
         if (empty($job)) {
-            error_log("Export job not found: $jobId");
+            error_log("[ContentAsyncExportService] ERROR: Export job not found: $jobId");
             return null;
         }
+        
+        error_log("[ContentAsyncExportService] Job found - status: {$job['status']}, type: {$job['type_key']}");
 
         if ($job['status'] === self::STATUS_COMPLETED || $job['status'] === self::STATUS_FAILED) {
+            error_log("[ContentAsyncExportService] Job already in terminal state: {$job['status']}");
             return $job;
         }
 
@@ -161,13 +166,17 @@ class ContentAsyncExportService
         $job['status'] = self::STATUS_PROCESSING;
         $job['progress_message'] = 'กำลังคำนวณจำนวนข้อมูล (5%)';
         $job['peak_memory_mb'] = self::getPeakMemoryMb();
-        error_log("Export job $jobId: Starting processing");
+        error_log("[ContentAsyncExportService] Export job $jobId: Starting processing");
+        error_log("[ContentAsyncExportService] Memory usage at start: " . self::getPeakMemoryMb() . " MB");
         self::saveJob($job);
 
+        error_log("[ContentAsyncExportService] Counting total rows...");
         $totalRows = (clone $query)->count();
         $job['total_rows'] = (int) $totalRows;
+        error_log("[ContentAsyncExportService] Total rows to export: {$job['total_rows']}");
 
         if ($job['total_rows'] === 0) {
+            error_log("[ContentAsyncExportService] No data found for export");
             $job['status'] = self::STATUS_FAILED;
             $job['error_message'] = 'ไม่พบข้อมูลตามเงื่อนไขที่เลือก';
             $job['progress_message'] = 'ไม่พบข้อมูล';
@@ -177,6 +186,7 @@ class ContentAsyncExportService
 
         $totalFiles = (int) ceil($job['total_rows'] / self::CHUNK_SIZE);
         $job['total_files'] = $totalFiles;
+        error_log("[ContentAsyncExportService] Will generate $totalFiles file(s) with chunk size " . self::CHUNK_SIZE);
         self::saveJob($job);
 
         $jobDir = self::getJobDirectory($jobId);
@@ -208,6 +218,7 @@ class ContentAsyncExportService
             
             // Save job status less frequently with larger chunks to reduce I/O
             if ($part % 2 === 0 || $part === $totalFiles) {
+                error_log("[ContentAsyncExportService] Progress: Part $part/$totalFiles ($percentage%), Memory: {$job['peak_memory_mb']} MB");
                 self::saveJob($job);
             }
 
@@ -238,11 +249,13 @@ class ContentAsyncExportService
 
         $job['progress_message'] = 'กำลังบีบอัดไฟล์ ZIP (90%)';
         $job['peak_memory_mb'] = max($job['peak_memory_mb'], self::getPeakMemoryMb());
+        error_log("[ContentAsyncExportService] Starting ZIP creation with " . count($generatedFiles) . " files");
         self::saveJob($job);
 
         $zipFileName = $baseFileName . '_' . date('Ymd_His') . '.zip';
         $zipPath = $jobDir . DIRECTORY_SEPARATOR . $zipFileName;
         self::createZip($zipPath, $generatedFiles);
+        error_log("[ContentAsyncExportService] ZIP file created: $zipFileName");
 
         $job['zip_file_name'] = $zipFileName;
         $job['zip_path'] = $zipPath;
@@ -250,9 +263,11 @@ class ContentAsyncExportService
         $job['status'] = self::STATUS_COMPLETED;
         $job['progress_message'] = 'พร้อมดาวน์โหลด (100%)';
         $job['peak_memory_mb'] = max($job['peak_memory_mb'], self::getPeakMemoryMb());
+        error_log("[ContentAsyncExportService] Job completed successfully - jobId: $jobId, Peak Memory: {$job['peak_memory_mb']} MB");
         self::saveJob($job);
 
         // Send email notification
+        error_log("[ContentAsyncExportService] Sending completion email notification");
         self::sendExportCompletionEmail($job);
 
         return $job;
@@ -260,8 +275,12 @@ class ContentAsyncExportService
 
     public static function failJob($jobId, $message)
     {
+        error_log("[ContentAsyncExportService] failJob called for jobId: $jobId");
+        error_log("[ContentAsyncExportService] Error message: $message");
+        
         $job = self::getJob($jobId);
         if (empty($job)) {
+            error_log("[ContentAsyncExportService] ERROR: Cannot fail job - job not found: $jobId");
             return null;
         }
 
@@ -269,6 +288,7 @@ class ContentAsyncExportService
         $job['error_message'] = $message;
         $job['progress_message'] = 'เกิดข้อผิดพลาด';
         $job['peak_memory_mb'] = self::getPeakMemoryMb();
+        error_log("[ContentAsyncExportService] Job marked as failed: $jobId");
         self::saveJob($job);
 
         return $job;

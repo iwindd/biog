@@ -16,62 +16,111 @@ class ExportJob extends BaseObject implements JobInterface
 
     public function execute($queue)
     {
-        error_log("ExportJob execute started");
-        
-        $service = new \backend\components\ContentAsyncExportService();
-        $jobHash = $this->getJobHash();
-        
-        // Get user email
-        $userEmail = null;
-        if ($this->userId) {
-            $user = \backend\models\Users::findOne($this->userId);
-            if ($user && !empty($user->email)) {
-                $userEmail = $user->email;
-            }
-        }
-        
-
-        // Find existing mapping or create new job using database service
-        $mappingService = new DatabaseJobMappingService();
-        $exportJobId = $mappingService->getExportJobIdFromHash($jobHash);
-        
-        if ($exportJobId) {
-            $job = \backend\components\ContentAsyncExportService::getJob($exportJobId);
-            if (!$job) {
-                // Mapping exists but job missing, create new one
-                $job = $service->createJob($this->typeKey, $this->filters, $this->userId, $userEmail);
-                // Update the mapping with new export job ID
-                $queueJobId = $this->queueJobId ?? 'unknown';
-                $updateSuccess = $mappingService->storeMappings($queueJobId, $jobHash, $job['id']);
-                
-                if (!$updateSuccess) {
-                    error_log("Failed to update job mappings in database: queueJobId=$queueJobId, jobHash=$jobHash, exportJobId={$job['id']}");
-                    // Continue without mapping - job will still be created but may not be trackable
-                }
-            }
-        } else {
-            $job = $service->createJob($this->typeKey, $this->filters, $this->userId, $userEmail);
-            // Store mapping for this job
-            $queueJobId = $this->queueJobId ?? 'unknown';
-            $storeSuccess = $mappingService->storeMappings($queueJobId, $jobHash, $job['id']);
-            
-            if (!$storeSuccess) {
-                error_log("Failed to store job mappings in database: queueJobId=$queueJobId, jobHash=$jobHash, exportJobId={$job['id']}");
-                // Continue without mapping - job will still be created but may not be trackable
-            }
-        }
-        
-        error_log("Export job executing with ID: " . $job['id']);
-        error_log("Job mapping confirmed: jobHash=$jobHash, exportJobId={$job['id']}");
+        $queueJobId = $this->queueJobId ?? 'unknown';
+        $jobHash = null;
+        $exportJobId = null;
         
         try {
-            $query = $this->buildPlantExportQuery($this->filters);
-            error_log("Starting export job processing for job ID: " . $job['id']);
-            $job = $service->processJob($job['id'], $query, [$this, 'generatePlantExportFile'], $this->baseFileName);
-            error_log("Export job processing completed for job ID: " . $job['id'] . ", status: " . ($job['status'] ?? 'unknown'));
+            error_log("[ExportJob] Starting execution - queueJobId: $queueJobId, typeKey: {$this->typeKey}");
+            
+            $service = new \backend\components\ContentAsyncExportService();
+            $jobHash = $this->getJobHash();
+            
+            error_log("[ExportJob] Generated jobHash: $jobHash");
+            
+            // Get user email
+            $userEmail = null;
+            if ($this->userId) {
+                try {
+                    $user = \backend\models\Users::findOne($this->userId);
+                    if ($user && !empty($user->email)) {
+                        $userEmail = $user->email;
+                        error_log("[ExportJob] User email found: $userEmail");
+                    } else {
+                        error_log("[ExportJob] User found but no email for userId: {$this->userId}");
+                    }
+                } catch (\Exception $e) {
+                    error_log("[ExportJob] Error fetching user: " . $e->getMessage());
+                    // Continue without email
+                }
+            }
+            
+            // Find existing mapping or create new job using database service
+            $mappingService = new DatabaseJobMappingService();
+            $exportJobId = $mappingService->getExportJobIdFromHash($jobHash);
+            
+            if ($exportJobId) {
+                error_log("[ExportJob] Found existing exportJobId from hash: $exportJobId");
+                $job = \backend\components\ContentAsyncExportService::getJob($exportJobId);
+                if (!$job) {
+                    error_log("[ExportJob] Mapping exists but job missing, creating new job");
+                    // Mapping exists but job missing, create new one
+                    $job = $service->createJob($this->typeKey, $this->filters, $this->userId, $userEmail);
+                    // Update the mapping with new export job ID
+                    $updateSuccess = $mappingService->storeMappings($queueJobId, $jobHash, $job['id']);
+                    
+                    if (!$updateSuccess) {
+                        error_log("[ExportJob] WARNING: Failed to update job mappings in database: queueJobId=$queueJobId, jobHash=$jobHash, exportJobId={$job['id']}");
+                        // Continue without mapping - job will still be created but may not be trackable
+                    } else {
+                        error_log("[ExportJob] Successfully updated job mapping");
+                    }
+                } else {
+                    error_log("[ExportJob] Using existing job: {$job['id']}, status: {$job['status']}");
+                }
+            } else {
+                error_log("[ExportJob] No existing mapping found, creating new job");
+                $job = $service->createJob($this->typeKey, $this->filters, $this->userId, $userEmail);
+                // Store mapping for this job
+                $storeSuccess = $mappingService->storeMappings($queueJobId, $jobHash, $job['id']);
+                
+                if (!$storeSuccess) {
+                    error_log("[ExportJob] WARNING: Failed to store job mappings in database: queueJobId=$queueJobId, jobHash=$jobHash, exportJobId={$job['id']}");
+                    // Continue without mapping - job will still be created but may not be trackable
+                } else {
+                    error_log("[ExportJob] Successfully stored job mapping");
+                }
+            }
+            
+            $exportJobId = $job['id'];
+            error_log("[ExportJob] Export job executing with ID: $exportJobId");
+            error_log("[ExportJob] Job mapping confirmed: jobHash=$jobHash, exportJobId=$exportJobId");
+            
+            try {
+                $query = $this->buildPlantExportQuery($this->filters);
+                error_log("[ExportJob] Starting export job processing for job ID: $exportJobId");
+                $job = $service->processJob($exportJobId, $query, [$this, 'generatePlantExportFile'], $this->baseFileName);
+                error_log("[ExportJob] Export job processing completed for job ID: $exportJobId, status: " . ($job['status'] ?? 'unknown'));
+            } catch (\Exception $e) {
+                error_log("[ExportJob] Export job processing failed for job ID: $exportJobId - " . $e->getMessage());
+                error_log("[ExportJob] Exception trace: " . $e->getTraceAsString());
+                $service->failJob($exportJobId, $e->getMessage());
+                // Re-throw to let queue system know the job failed
+                throw $e;
+            }
+            
+            error_log("[ExportJob] Successfully completed execution - queueJobId: $queueJobId, exportJobId: $exportJobId");
+            
         } catch (\Exception $e) {
-            error_log("Export job processing failed for job ID: " . $job['id'] . " - " . $e->getMessage());
-            $service->failJob($job['id'], $e->getMessage());
+            // Catch any exception that occurs anywhere in the execute method
+            error_log("[ExportJob] CRITICAL ERROR in execute() - queueJobId: $queueJobId");
+            error_log("[ExportJob] Error message: " . $e->getMessage());
+            error_log("[ExportJob] Error file: " . $e->getFile() . ":" . $e->getLine());
+            error_log("[ExportJob] Stack trace: " . $e->getTraceAsString());
+            
+            // Try to fail the job if we have an exportJobId
+            if ($exportJobId) {
+                try {
+                    $service = new \backend\components\ContentAsyncExportService();
+                    $service->failJob($exportJobId, $e->getMessage());
+                    error_log("[ExportJob] Marked job as failed: $exportJobId");
+                } catch (\Exception $failException) {
+                    error_log("[ExportJob] Failed to mark job as failed: " . $failException->getMessage());
+                }
+            }
+            
+            // Re-throw the exception so the queue system can handle it properly
+            throw $e;
         }
     }
 
