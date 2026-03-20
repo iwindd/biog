@@ -269,7 +269,7 @@ $this->params['breadcrumbs'][] = $this->title;
                         <div style="font-size: 48px; color: #28a745; margin-bottom: 20px;">
                             <i class="fa fa-check-circle"></i>
                         </div>
-                        <h4 style="color: #28a745; margin-bottom: 15px;">ระบบรับคำขอ Export แล้ว!</h4>
+                        <h4 style="color: #28a745; margin-bottom: 15px;">กำลังดำเนินการ!</h4>
                         <p style="font-size: 16px; color: #6c757d; margin-bottom: 15px;">
                             ระบบกำลังสร้างไฟล์ Export ของคุณในเบื้องหลัง<br>
                             คุณสามารถปิดหน้าต่างนี้ได้<br>
@@ -277,6 +277,10 @@ $this->params['breadcrumbs'][] = $this->title;
                         </p>
                         <div class="alert alert-success" style="margin-bottom: 0;">
                             <i class="fa fa-envelope"></i> อีเมลแจ้งเตือนจะถูกส่งไปยังอีเมลของคุณเมื่อ Export เสร็จสมบูรณ์
+                        </div>
+                        <!-- Progress Bar -->
+                        <div style="margin-top: 20px;">
+                            <small id="plantExportProgressText" class="text-muted">กำลังเริ่มต้นการ Export...</small>
                         </div>
                     </div>
                 </div>
@@ -359,6 +363,13 @@ function resetPlantExportModal() {
     togglePlantExportLoading(false);
 }
 
+function updatePlantExportProgressBar(progress, message) {
+    var progressText = $('#plantExportProgressText');
+    
+    // Update progress message
+    progressText.text(message);
+}
+
 function pollPlantExport(jobId) {
     $.ajax({
         url: plantExportStatusUrl,
@@ -372,6 +383,11 @@ function pollPlantExport(jobId) {
                 return;
             }
 
+            // Update progress bar if in success state
+            if ($('#plantExportSuccessState').is(':visible')) {
+                updatePlantExportProgressBar(response.job.progress || 0, response.job.progressMessage || 'กำลังดำเนินการ...');
+            }
+
             // Only update status if we're still in form state (not success state)
             if ($('#plantExportFormState').is(':visible')) {
                 setPlantExportStatus(response.job.progressMessage, response.job.state === 'failed' ? 'alert-danger' : 'alert-info');
@@ -379,6 +395,11 @@ function pollPlantExport(jobId) {
 
             if (response.job.state === 'completed' && response.job.downloadReady) {
                 clearTimeout(plantExportPollTimer);
+                // Update progress bar to 100% when completed
+                if ($('#plantExportSuccessState').is(':visible')) {
+                    updatePlantExportProgressBar(100, 'Export เสร็จสมบูรณ์! กำลังดาวน์โหลด...');
+                }
+
                 // If still in form state, show success state
                 if ($('#plantExportFormState').is(':visible')) {
                     showPlantExportSuccessState();
@@ -393,6 +414,10 @@ function pollPlantExport(jobId) {
 
             if (response.job.state === 'failed') {
                 clearTimeout(plantExportPollTimer);
+                // Update progress bar to show failed state
+                if ($('#plantExportSuccessState').is(':visible')) {
+                    updatePlantExportProgressBar(0, 'Export ล้มเหลว!');
+                }
                 // Only show error if still in form state
                 if ($('#plantExportFormState').is(':visible')) {
                     if (response.job.errorMessage) {
@@ -405,7 +430,7 @@ function pollPlantExport(jobId) {
 
             plantExportPollTimer = setTimeout(function () {
                 pollPlantExport(jobId);
-            }, 5000);
+            }, 1000);
         },
         error: function () {
             // Don't show error in success state - just stop polling
