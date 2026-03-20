@@ -58,6 +58,7 @@ $statusLabels = [
                         $status = $job['status'];
                         $isExpired = isset($job['expires_at']) && strtotime($job['expires_at']) < time();
                         $canDownload = $status === ContentAsyncExportService::STATUS_COMPLETED && !$isExpired;
+                        $canCancel = in_array($status, [ContentAsyncExportService::STATUS_PENDING, ContentAsyncExportService::STATUS_PROCESSING]);
                         ?>
                         <tr>
                             <td><?= Html::encode($typeName) ?></td>
@@ -114,6 +115,17 @@ $statusLabels = [
                                     ) ?>
                                 <?php endif; ?>
                                 
+                                <?php if ($canCancel): ?>
+                                    <?= Html::button(
+                                        '<i class="fa fa-times"></i> ยกเลิก',
+                                        [
+                                            'class' => 'btn btn-warning btn-sm cancel-export-btn',
+                                            'data-job-id' => $job['id'],
+                                            'data-type-name' => $typeName
+                                        ]
+                                    ) ?>
+                                <?php endif; ?>
+                                
                                 <?= Html::button(
                                     '<i class="fa fa-trash"></i> ลบ',
                                     [
@@ -133,7 +145,18 @@ $statusLabels = [
 
 <?php
 $deleteUrl = Url::to(['delete']);
+$cancelUrl = Url::to(['cancel']);
+
+// Debug: Show job statuses
+foreach ($jobs as $job) {
+    $canCancel = in_array($job['status'], [ContentAsyncExportService::STATUS_PENDING, ContentAsyncExportService::STATUS_PROCESSING]);
+    echo "<!-- Debug: Job ID {$job['id']}, Status: {$job['status']}, Can Cancel: " . ($canCancel ? 'Yes' : 'No') . " -->";
+}
+
 $this->registerJs(<<<JS
+// Debug: Check if cancel buttons exist
+console.log('Cancel buttons found:', $('.cancel-export-btn').length);
+
 $('.delete-export-btn').on('click', function() {
     var jobId = $(this).data('job-id');
     var fileName = $(this).data('file-name');
@@ -164,6 +187,43 @@ $('.delete-export-btn').on('click', function() {
         },
         error: function() {
             alert('เกิดข้อผิดพลาดในการลบไฟล์');
+            btn.prop('disabled', false);
+        }
+    });
+});
+
+$('.cancel-export-btn').on('click', function() {
+    console.log('Cancel button clicked'); // Debug log
+    var jobId = $(this).data('job-id');
+    var typeName = $(this).data('type-name');
+    var btn = $(this);
+    
+    console.log('Job ID:', jobId, 'Type:', typeName); // Debug log
+    
+    if (!confirm(`คุณต้องการยกเลิกการ Export ${typeName} หรือไม่?\n\nหมายเหตุ: การยกเลิกจะหยุดการประมวลผลทันที`)) {
+        return;
+    }
+    
+    btn.prop('disabled', true);
+    
+    $.ajax({
+        url: '{$cancelUrl}?jobId=' + encodeURIComponent(jobId),
+        type: 'POST',
+        dataType: 'json',
+        data: {
+            _csrf: yii.getCsrfToken()
+        },
+        success: function(response) {
+            if (response.status === 'success') {
+                alert(response.message);
+                location.reload();
+            } else {
+                alert(response.message || 'ไม่สามารถยกเลิกการ Export ได้');
+                btn.prop('disabled', false);
+            }
+        },
+        error: function() {
+            alert('เกิดข้อผิดพลาดในการยกเลิก Export');
             btn.prop('disabled', false);
         }
     });

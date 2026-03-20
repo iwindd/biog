@@ -23,7 +23,7 @@ class ExportDownloadsController extends Controller
                 ],
                 'rules' => [
                     [
-                        'actions' => ['index', 'download', 'delete'],
+                        'actions' => ['index', 'download', 'delete', 'cancel'],
                         'allow' => true,
                         'matchCallback' => function ($rule, $action) {
                             return PermissionAccess::BackendAccess('content_list', 'controller');
@@ -111,6 +111,50 @@ class ExportDownloadsController extends Controller
             return [
                 'status' => 'error',
                 'message' => 'ไม่สามารถลบไฟล์ได้'
+            ];
+        }
+    }
+
+    public function actionCancel($jobId)
+    {
+        Yii::$app->response->format = Response::FORMAT_JSON;
+
+        $job = ContentAsyncExportService::getJob($jobId);
+        
+        if (empty($job)) {
+            return [
+                'status' => 'error',
+                'message' => 'ไม่พบงาน Export ที่ต้องการ'
+            ];
+        }
+
+        // Check if user owns this job
+        if ($job['created_by_user_id'] != Yii::$app->user->identity->id) {
+            return [
+                'status' => 'error',
+                'message' => 'คุณไม่มีสิทธิ์ยกเลิกงานนี้'
+            ];
+        }
+
+        // Check if job can be cancelled (only pending or processing)
+        if (!in_array($job['status'], [ContentAsyncExportService::STATUS_PENDING, ContentAsyncExportService::STATUS_PROCESSING])) {
+            return [
+                'status' => 'error',
+                'message' => 'ไม่สามารถยกเลิกงานที่สถานะ ' . $job['status'] . ' ได้'
+            ];
+        }
+
+        $success = ContentAsyncExportService::cancelJob($jobId);
+
+        if ($success) {
+            return [
+                'status' => 'success',
+                'message' => 'ยกเลิกการ Export สำเร็จ'
+            ];
+        } else {
+            return [
+                'status' => 'error',
+                'message' => 'ไม่สามารถยกเลิกการ Export ได้'
             ];
         }
     }

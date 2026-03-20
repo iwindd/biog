@@ -112,6 +112,33 @@ class ContentAsyncExportService
         return min(89, (int)$percentage);
     }
 
+    private static function checkAndHandleCancellation($jobId, $job, $context = '')
+    {
+        $currentJob = self::getJob($jobId);
+        if (!empty($currentJob) && isset($currentJob['cancelled']) && $currentJob['cancelled'] === true) {
+            $job['status'] = self::STATUS_FAILED;
+            $job['error_message'] = 'ถูกยกเลิกโดยผู้ใช้';
+            $job['progress_message'] = 'ถูกยกเลิกระหว่างการประมวลผล';
+            self::saveJob($job);
+            
+            // Clean up partial files
+            $jobDir = self::getJobDirectory($jobId);
+            if (is_dir($jobDir)) {
+                FileHelper::removeDirectory($jobDir);
+            }
+            
+            $logMessage = "Job {$jobId} was cancelled";
+            if ($context) {
+                $logMessage .= " {$context}";
+            }
+            error_log($logMessage);
+            
+            return $job;
+        }
+        
+        return null; // Not cancelled
+    }
+
     public static function processJob($jobId, $query, callable $chunkExporter, $baseFileName)
     {
         $job = self::getJob($jobId);
@@ -159,6 +186,12 @@ class ContentAsyncExportService
         $baseQuery = clone $query; // Clone once outside the loop
         
         for ($part = 1; $part <= $totalFiles; $part++) {
+            // Check if job was cancelled
+            $cancelledJob = self::checkAndHandleCancellation($jobId, $job, "during processing at part {$part}");
+            if ($cancelledJob !== null) {
+                return $cancelledJob;
+            }
+            
             $offset = ($part - 1) * self::CHUNK_SIZE;
             
             // Create a new query for each chunk to avoid memory buildup
@@ -193,6 +226,12 @@ class ContentAsyncExportService
         
         // Clear the base query object
         unset($baseQuery);
+        
+        // Check if job was cancelled before ZIP creation
+        $cancelledJob = self::checkAndHandleCancellation($jobId, $job, "before ZIP creation");
+        if ($cancelledJob !== null) {
+            return $cancelledJob;
+        }
         
         // Final garbage collection before ZIP creation
         gc_collect_cycles();
@@ -501,6 +540,56 @@ class ContentAsyncExportService
             return true;
         } catch (\Exception $e) {
             error_log("Failed to delete job {$jobId}: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public static function cancelJob($jobId)
+    {
+        try {
+            $job = self::getJob($jobId);
+            if (empty($job)) {
+                error_log("Failed to cancel job {$jobId}: Job not found");
+                return false;
+            }
+
+            // Only allow cancellation of pending or processing jobs
+            if (!in_array($job['status'], [self::STATUS_PENDING, self::STATUS_PROCESSING])) {
+                error_log("Failed to cancel job {$jobId}: Job status is '{$job['status']}' which cannot be cancelled");
+                return false;
+            }
+
+            // Add cancellation flag for running processes to check
+            $job['cancelled'] = true;
+            $job['cancelled_at'] = date('Y-m-d H:i:s');
+            
+            // If job is pending, we can immediately mark it as failed
+            if ($job['status'] === self::STATUS_PENDING) {
+                $job['status'] = self::STATUS_FAILED;
+                $job['error_message'] = 'ถูกยกเลิกโดยผู้ใช้';
+                $job['progress_message'] = 'ถูกยกเลิก';
+            }
+            
+            $job['updated_at'] = date('Y-m-d H:i:s');
+            
+            // Save the updated job with cancellation flag
+            self::saveJob($job);
+            
+            error_log("Cancellation request sent for job {$jobId}, status: {$job['status']}");
+            
+            // For pending jobs, clean up immediately
+            if ($job['status'] === self::STATUS_FAILED) {
+                $jobDir = self::getJobDirectory($jobId);
+                if (is_dir($jobDir)) {
+                    FileHelper::removeDirectory($jobDir);
+                }
+                error_log("Successfully cancelled pending job {$jobId}");
+            }
+            
+            return true;
+            
+        } catch (\Exception $e) {
+            error_log("Failed to cancel job {$jobId}: " . $e->getMessage());
             return false;
         }
     }
