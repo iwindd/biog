@@ -497,6 +497,11 @@ $('#plantExportSubmitBtn').on('click', function () {
     });
 });
 
+$('#plantExportSuccessCloseBtn').on('click', function () {
+    // Explicitly stop polling when closing from success state
+    clearTimeout(plantExportPollTimer);
+});
+
 $('#plantExportModal').on('hidden.bs.modal', function () {
     clearTimeout(plantExportPollTimer);
     // Reset modal when closed so it's ready for next use
