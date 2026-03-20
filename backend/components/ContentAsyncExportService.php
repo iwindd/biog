@@ -319,9 +319,9 @@ class ContentAsyncExportService
         error_log("Export job {$job['id']}: Attempting to send email to {$job['user_email']} from {$mailSender['value']}");
         
         try {
-            $transport = new \Swift_SmtpTransport('smtp.gmail.com', 587, 'tls');
-            $transport->setUsername('biogang.smtp@gmail.com');
-            $transport->setPassword('nsrxdrammdozafgg');
+            $transport = new \Swift_SmtpTransport(self::$mailerConfig['host'], self::$mailerConfig['port'], self::$mailerConfig['encryption']);
+            $transport->setUsername(self::$mailerConfig['username']);
+            $transport->setPassword(self::$mailerConfig['password']);
             $transport->start();
             
             $swiftMailer = new \Swift_Mailer($transport);
