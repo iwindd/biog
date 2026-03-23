@@ -816,7 +816,7 @@ class BackendHelper
 
         $query->leftJoin('content_expert', 'content_expert.content_id = content.id');
         $query->leftJoin('profile', 'profile.user_id = content.created_by_user_id');
-        $query->andFilterWhere(['=', 'content.type_id', 5]);
+        $query->andFilterWhere(['=', 'content.type_id', 4]);
         $query->andFilterWhere(['=', 'content.active', 1]);
 
         if (!empty($filters['name'])) {
