@@ -7,6 +7,8 @@ $params = array_merge(
     require __DIR__ . '/params-local.php'
 );
 $baseUrl = str_replace('/backend/web', '', (new Request)->getBaseUrl()); 
+$mailerConfig = require __DIR__ . '/../../common/config/mailer.php';
+
 return [
     'id' => 'app-backend',
     'name'=>'สำนักงานพัฒนาเศรษฐกิจจากฐานชีวภาพ (องค์การมหาชน)',
@@ -172,6 +174,11 @@ return [
                     '/expert-category/delete/<id:\d+>' => 'expert-category/delete',
 
                     '/contact-us/update/<id:\d+>' => 'contact-us/update',
+                    
+                    '/export-downloads' => 'export-downloads/index',
+                    '/export-downloads/download' => 'export-downloads/download',
+                    '/export-downloads/delete' => 'export-downloads/delete',
+                    
                     '<controller:\w+>/<id:\d+>' => '<controller>/view',
                     '<controller:\w+>/<action:\w+>/<id:\d+>' => '<controller>/<action>',
                     '<controller:\w+>/<action:\w+>' => '<controller>/<action>',
@@ -228,11 +235,11 @@ return [
                  'useFileTransport' => false,
                  'transport' => [
                      'class' => 'Swift_SmtpTransport',
-                     'host' => 'smtp.gmail.com',
-                     'username' => 'biogang.smtp@gmail.com',
-                     'password' => 'nsrxdrammdozafgg',
-                     'port' => '587',
-                     'encryption' => 'tls',
+                     'host' => $mailerConfig['host'],
+                     'username' => $mailerConfig['username'],
+                     'password' => $mailerConfig['password'],
+                     'port' => $mailerConfig['port'],
+                     'encryption' => $mailerConfig['encryption'],
                  ],
          ],
 

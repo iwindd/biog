@@ -44,7 +44,7 @@ class ContentProductController extends Controller
                 'rules' => [
                     //dashboard_view
                     [
-                        'actions' => ['index', 'view', 'create', 'update', 'delete', 'export', 'import', 'import-summary', 'import-confirm'],
+                        'actions' => ['index', 'view', 'create', 'update', 'delete', 'export', 'import', 'import-summary', 'import-confirm', 'start-export', 'export-status', 'download-export'],
                         'allow' => true,
                         'matchCallback' => function ($rule, $action) 
                         {
@@ -54,6 +54,9 @@ class ContentProductController extends Controller
                                 case 'import':
                                 case 'import-summary':
                                 case 'import-confirm':
+                                case 'start-export':
+                                case 'export-status':
+                                case 'download-export':
                                     return PermissionAccess::BackendAccess('content_list', 'controller');
                                 break;
 
@@ -619,6 +622,137 @@ class ContentProductController extends Controller
         $model = $query->asArray()->all();
 
         return $this->render('export',['model' => $model]);
+    }
+
+    public function actionStartExport()
+    {
+        Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+        
+        $filters = $this->getProductExportFilters();
+        
+        try {
+            $exportJob = new \common\jobs\ExportJob([
+                'typeKey' => 'content_product',
+                'filters' => $filters,
+                'baseFileName' => 'ข้อมูลผลิตภัณฑ์ชุมชน',
+            ]);
+            
+            $jobId = 'content_product_export_' . uniqid();
+            \Yii::$app->queue->push($exportJob);
+            
+            // Save placeholder job info
+            \backend\components\ContentAsyncExportService::saveJobInfo($jobId, 'content_product', $filters);
+            
+            return ['job_id' => $jobId];
+        } catch (\Exception $e) {
+            return ['message' => 'ไม่สามารถเริ่มต้นการ Export ได้: ' . $e->getMessage()];
+        }
+    }
+
+    public function actionExportStatus()
+    {
+        Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+        
+        $jobId = Yii::$app->request->get('job_id');
+        
+        if (!$jobId) {
+            return ['status' => 'failed', 'message' => 'ไม่พบ Job ID'];
+        }
+        
+        try {
+            $job = \backend\components\ContentAsyncExportService::getJobStatus($jobId);
+            
+            if (!$job) {
+                return ['status' => 'failed', 'message' => 'ไม่พบข้อมูล Job'];
+            }
+            
+            $response = [
+                'status' => $job['status'],
+                'progress' => $job['progress'] ?? 0,
+            ];
+            
+            if ($job['status'] === 'completed' && !empty($job['download_url'])) {
+                $response['download_url'] = $job['download_url'];
+            }
+            
+            if ($job['status'] === 'failed' && !empty($job['error_message'])) {
+                $response['message'] = $job['error_message'];
+            }
+            
+            return $response;
+        } catch (\Exception $e) {
+            return ['status' => 'failed', 'message' => 'ไม่สามารถตรวจสอบสถานะได้: ' . $e->getMessage()];
+        }
+    }
+
+    public function actionDownloadExport()
+    {
+        $jobId = Yii::$app->request->get('job_id');
+        
+        if (!$jobId) {
+            throw new \yii\web\BadRequestHttpException('ไม่พบ Job ID');
+        }
+        
+        try {
+            $downloadUrl = \backend\components\ContentAsyncExportService::getDownloadUrl($jobId);
+            
+            if (!$downloadUrl) {
+                throw new \yii\web\NotFoundHttpException('ไม่พบไฟล์ Export');
+            }
+            
+            return Yii::$app->response->sendFile($downloadUrl);
+        } catch (\Exception $e) {
+            throw new \yii\web\NotFoundHttpException('ไม่สามารถดาวน์โหลดไฟล์ได้: ' . $e->getMessage());
+        }
+    }
+
+    private function getProductExportFilters()
+    {
+        $filters = [];
+        
+        // Get filters from request
+        $request = Yii::$app->request;
+        
+        // Date range filters
+        $startDate = $request->post('start_date');
+        $endDate = $request->post('end_date');
+        
+        if ($startDate) {
+            $filters['date_from'] = $startDate;
+        }
+        if ($endDate) {
+            $filters['date_to'] = $endDate;
+        }
+        
+        // Get other filters from POST data (from search form)
+        $postData = $request->post();
+        
+        if (isset($postData['name'])) {
+            $filters['name'] = $postData['name'];
+        }
+        if (isset($postData['product_category_id'])) {
+            $filters['product_category_id'] = $postData['product_category_id'];
+        }
+        if (isset($postData['created_by_user_id'])) {
+            $filters['created_by_user_id'] = $postData['created_by_user_id'];
+        }
+        if (isset($postData['updated_by_user_id'])) {
+            $filters['updated_by_user_id'] = $postData['updated_by_user_id'];
+        }
+        if (isset($postData['approved_by_user_id'])) {
+            $filters['approved_by_user_id'] = $postData['approved_by_user_id'];
+        }
+        if (isset($postData['note'])) {
+            $filters['note'] = $postData['note'];
+        }
+        if (isset($postData['status'])) {
+            $filters['status'] = $postData['status'];
+        }
+        if (isset($postData['updated_at'])) {
+            $filters['updated_at'] = $postData['updated_at'];
+        }
+        
+        return $filters;
     }
 
 

@@ -13,83 +13,17 @@ use yii\web\JsExpression;
 $listUser = \yii\helpers\Url::to(['/api/userslist']);
 $listEditUser = \yii\helpers\Url::to(['/api/editslist']);
 $listApprovedUser = \yii\helpers\Url::to(['/api/approverlist']);
+
+$startExportUrl = Url::to(['/content-ecotourism/start-export']);
+$exportStatusUrl = Url::to(['/content-ecotourism/export-status']);
+$contentEcotourismViewBaseUrl = Url::to(['/content-ecotourism']);
+
 /* @var $this yii\web\View */
 /* @var $searchModel backend\models\ContentEcotourismSearch */
 /* @var $dataProvider yii\data\ActiveDataProvider */
 
 $this->title = 'จัดการข้อมูลท่องเที่ยวเชิงนิเวศ';
 $this->params['breadcrumbs'][] = $this->title;
-
-// print '<pre>';
-// print_r($_GET);
-// print "</pre>";
-// exit();
-
-$url = "";
-if(!empty($_GET['ContentEcotourismSearch'])){
-    if(!empty($_GET['ContentEcotourismSearch']['name'])){
-        $url = "?name=".$_GET['ContentEcotourismSearch']['name'];
-    }
-
-    if(!empty($_GET['ContentEcotourismSearch']['created_by_user_id'])){
-        if (!empty($url)) {
-            $url = $url."&created_by_user_id=".$_GET['ContentEcotourismSearch']['created_by_user_id'];
-        }else{
-            $url = "?created_by_user_id=".$_GET['ContentEcotourismSearch']['created_by_user_id'];
-        }
-    }
-
-    if(!empty($_GET['ContentEcotourismSearch']['updated_by_user_id'])){
-        if (!empty($url)) {
-            $url = $url."&updated_by_user_id=".$_GET['ContentEcotourismSearch']['updated_by_user_id'];
-        }else{
-            $url = "?updated_by_user_id=".$_GET['ContentEcotourismSearch']['updated_by_user_id'];
-        }
-    }
-
-
-
-    if(!empty($_GET['ContentEcotourismSearch']['approved_by_user_id'])){
-        if (!empty($url)) {
-            $url = $url."&approved_by_user_id=".$_GET['ContentEcotourismSearch']['approved_by_user_id'];
-        }else{
-            $url = "?approved_by_user_id=".$_GET['ContentEcotourismSearch']['approved_by_user_id'];
-        }
-    }
-
-    if(!empty($_GET['ContentEcotourismSearch']['note'])){
-        if (!empty($url)) {
-            $url = $url."&note=".$_GET['ContentEcotourismSearch']['note'];
-        }else{
-            $url = "?note=".$_GET['ContentEcotourismSearch']['note'];
-        }
-    }
-
-    if(!empty($_GET['ContentEcotourismSearch']['status'])){
-        if (!empty($url)) {
-            $url = $url."&status=".$_GET['ContentEcotourismSearch']['status'];
-        }else{
-            $url = "?status=".$_GET['ContentEcotourismSearch']['status'];
-        }
-    }
-
-    if(!empty($_GET['ContentEcotourismSearch']['updated_at'])){
-        if (!empty($url)) {
-            $url = $url."&updated_at=".$_GET['ContentEcotourismSearch']['updated_at'];
-        }else{
-            $url = "?updated_at=".$_GET['ContentEcotourismSearch']['updated_at'];
-        }
-    }
-    
-}
-
-if (!empty($_GET['sort'])) {
-    if (!empty($url)) {
-        $url = $url."&sort=".$_GET['sort'];
-    } else {
-        $url = "?sort=".$_GET['sort'];
-    }
-}
 
 ?>
 <div class="content-index">
@@ -99,11 +33,9 @@ if (!empty($_GET['sort'])) {
     <p>
         <?= Html::a('เพิ่มข้อมูลท่องเที่ยวเชิงนิเวศ', ['create'], ['class' => 'btn btn-success']) ?>
         <?= Html::a('Import Excel', ['import'], ['class' => 'btn btn-primary']) ?>
-
-        <?= Html::a(  Html::img('/images/csv.png', ['class' => 'csv-export']).'Export ข้อมูลท่องเที่ยวเชิงนิเวศ', ['export'.$url], ['class' => 'btn btn-info export-bakcground f-right ','title' => 'Export Excel']) ?>
+        <?= Html::button(Html::img('/images/csv.png', ['class' => 'csv-export']) . 'Export ข้อมูลท่องเที่ยวเชิงนิเวศ', ['class' => 'btn btn-info export-bakcground f-right', 'title' => 'Export Excel', 'id' => 'openEcotourismExportModal']) ?>
     </p>
 
-    <?php // echo $this->render('_search', ['model' => $searchModel]); ?>
     <div class="table-responsive">
     <?= GridView::widget([
         'dataProvider' => $dataProvider,
@@ -292,17 +224,25 @@ if (!empty($_GET['sort'])) {
 
 </div>
 
-<?php 
+<?= \backend\widgets\AsyncExportModal::widget([
+    'contentType' => 'ecotourism',
+    'modalTitle' => 'Export ข้อมูลท่องเที่ยวเชิงนิเวศ',
+    'startExportUrl' => Url::to(['/export/start']),
+    'exportStatusUrl' => Url::to(['/export/status']),
+    'searchParams' => $_GET['ContentEcotourismSearch'] ?? [],
+]) ?>
 
-    $this->registerJs("
+<?php
 
-        $('td').click(function (e) {
-            var id = $(this).closest('tr').data('id');
-            if(id){
-                if(e.target == this)
-                    location.href = '" . Url::to(['/content-ecotourism/']) . "/' + id;
-            }
-        });
-
-    ");
+$this->registerJs(<<<JS
+$('td').click(function (e) {
+    var id = $(this).closest('tr').data('id');
+    if (id) {
+        if (e.target == this) {
+            location.href = contentEcotourismViewBaseUrl + '/' + id;
+        }
+    }
+});
+JS
+);
 ?>

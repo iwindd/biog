@@ -8,17 +8,17 @@ use common\components\Upload;
 use kartik\date\DatePicker;
 use yii\helpers\Url;
 
-// $listUser = BackendHelper::getUserList();
-// $listEditUser = BackendHelper::getUserEditList();
-//$listApprovedUser = BackendHelper::getUserApprovedList();
 use kartik\daterange\DateRangePicker;
 use yii\web\JsExpression;
 $listUser = \yii\helpers\Url::to(['/api/userslist']);
 $listEditUser = \yii\helpers\Url::to(['/api/editslist']);
 $listApprovedUser = \yii\helpers\Url::to(['/api/approverlist']);
 
+$startExportUrl = Url::to(['/content-animal/start-export']);
+$exportStatusUrl = Url::to(['/content-animal/export-status']);
+$contentAnimalViewBaseUrl = Url::to(['/content-animal']);
+
 $total = $dataProvider->totalCount; //total records // 15 
-$totalPage = ceil( $total / 25000 ); 
 
 /* @var $this yii\web\View */
 /* @var $searchModel backend\models\ContentAnimalSearch */
@@ -35,88 +35,9 @@ $this->params['breadcrumbs'][] = $this->title;
     <p>
         <?= Html::a('เพิ่มข้อมูลสัตว์', ['create'], ['class' => 'btn btn-success']) ?>
         <?= Html::a('Import Excel', ['import'], ['class' => 'btn btn-primary']) ?>
-
-        <?php if($totalPage > 0): for ($i=1; $i <= $totalPage ; $i++): ?>
-        <?php  
-
-            $url = "";
-            if(!empty($_GET['ContentAnimalSearch'])){
-                if(!empty($_GET['ContentAnimalSearch']['name'])){
-                    $url = "?name=".$_GET['ContentAnimalSearch']['name'];
-                }
-
-                if(!empty($_GET['ContentAnimalSearch']['created_by_user_id'])){
-                    if (!empty($url)) {
-                        $url = $url."&created_by_user_id=".$_GET['ContentAnimalSearch']['created_by_user_id'];
-                    }else{
-                        $url = "?created_by_user_id=".$_GET['ContentAnimalSearch']['created_by_user_id'];
-                    }
-                }
-
-                if(!empty($_GET['ContentAnimalSearch']['updated_by_user_id'])){
-                    if (!empty($url)) {
-                        $url = $url."&updated_by_user_id=".$_GET['ContentAnimalSearch']['updated_by_user_id'];
-                    }else{
-                        $url = "?updated_by_user_id=".$_GET['ContentAnimalSearch']['updated_by_user_id'];
-                    }
-                }
-
-
-
-                if(!empty($_GET['ContentAnimalSearch']['approved_by_user_id'])){
-                    if (!empty($url)) {
-                        $url = $url."&approved_by_user_id=".$_GET['ContentAnimalSearch']['approved_by_user_id'];
-                    }else{
-                        $url = "?approved_by_user_id=".$_GET['ContentAnimalSearch']['approved_by_user_id'];
-                    }
-                }
-
-                if(!empty($_GET['ContentAnimalSearch']['note'])){
-                    if (!empty($url)) {
-                        $url = $url."&note=".$_GET['ContentAnimalSearch']['note'];
-                    }else{
-                        $url = "?note=".$_GET['ContentAnimalSearch']['note'];
-                    }
-                }
-
-                if(!empty($_GET['ContentAnimalSearch']['status'])){
-                    if (!empty($url)) {
-                        $url = $url."&status=".$_GET['ContentAnimalSearch']['status'];
-                    }else{
-                        $url = "?status=".$_GET['ContentAnimalSearch']['status'];
-                    }
-                }
-
-                if(!empty($_GET['ContentAnimalSearch']['updated_at'])){
-                    if (!empty($url)) {
-                        $url = $url."&updated_at=".$_GET['ContentAnimalSearch']['updated_at'];
-                    }else{
-                        $url = "?updated_at=".$_GET['ContentAnimalSearch']['updated_at'];
-                    }
-                }
-                
-            }
-
-            if (!empty($_GET['sort'])) {
-                if (!empty($url)) {
-                    $url = $url."&sort=".$_GET['sort'];
-                } else {
-                    $url = "?sort=".$_GET['sort'];
-                }
-            }
-
-            if (!empty($url)) {
-                $url = $url."&file=".$i;
-            }else{
-                $url = "?file=".$i;
-            }
-        ?>
-        <?= Html::a(  Html::img('/images/csv.png', ['class' => 'csv-export']).'Export ข้อมูลสัตว์ ไฟล์ที่ '.($i), ['export'.$url], ['class' => 'btn btn-info export-bakcground f-right ','title' => 'Export Excel']) ?>
-        <?php endfor; endif; ?>
-
+        <?= Html::button(Html::img('/images/csv.png', ['class' => 'csv-export']) . 'Export ข้อมูลสัตว์', ['class' => 'btn btn-info export-bakcground f-right', 'title' => 'Export Excel', 'id' => 'openAnimalExportModal']) ?>
     </p>
 
-    <?php // echo $this->render('_search', ['model' => $searchModel]); ?>
     <div class="table-responsive">
 
     <?= GridView::widget([
@@ -311,18 +232,25 @@ $this->params['breadcrumbs'][] = $this->title;
 
 </div>
 
+<?= \backend\widgets\AsyncExportModal::widget([
+    'contentType' => 'animal',
+    'modalTitle' => 'Export ข้อมูลสัตว์',
+    'startExportUrl' => Url::to(['/export/start']),
+    'exportStatusUrl' => Url::to(['/export/status']),
+    'searchParams' => $_GET['ContentAnimalSearch'] ?? [],
+]) ?>
 
-<?php 
+<?php
 
-    $this->registerJs("
-
-        $('td').click(function (e) {
-            var id = $(this).closest('tr').data('id');
-            if(id){
-                if(e.target == this)
-                    location.href = '" . Url::to(['/content-animal/']) . "/' + id;
-            }
-        });
-
-    ");
+$this->registerJs(<<<JS
+$('td').click(function (e) {
+    var id = $(this).closest('tr').data('id');
+    if (id) {
+        if (e.target == this) {
+            location.href = contentAnimalViewBaseUrl + '/' + id;
+        }
+    }
+});
+JS
+);
 ?>

@@ -20,9 +20,15 @@ use yii\filters\AccessControl;
 use yii\filters\AccessRule;
 use backend\components\PermissionAccess;
 use backend\components\BackendHelper;
-
+use backend\components\BaseExportController;
+use backend\components\ContentAsyncExportService;
+use common\jobs\ExportJob;
+use common\components\DatabaseJobMappingService;
+    
 use common\components\Upload;
 use common\components\Helper;
+use yii\helpers\Json;
+use yii\web\Response;
 
 /**
  * ContentPlantController implements the CRUD actions for Content model.
@@ -43,13 +49,16 @@ class ContentPlantController extends Controller
                 'rules' => [
                     //dashboard_view
                     [
-                        'actions' => ['index', 'view', 'create', 'update', 'delete', 'export', 'import', 'import-summary', 'import-confirm'],
+                        'actions' => ['index', 'view', 'create', 'update', 'delete', 'export', 'start-export', 'export-status', 'download-export', 'import', 'import-summary', 'import-confirm'],
                         'allow' => true,
                         'matchCallback' => function ($rule, $action) 
                         {
                             switch($action->id){
                                 case 'index':
                                 case 'export':
+                                case 'start-export':
+                                case 'export-status':
+                                case 'download-export':
                                     return PermissionAccess::BackendAccess('content_list', 'controller');
                                 break;
 
@@ -827,6 +836,254 @@ class ContentPlantController extends Controller
 
 
         return $this->render('export',['model' => $model]);
+    }
+
+    public function actionStartExport()
+    {
+        Yii::$app->response->format = Response::FORMAT_JSON;
+
+        $dateFrom = Yii::$app->request->post('date_from');
+        $dateTo = Yii::$app->request->post('date_to');
+        error_log("Export request: date_from=$dateFrom, date_to=$dateTo");
+        
+        if (empty($dateFrom) || empty($dateTo)) {
+            error_log("Export request failed: missing dates");
+            return [
+                'status' => 'error',
+                'message' => 'กรุณาเลือกช่วงวันที่ให้ครบถ้วน',
+            ];
+        }
+
+        $filters = $this->getPlantExportFilters();
+        $filters['date_from'] = $dateFrom;
+        $filters['date_to'] = $dateTo;
+
+        $exportJob = new ExportJob([
+            'typeKey' => 'content_plant',
+            'filters' => $filters,
+            'userId' => Yii::$app->user->identity->id,
+            'baseFileName' => 'รายงานข้อมูลพืช',
+        ]);
+        
+        // Push the job to queue
+        $jobId = Yii::$app->queue->push($exportJob);
+        
+        // Make sure queue job ID is strictly saved as an integer or string representation of it
+        $queueJobIdStr = (string)$jobId;
+        
+        // Also save a fallback mapping in ContentAsyncExportService for direct lookups
+        $service = new ContentAsyncExportService();
+        $initialJobHash = $exportJob->getJobHash();
+        
+        // The export job hasn't started yet, but we create a tracking record for it
+        $userId = Yii::$app->user->identity->id;
+        $userEmail = Yii::$app->user->identity->email;
+        $placeholderJob = $service->createJob('content_plant', $filters, $userId, $userEmail);
+        
+        // Overwrite the placeholder job status to pending
+        $placeholderJob['status'] = ContentAsyncExportService::STATUS_PENDING;
+        $service->saveJob($placeholderJob);
+        
+        // Store mappings using database service
+        $mappingService = new DatabaseJobMappingService();
+        $success = $mappingService->storeMappings($queueJobIdStr, $initialJobHash, $placeholderJob['id']);
+        
+        if (!$success) {
+            error_log("Warning: Failed to store job mappings in database: queueJobId=$queueJobIdStr, jobHash=$initialJobHash, exportJobId={$placeholderJob['id']}");
+            // Continue anyway - the placeholder job is still usable
+            // But add a warning to the response for debugging
+            error_log("Warning: Job mapping storage failed - UI polling may be affected");
+        }
+
+        return [
+            'status' => 'success',
+            'jobId' => $placeholderJob['id'], // Return placeholder ID directly to UI to avoid mapping issues later
+            'message' => 'เริ่มสร้างไฟล์ export แล้ว',
+        ];
+    }
+
+    public function actionExportStatus($jobId)
+    {
+        Yii::$app->response->format = Response::FORMAT_JSON;
+
+        error_log("Export status request for job: $jobId");
+        
+        // Check if the requested ID is our new formatted export ID (from placeholder)
+        $job = ContentAsyncExportService::getJob($jobId);
+        
+        if ($job) {
+            // Check if job is pending or processing but has error
+            if (($job['status'] === ContentAsyncExportService::STATUS_PENDING || 
+                 $job['status'] === ContentAsyncExportService::STATUS_PROCESSING) && 
+                 !empty($job['error_message'])) {
+                $job['status'] = ContentAsyncExportService::STATUS_FAILED;
+            }
+            
+            return [
+                'status' => 'success',
+                'job' => [
+                    'id' => $job['id'],
+                    'state' => $job['status'],
+                    'progressMessage' => $job['progress_message'],
+                    'totalRows' => $job['total_rows'],
+                    'totalFiles' => $job['total_files'],
+                    'currentPart' => !empty($job['current_part']) ? $job['current_part'] : 0,
+                    'chunkSize' => !empty($job['chunk_size']) ? $job['chunk_size'] : 0,
+                    'peakMemoryMb' => !empty($job['peak_memory_mb']) ? $job['peak_memory_mb'] : 0,
+                    'errorMessage' => $job['error_message'],
+                    'downloadReady' => (bool) $job['download_ready'],
+                    'downloadUrl' => $job['download_ready'] ? Yii::$app->urlManager->createUrl(['/content-plant/download-export', 'jobId' => $job['id']]) : '',
+                ],
+            ];
+        }
+
+        // If it's a numeric ID (old queue logic check), just return generic status
+        if (is_numeric($jobId)) {
+            $isDone = Yii::$app->queue->isDone($jobId);
+            if ($isDone) {
+                return [
+                    'status' => 'success',
+                    'job' => [
+                        'id' => $jobId,
+                        'state' => 'completed',
+                        'progressMessage' => 'ดำเนินการเสร็จสิ้น (100%)',
+                        'totalRows' => 0,
+                        'totalFiles' => 0,
+                        'currentPart' => 0,
+                        'chunkSize' => 0,
+                        'peakMemoryMb' => 0,
+                        'errorMessage' => 'เกิดข้อผิดพลาดในการค้นหาไฟล์',
+                        'downloadReady' => false,
+                        'downloadUrl' => '',
+                    ],
+                ];
+            }
+            
+            return [
+                'status' => 'success',
+                'job' => [
+                    'id' => $jobId,
+                    'state' => 'processing',
+                    'progressMessage' => 'กำลังประมวลผล',
+                    'totalRows' => 0,
+                    'totalFiles' => 0,
+                    'currentPart' => 0,
+                    'chunkSize' => 0,
+                    'peakMemoryMb' => 0,
+                    'errorMessage' => '',
+                    'downloadReady' => false,
+                    'downloadUrl' => '',
+                ],
+            ];
+        }
+
+        return [
+            'status' => 'error',
+            'message' => 'ไม่พบงาน export ที่ระบุ',
+        ];
+    }
+
+    public function actionDownloadExport($jobId)
+    {
+        $job = ContentAsyncExportService::getJob($jobId);
+        if (empty($job) || $job['status'] !== ContentAsyncExportService::STATUS_COMPLETED) {
+            throw new NotFoundHttpException('ไม่พบไฟล์ export ที่พร้อมดาวน์โหลด');
+        }
+
+        $zipPath = ContentAsyncExportService::getDownloadPath($job);
+        if (empty($zipPath) || !is_file($zipPath)) {
+            throw new NotFoundHttpException('ไม่พบไฟล์ ZIP สำหรับดาวน์โหลด');
+        }
+
+        return Yii::$app->response->sendFile($zipPath, $job['zip_file_name']);
+    }
+
+    private function getPlantExportFilters()
+    {
+        $searchFilters = Yii::$app->request->get('ContentPlantSearch', []);
+
+        return [
+            'name' => !empty($searchFilters['name']) ? $searchFilters['name'] : Yii::$app->request->get('name', ''),
+            'created_by_user_id' => !empty($searchFilters['created_by_user_id']) ? $searchFilters['created_by_user_id'] : Yii::$app->request->get('created_by_user_id', ''),
+            'updated_by_user_id' => !empty($searchFilters['updated_by_user_id']) ? $searchFilters['updated_by_user_id'] : Yii::$app->request->get('updated_by_user_id', ''),
+            'approved_by_user_id' => !empty($searchFilters['approved_by_user_id']) ? $searchFilters['approved_by_user_id'] : Yii::$app->request->get('approved_by_user_id', ''),
+            'note' => !empty($searchFilters['note']) ? $searchFilters['note'] : Yii::$app->request->get('note', ''),
+            'status' => !empty($searchFilters['status']) ? $searchFilters['status'] : Yii::$app->request->get('status', ''),
+            'updated_at' => !empty($searchFilters['updated_at']) ? $searchFilters['updated_at'] : Yii::$app->request->get('updated_at', ''),
+        ];
+    }
+
+
+    private function buildPlantExportQuery($filters = [])
+    {
+        return BackendHelper::buildPlantExportQuery($filters, true);
+    }
+
+    public function generatePlantExportFile($rows, $filePath, $part, $totalFiles)
+    {
+        $protocol = stripos(Yii::$app->request->getHostInfo(), 'https://') === 0 ? 'https://' : 'http://';
+        $hostname = Yii::$app->request->getHostName();
+        if (empty($hostname)) {
+            $hostname = 'localhost:8080';
+        }
+
+        $headers = [
+            'ชื่อเรื่อง',
+            'ชื่ออื่น',
+            'ลิงก์',
+            'ลักษณะ',
+            'ประโยชน์',
+            'แหล่งที่พบ',
+            'ชื่อสามัญ',
+            'ชื่อวิทยาศาสตร์',
+            'ชื่อวงศ์',
+            'ภาค',
+            'จังหวัด',
+            'อำเภอ',
+            'ตำบล',
+            'รหัสไปรษณีย์',
+            'ชื่อผู้นำเข้าข้อมูล',
+            'ชื่อผู้อนุมัติข้อมูล',
+            'สถานะ',
+            'หมายเหตุ',
+            'วันที่นำเข้าข้อมูล',
+        ];
+
+        $exportRows = [];
+        foreach ($rows as $value) {
+            $exportRows[] = [
+                $value['name'],
+                $value['other_name'],
+                $protocol . $hostname . '/content-' . \frontend\components\FrontendHelper::getContentTypeById($value['type_id']) . '/' . $value['content_id'],
+                BaseExportController::cleanText($value['features']),
+                BaseExportController::cleanText($value['benefit']),
+                $value['found_source'],
+                $value['common_name'],
+                $value['scientific_name'],
+                $value['family_name'],
+                BackendHelper::getNameRegion($value['region_id']),
+                BackendHelper::getNameProvince($value['province_id']),
+                BackendHelper::getNameDistrict($value['district_id']),
+                BackendHelper::getNameSubdistrict($value['subdistrict_id']),
+                BackendHelper::getNameZipcode($value['zipcode_id']),
+                BackendHelper::getName($value['created_by_user_id']),
+                BackendHelper::getName($value['approved_by_user_id']),
+                ucfirst($value['status']),
+                $value['note'],
+                $value['created_at'],
+            ];
+        }
+
+        BaseExportController::saveRowsToStreamingXlsx(
+            $filePath,
+            $headers,
+            $exportRows,
+            'รายงานข้อมูลพืช',
+            'ข้อมูลพืชทั้งหมด (ไฟล์ ' . $part . '/' . $totalFiles . ')'
+        );
+
+        unset($exportRows, $headers, $rows);
+        gc_collect_cycles();
     }
 
     public function actionImport()

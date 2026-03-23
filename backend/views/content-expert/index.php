@@ -95,7 +95,7 @@ if (!empty($_GET['sort'])) {
         <?= Html::a('เพิ่มข้อมูลภูมิปัญญา/ปราชญ์', ['create'], ['class' => 'btn btn-success']) ?>
         <?= Html::a('Import Excel', ['import'], ['class' => 'btn btn-primary']) ?>
 
-        <?= Html::a(  Html::img('/images/csv.png', ['class' => 'csv-export']).'Export ข้อมูลภูมิปัญญา/ปราชญ์', ['export'.$url], ['class' => 'btn btn-info export-bakcground f-right ','title' => 'Export Excel']) ?>
+        <?= Html::button(Html::img('/images/csv.png', ['class' => 'csv-export']) . 'Export ข้อมูลภูมิปัญญา/ปราชญ์', ['class' => 'btn btn-info', 'id' => 'openExpertExportModal']) ?>
     </p>
 
     <?php // echo $this->render('_search', ['model' => $searchModel]); ?>
@@ -287,10 +287,17 @@ if (!empty($_GET['sort'])) {
 
 </div>
 
+<?= \backend\widgets\AsyncExportModal::widget([
+    'contentType' => 'expert',
+    'modalTitle' => 'Export ข้อมูลภูมิปัญญา/ปราชญ์',
+    'startExportUrl' => Url::to(['/export/start']),
+    'exportStatusUrl' => Url::to(['/export/status']),
+    'searchParams' => $_GET['ContentExpertSearch'] ?? [],
+]) ?>
+
 <?php 
 
     $this->registerJs("
-
         $('td').click(function (e) {
             var id = $(this).closest('tr').data('id');
             if(id){
@@ -298,6 +305,5 @@ if (!empty($_GET['sort'])) {
                     location.href = '" . Url::to(['/content-expert/']) . "/' + id;
             }
         });
-
     ");
 ?>

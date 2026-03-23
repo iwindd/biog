@@ -12,14 +12,12 @@ use yii\web\JsExpression;
 $listUser = \yii\helpers\Url::to(['/api/userslist']);
 $listEditUser = \yii\helpers\Url::to(['/api/editslist']);
 $listApprovedUser = \yii\helpers\Url::to(['/api/approverlist']);
+$startExportUrl = Url::to(['/content-plant/start-export']);
+$exportStatusUrl = Url::to(['/content-plant/export-status']);
+$contentPlantViewBaseUrl = Url::to(['/content-plant']);
 
 $total = $dataProvider->totalCount;  // total records // 15
-$totalPage = ceil($total / 25000);
 
-// print '<pre>';
-// print_r($totalPage);
-// print '</pre>';
-// exit();
 
 use kartik\date\DatePicker;
 
@@ -38,75 +36,7 @@ $this->params['breadcrumbs'][] = $this->title;
     <p>
         <?= Html::a('เพิ่มข้อมูลพืช', ['create'], ['class' => 'btn btn-success']) ?>
         <?= Html::a('Import Excel', ['import'], ['class' => 'btn btn-primary']) ?>
-
-        <?php if ($totalPage > 0):
-            for ($i = 1; $i <= $totalPage; $i++): ?>
-        <?php
-
-        $url = '';
-        if (!empty($_GET['ContentPlantSearch'])) {
-            if (!empty($_GET['ContentPlantSearch']['name'])) {
-                $url = '?name=' . $_GET['ContentPlantSearch']['name'];
-            }
-
-            if (!empty($_GET['ContentPlantSearch']['created_by_user_id'])) {
-                if (!empty($url)) {
-                    $url = $url . '&created_by_user_id=' . $_GET['ContentPlantSearch']['created_by_user_id'];
-                } else {
-                    $url = '?created_by_user_id=' . $_GET['ContentPlantSearch']['created_by_user_id'];
-                }
-            }
-
-            if (!empty($_GET['ContentPlantSearch']['updated_by_user_id'])) {
-                if (!empty($url)) {
-                    $url = $url . '&updated_by_user_id=' . $_GET['ContentPlantSearch']['updated_by_user_id'];
-                } else {
-                    $url = '?updated_by_user_id=' . $_GET['ContentPlantSearch']['updated_by_user_id'];
-                }
-            }
-
-            if (!empty($_GET['ContentPlantSearch']['approved_by_user_id'])) {
-                if (!empty($url)) {
-                    $url = $url . '&approved_by_user_id=' . $_GET['ContentPlantSearch']['approved_by_user_id'];
-                } else {
-                    $url = '?approved_by_user_id=' . $_GET['ContentPlantSearch']['approved_by_user_id'];
-                }
-            }
-
-            if (!empty($_GET['ContentPlantSearch']['note'])) {
-                if (!empty($url)) {
-                    $url = $url . '&note=' . $_GET['ContentPlantSearch']['note'];
-                } else {
-                    $url = '?note=' . $_GET['ContentPlantSearch']['note'];
-                }
-            }
-
-            if (!empty($_GET['ContentPlantSearch']['status'])) {
-                if (!empty($url)) {
-                    $url = $url . '&status=' . $_GET['ContentPlantSearch']['status'];
-                } else {
-                    $url = '?status=' . $_GET['ContentPlantSearch']['status'];
-                }
-            }
-
-            if (!empty($_GET['ContentPlantSearch']['updated_at'])) {
-                if (!empty($url)) {
-                    $url = $url . '&updated_at=' . $_GET['ContentPlantSearch']['updated_at'];
-                } else {
-                    $url = '?updated_at=' . $_GET['ContentPlantSearch']['updated_at'];
-                }
-            }
-        }
-
-        if (!empty($url)) {
-            $url = $url . '&file=' . $i;
-        } else {
-            $url = '?file=' . $i;
-        }
-        ?>
-        <?= Html::a(Html::img('/images/csv.png', ['class' => 'csv-export']) . 'Export ข้อมูลพืช ไฟล์ที่ ' . ($i), ['export' . $url], ['class' => 'btn btn-info export-bakcground f-right ', 'title' => 'Export Excel']) ?>
-        <?php endfor;
-        endif; ?>
+        <?= Html::button(Html::img('/images/csv.png', ['class' => 'csv-export']) . 'Export ข้อมูลพืช', ['class' => 'btn btn-info export-bakcground f-right', 'title' => 'Export Excel', 'id' => 'openPlantExportModal']) ?>
     
     </p>
 
@@ -299,21 +229,27 @@ $this->params['breadcrumbs'][] = $this->title;
         ],
     ]); ?>
     </div>
-
-
 </div>
+
+<?= \backend\widgets\AsyncExportModal::widget([
+    'contentType' => 'plant',
+    'modalTitle' => 'Export ข้อมูลพืช',
+    'startExportUrl' => Url::to(['/export/start']),
+    'exportStatusUrl' => Url::to(['/export/status']),
+    'searchParams' => $_GET['ContentPlantSearch'] ?? [],
+]) ?>
 
 <?php
 
-$this->registerJs("
-
-        \$('td').click(function (e) {
-            var id = \$(this).closest('tr').data('id');
-            if(id){
-                if(e.target == this)
-                    location.href = '" . Url::to(['/content-plant/']) . "/' + id;
-            }
-        });
-
-    ");
+$this->registerJs(<<<JS
+$('td').click(function (e) {
+    var id = $(this).closest('tr').data('id');
+    if (id) {
+        if (e.target == this) {
+            location.href = contentPlantViewBaseUrl + '/' + id;
+        }
+    }
+});
+JS
+);
 ?>

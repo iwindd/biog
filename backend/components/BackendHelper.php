@@ -495,4 +495,453 @@ class BackendHelper
 
         return '-';
     }
+
+    /**
+     * Build standardized query for plant export data
+     * @param array $filters Filter conditions
+     * @param bool $addOrderBy Whether to add default ordering
+     * @return \yii\db\Query
+     */
+    public static function buildPlantExportQuery($filters = [], $addOrderBy = false)
+    {
+        $query = \backend\models\Content::find()->select([
+            'content.id as content_id',
+            'content.name',
+            'content.type_id',
+            'content_plant.other_name',
+            'content_plant.features',
+            'content_plant.benefit',
+            'content_plant.found_source',
+            'content_plant.common_name',
+            'content_plant.scientific_name',
+            'content_plant.family_name',
+            'content.region_id',
+            'content.province_id',
+            'content.district_id',
+            'content.subdistrict_id',
+            'content.zipcode_id',
+            'content.created_by_user_id',
+            'content.approved_by_user_id',
+            'content.status',
+            'content.note',
+            'content.created_at',
+        ]);
+
+        $query->leftJoin('content_plant', 'content_plant.content_id = content.id');
+        $query->leftJoin('profile', 'profile.user_id = content.created_by_user_id');
+        $query->andFilterWhere(['=', 'content.type_id', 1]);
+        $query->andFilterWhere(['=', 'content.active', 1]);
+
+        if (!empty($filters['name'])) {
+            $query->andFilterWhere(['like', 'content.name', $filters['name']]);
+        }
+
+        if (!empty($filters['created_by_user_id'])) {
+            $query->andFilterWhere(['=', 'created_by_user_id', $filters['created_by_user_id']]);
+        }
+
+        if (!empty($filters['updated_by_user_id'])) {
+            $query->andFilterWhere(['=', 'updated_by_user_id', $filters['updated_by_user_id']]);
+        }
+
+        if (!empty($filters['approved_by_user_id'])) {
+            $query->andFilterWhere(['=', 'approved_by_user_id', $filters['approved_by_user_id']]);
+        }
+
+        if (!empty($filters['note'])) {
+            $query->andFilterWhere(['like', 'note', $filters['note']]);
+        }
+
+        if (!empty($filters['status'])) {
+            $query->andFilterWhere(['like', 'status', $filters['status']]);
+        }
+
+        if (!empty($filters['updated_at'])) {
+            $query->andFilterWhere(['like', 'updated_at', $filters['updated_at']]);
+        }
+
+        // Use robust date filtering logic from controller
+        if (!empty($filters['date_from']) && !empty($filters['date_to'])) {
+            $dateStart = trim($filters['date_from']);
+            $dateEnd = date('Y-m-d', strtotime(trim($filters['date_to']) . ' +1 day'));
+            $query->andWhere(['between', 'content.created_at', $dateStart, $dateEnd]);
+        }
+
+        if ($addOrderBy) {
+            $query->orderBy(['content.created_at' => SORT_DESC, 'content.id' => SORT_DESC]);
+        }
+
+        return $query;
+    }
+
+    public static function buildAnimalExportQuery($filters = [], $addOrderBy = false)
+    {
+        $query = \backend\models\Content::find()->select([
+            'content.id as content_id',
+            'content.name',
+            'content.type_id',
+            'content_animal.other_name',
+            'content_animal.features',
+            'content_animal.benefit',
+            'content_animal.found_source',
+            'content_animal.common_name',
+            'content_animal.scientific_name',
+            'content_animal.family_name',
+            'content.region_id',
+            'content.province_id',
+            'content.district_id',
+            'content.subdistrict_id',
+            'content.zipcode_id',
+            'content.created_by_user_id',
+            'content.approved_by_user_id',
+            'content.status',
+            'content.note',
+            'content.created_at',
+        ]);
+
+        $query->leftJoin('content_animal', 'content_animal.content_id = content.id');
+        $query->leftJoin('profile', 'profile.user_id = content.created_by_user_id');
+        $query->andFilterWhere(['=', 'content.type_id', 2]);
+        $query->andFilterWhere(['=', 'content.active', 1]);
+
+        if (!empty($filters['name'])) {
+            $query->andFilterWhere(['like', 'content.name', $filters['name']]);
+        }
+
+        if (!empty($filters['created_by_user_id'])) {
+            $query->andFilterWhere(['=', 'created_by_user_id', $filters['created_by_user_id']]);
+        }
+
+        if (!empty($filters['updated_by_user_id'])) {
+            $query->andFilterWhere(['=', 'updated_by_user_id', $filters['updated_by_user_id']]);
+        }
+
+        if (!empty($filters['approved_by_user_id'])) {
+            $query->andFilterWhere(['=', 'approved_by_user_id', $filters['approved_by_user_id']]);
+        }
+
+        if (!empty($filters['note'])) {
+            $query->andFilterWhere(['like', 'note', $filters['note']]);
+        }
+
+        if (!empty($filters['status'])) {
+            $query->andFilterWhere(['like', 'status', $filters['status']]);
+        }
+
+        if (!empty($filters['updated_at'])) {
+            $query->andFilterWhere(['like', 'updated_at', $filters['updated_at']]);
+        }
+
+        if (!empty($filters['date_from']) && !empty($filters['date_to'])) {
+            $dateStart = trim($filters['date_from']);
+            $dateEnd = date('Y-m-d', strtotime(trim($filters['date_to']) . ' +1 day'));
+            $query->andWhere(['between', 'content.created_at', $dateStart, $dateEnd]);
+        }
+
+        if ($addOrderBy) {
+            $query->orderBy(['content.created_at' => SORT_DESC, 'content.id' => SORT_DESC]);
+        }
+
+        return $query;
+    }
+
+    public static function buildFungiExportQuery($filters = [], $addOrderBy = false)
+    {
+        $query = \backend\models\Content::find()->select([
+            'content.id as content_id',
+            'content.name',
+            'content.type_id',
+            'content_fungi.other_name',
+            'content_fungi.features',
+            'content_fungi.benefit',
+            'content_fungi.found_source',
+            'content_fungi.common_name',
+            'content_fungi.scientific_name',
+            'content_fungi.family_name',
+            'content.region_id',
+            'content.province_id',
+            'content.district_id',
+            'content.subdistrict_id',
+            'content.zipcode_id',
+            'content.created_by_user_id',
+            'content.approved_by_user_id',
+            'content.status',
+            'content.note',
+            'content.created_at',
+        ]);
+
+        $query->leftJoin('content_fungi', 'content_fungi.content_id = content.id');
+        $query->leftJoin('profile', 'profile.user_id = content.created_by_user_id');
+        $query->andFilterWhere(['=', 'content.type_id', 3]);
+        $query->andFilterWhere(['=', 'content.active', 1]);
+
+        if (!empty($filters['name'])) {
+            $query->andFilterWhere(['like', 'content.name', $filters['name']]);
+        }
+
+        if (!empty($filters['created_by_user_id'])) {
+            $query->andFilterWhere(['=', 'created_by_user_id', $filters['created_by_user_id']]);
+        }
+
+        if (!empty($filters['updated_by_user_id'])) {
+            $query->andFilterWhere(['=', 'updated_by_user_id', $filters['updated_by_user_id']]);
+        }
+
+        if (!empty($filters['approved_by_user_id'])) {
+            $query->andFilterWhere(['=', 'approved_by_user_id', $filters['approved_by_user_id']]);
+        }
+
+        if (!empty($filters['note'])) {
+            $query->andFilterWhere(['like', 'note', $filters['note']]);
+        }
+
+        if (!empty($filters['status'])) {
+            $query->andFilterWhere(['like', 'status', $filters['status']]);
+        }
+
+        if (!empty($filters['updated_at'])) {
+            $query->andFilterWhere(['like', 'updated_at', $filters['updated_at']]);
+        }
+
+        if (!empty($filters['date_from']) && !empty($filters['date_to'])) {
+            $dateStart = trim($filters['date_from']);
+            $dateEnd = date('Y-m-d', strtotime(trim($filters['date_to']) . ' +1 day'));
+            $query->andWhere(['between', 'content.created_at', $dateStart, $dateEnd]);
+        }
+
+        if ($addOrderBy) {
+            $query->orderBy(['content.created_at' => SORT_DESC, 'content.id' => SORT_DESC]);
+        }
+
+        return $query;
+    }
+
+    public static function buildEcotourismExportQuery($filters = [], $addOrderBy = false)
+    {
+        $query = \backend\models\Content::find()->select([
+            'content.id as content_id',
+            'content.name',
+            'content.type_id',
+            'content_ecotourism.address',
+            'content_ecotourism.phone',
+            'content_ecotourism.name as contact_name',
+            'content_ecotourism.contact',
+            'content_ecotourism.travel_information',
+            'content.description',
+            'content.other_information',
+            'content.region_id',
+            'content.province_id',
+            'content.district_id',
+            'content.subdistrict_id',
+            'content.zipcode_id',
+            'content.created_by_user_id',
+            'content.approved_by_user_id',
+            'content.status',
+            'content.note',
+            'content.created_at',
+        ]);
+
+        $query->leftJoin('content_ecotourism', 'content_ecotourism.content_id = content.id');
+        $query->leftJoin('profile', 'profile.user_id = content.created_by_user_id');
+        $query->andFilterWhere(['=', 'content.type_id', 5]);
+        $query->andFilterWhere(['=', 'content.active', 1]);
+
+        if (!empty($filters['name'])) {
+            $query->andFilterWhere(['like', 'content.name', $filters['name']]);
+        }
+
+        if (!empty($filters['created_by_user_id'])) {
+            $query->andFilterWhere(['=', 'created_by_user_id', $filters['created_by_user_id']]);
+        }
+
+        if (!empty($filters['updated_by_user_id'])) {
+            $query->andFilterWhere(['=', 'updated_by_user_id', $filters['updated_by_user_id']]);
+        }
+
+        if (!empty($filters['approved_by_user_id'])) {
+            $query->andFilterWhere(['=', 'approved_by_user_id', $filters['approved_by_user_id']]);
+        }
+
+        if (!empty($filters['note'])) {
+            $query->andFilterWhere(['like', 'note', $filters['note']]);
+        }
+
+        if (!empty($filters['status'])) {
+            $query->andFilterWhere(['like', 'status', $filters['status']]);
+        }
+
+        if (!empty($filters['updated_at'])) {
+            $query->andFilterWhere(['like', 'updated_at', $filters['updated_at']]);
+        }
+
+        if (!empty($filters['date_from']) && !empty($filters['date_to'])) {
+            $dateStart = trim($filters['date_from']);
+            $dateEnd = date('Y-m-d', strtotime(trim($filters['date_to']) . ' +1 day'));
+            $query->andWhere(['between', 'content.created_at', $dateStart, $dateEnd]);
+        }
+
+        if ($addOrderBy) {
+            $query->orderBy(['content.created_at' => SORT_DESC, 'content.id' => SORT_DESC]);
+        }
+
+        return $query;
+    }
+
+    public static function buildExpertExportQuery($filters = [], $addOrderBy = false)
+    {
+        $query = \backend\models\Content::find()->select([
+            'content.id as content_id',
+            'content.name',
+            'content.type_id',
+            'content_expert.expert_firstname',
+            'content_expert.expert_lastname',
+            'content_expert.expert_birthdate',
+            'content_expert.expert_expertise',
+            'content_expert.expert_occupation',
+            'content_expert.expert_card_id',
+            'content_expert.phone',
+            'content_expert.address',
+            'content_expert.expert_category_id',
+            'content.region_id',
+            'content.province_id',
+            'content.district_id',
+            'content.subdistrict_id',
+            'content.zipcode_id',
+            'content.created_by_user_id',
+            'content.approved_by_user_id',
+            'content.status',
+            'content.note',
+            'content.created_at',
+        ]);
+
+        $query->leftJoin('content_expert', 'content_expert.content_id = content.id');
+        $query->leftJoin('profile', 'profile.user_id = content.created_by_user_id');
+        $query->andFilterWhere(['=', 'content.type_id', 4]);
+        $query->andFilterWhere(['=', 'content.active', 1]);
+
+        if (!empty($filters['name'])) {
+            $query->andFilterWhere(['like', 'content.name', $filters['name']]);
+        }
+
+        if (!empty($filters['expert_category_id'])) {
+            $query->andFilterWhere(['=', 'content_expert.expert_category_id', $filters['expert_category_id']]);
+        }
+
+        if (!empty($filters['created_by_user_id'])) {
+            $query->andFilterWhere(['=', 'created_by_user_id', $filters['created_by_user_id']]);
+        }
+
+        if (!empty($filters['updated_by_user_id'])) {
+            $query->andFilterWhere(['=', 'updated_by_user_id', $filters['updated_by_user_id']]);
+        }
+
+        if (!empty($filters['approved_by_user_id'])) {
+            $query->andFilterWhere(['=', 'approved_by_user_id', $filters['approved_by_user_id']]);
+        }
+
+        if (!empty($filters['note'])) {
+            $query->andFilterWhere(['like', 'note', $filters['note']]);
+        }
+
+        if (!empty($filters['status'])) {
+            $query->andFilterWhere(['like', 'status', $filters['status']]);
+        }
+
+        if (!empty($filters['updated_at'])) {
+            $query->andFilterWhere(['like', 'updated_at', $filters['updated_at']]);
+        }
+
+        if (!empty($filters['date_from']) && !empty($filters['date_to'])) {
+            $dateStart = trim($filters['date_from']);
+            $dateEnd = date('Y-m-d', strtotime(trim($filters['date_to']) . ' +1 day'));
+            $query->andWhere(['between', 'content.created_at', $dateStart, $dateEnd]);
+        }
+
+        if ($addOrderBy) {
+            $query->orderBy(['content.created_at' => SORT_DESC, 'content.id' => SORT_DESC]);
+        }
+
+        return $query;
+    }
+
+    public static function buildProductExportQuery($filters = [], $addOrderBy = false)
+    {
+        $query = \backend\models\Content::find()->select([
+            'content.id as content_id',
+            'content.name',
+            'content.type_id',
+            'content_product.product_category_id',
+            'content_product.product_features',
+            'content_product.product_main_material',
+            'content_product.product_sources_material',
+            'content_product.product_price',
+            'content_product.product_distribution_location',
+            'content_product.product_address',
+            'content_product.product_phone',
+            'content_product.other_information as product_other_info',
+            'content_product.found_source',
+            'content_product.contact',
+            'content.description',
+            'content.other_information as content_other_info',
+            'content.region_id',
+            'content.province_id',
+            'content.district_id',
+            'content.subdistrict_id',
+            'content.zipcode_id',
+            'content.created_by_user_id',
+            'content.approved_by_user_id',
+            'content.status',
+            'content.note',
+            'content.created_at',
+        ]);
+
+        $query->leftJoin('content_product', 'content_product.content_id = content.id');
+        $query->leftJoin('profile', 'profile.user_id = content.created_by_user_id');
+        $query->andFilterWhere(['=', 'content.type_id', 6]);
+        $query->andFilterWhere(['=', 'content.active', 1]);
+
+        if (!empty($filters['name'])) {
+            $query->andFilterWhere(['like', 'content.name', $filters['name']]);
+        }
+
+        if (!empty($filters['product_category_id'])) {
+            $query->andFilterWhere(['=', 'content_product.product_category_id', $filters['product_category_id']]);
+        }
+
+        if (!empty($filters['created_by_user_id'])) {
+            $query->andFilterWhere(['=', 'created_by_user_id', $filters['created_by_user_id']]);
+        }
+
+        if (!empty($filters['updated_by_user_id'])) {
+            $query->andFilterWhere(['=', 'updated_by_user_id', $filters['updated_by_user_id']]);
+        }
+
+        if (!empty($filters['approved_by_user_id'])) {
+            $query->andFilterWhere(['=', 'approved_by_user_id', $filters['approved_by_user_id']]);
+        }
+
+        if (!empty($filters['note'])) {
+            $query->andFilterWhere(['like', 'note', $filters['note']]);
+        }
+
+        if (!empty($filters['status'])) {
+            $query->andFilterWhere(['like', 'status', $filters['status']]);
+        }
+
+        if (!empty($filters['updated_at'])) {
+            $query->andFilterWhere(['like', 'updated_at', $filters['updated_at']]);
+        }
+
+        if (!empty($filters['date_from']) && !empty($filters['date_to'])) {
+            $dateStart = trim($filters['date_from']);
+            $dateEnd = date('Y-m-d', strtotime(trim($filters['date_to']) . ' +1 day'));
+            $query->andWhere(['between', 'content.created_at', $dateStart, $dateEnd]);
+        }
+
+        if ($addOrderBy) {
+            $query->orderBy(['content.created_at' => SORT_DESC, 'content.id' => SORT_DESC]);
+        }
+
+        return $query;
+    }
 }
