@@ -23,6 +23,7 @@ $this->params['breadcrumbs'][] = $this->title;
 
         <div class="form-group">
             <?= Html::submitButton('Upload และตรวจสอบข้อมูล', ['class' => 'btn btn-primary']) ?>
+            <?= Html::a('Download Template', ['/templates/content-plant-import-template.zip'], ['class' => 'btn btn-success', 'download' => true]) ?>
             <?= Html::a('ยกเลิก', ['index'], ['class' => 'btn btn-default']) ?>
         </div>
 
