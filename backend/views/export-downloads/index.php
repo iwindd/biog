@@ -61,7 +61,7 @@ $statusLabels = [
                         $canCancel = in_array($status, [ContentAsyncExportService::STATUS_PENDING, ContentAsyncExportService::STATUS_PROCESSING]);
                         $canDelete = $status === ContentAsyncExportService::STATUS_COMPLETED && !empty($job['zip_file_name']) && !empty($job['zip_path']);
                         ?>
-                        <tr>
+                        <tr data-job-id="<?= Html::encode($job['id']) ?>" data-status="<?= Html::encode($status) ?>">
                             <td><?= Html::encode($typeName) ?></td>
                             <td>
                                 <?php if (!empty($job['zip_file_name'])): ?>
@@ -149,16 +149,9 @@ $statusLabels = [
 <?php
 $deleteUrl = Url::to(['delete']);
 $cancelUrl = Url::to(['cancel']);
-
-// Debug: Show job statuses
-foreach ($jobs as $job) {
-    $canCancel = in_array($job['status'], [ContentAsyncExportService::STATUS_PENDING, ContentAsyncExportService::STATUS_PROCESSING]);
-    echo "<!-- Debug: Job ID {$job['id']}, Status: {$job['status']}, Can Cancel: " . ($canCancel ? 'Yes' : 'No') . " -->";
-}
+$statusUrl = Url::to(['/export/status']);
 
 $this->registerJs(<<<JS
-// Debug: Check if cancel buttons exist
-console.log('Cancel buttons found:', $('.cancel-export-btn').length);
 
 $('.delete-export-btn').on('click', function() {
     var jobId = $(this).data('job-id');
@@ -195,12 +188,9 @@ $('.delete-export-btn').on('click', function() {
 });
 
 $('.cancel-export-btn').on('click', function() {
-    console.log('Cancel button clicked'); // Debug log
     var jobId = $(this).data('job-id');
     var typeName = $(this).data('type-name');
     var btn = $(this);
-    
-    console.log('Job ID:', jobId, 'Type:', typeName); // Debug log
     
     if (!confirm(`คุณต้องการยกเลิกการ Export ${typeName} หรือไม่?\n\nหมายเหตุ: การยกเลิกจะหยุดการประมวลผลทันที`)) {
         return;
@@ -230,6 +220,118 @@ $('.cancel-export-btn').on('click', function() {
         }
     });
 });
+
+// Sequential polling for pending/processing jobs
+var statusLabels = {
+    'pending': '<span class="label label-default">รอดำเนินการ</span>',
+    'processing': '<span class="label label-warning">กำลังประมวลผล</span>',
+    'completed': '<span class="label label-success">เสร็จสมบูรณ์</span>',
+    'failed': '<span class="label label-danger">ล้มเหลว</span>'
+};
+
+function pollJobSequentially(jobQueue, index) {
+    if (index >= jobQueue.length) {
+        // All jobs processed, check if any are still active
+        var activeRows = $('tr[data-status="pending"], tr[data-status="processing"]');
+        if (activeRows.length === 0) {
+            console.log('All jobs completed, stopping polling');
+            location.reload();
+            return;
+        } else {
+            // Some jobs still active, rebuild queue and continue
+            var newQueue = [];
+            activeRows.each(function() {
+                newQueue.push({
+                    jobId: $(this).data('job-id'),
+                    row: $(this)
+                });
+            });
+            setTimeout(function() {
+                pollJobSequentially(newQueue, 0);
+            }, 1000);
+            return;
+        }
+    }
+    
+    var currentJob = jobQueue[index];
+    var jobId = currentJob.jobId;
+    var row = currentJob.row;
+    
+    $.ajax({
+        url: '{$statusUrl}',
+        method: 'GET',
+        data: { jobId: jobId },
+        dataType: 'json',
+        success: function(response) {
+            if (response.status === 'success' && response.job) {
+                var job = response.job;
+                var state = job.state;
+                var cols = row.find('td');
+                
+                // Update status column (index 3)
+                var statusHtml = statusLabels[state] || statusLabels['pending'];
+                if (state === 'processing') {
+                    statusHtml += '<br><small class="text-muted">' + (job.progressMessage || 'กำลังดำเนินการ...') + '</small>';
+                } else if (state === 'failed' && job.errorMessage) {
+                    statusHtml += '<br><small class="text-danger">' + job.errorMessage + '</small>';
+                }
+                cols.eq(3).html(statusHtml);
+                
+                // Update row data-status
+                row.attr('data-status', state);
+                
+                // If job completed/failed, move to next job immediately
+                if (state === 'completed' || state === 'failed') {
+                    console.log('Job ' + jobId + ' completed with status: ' + state + ', moving to next job');
+                    setTimeout(function() {
+                        pollJobSequentially(jobQueue, index + 1);
+                    }, 5000); // Small delay before next job
+                } else {
+                    // Job still processing, continue polling this job
+                    setTimeout(function() {
+                        pollJobSequentially(jobQueue, index);
+                    }, 5000); // Poll same job every 2 seconds while processing
+                }
+            } else {
+                // Error response, move to next job
+                setTimeout(function() {
+                    pollJobSequentially(jobQueue, index + 1);
+                }, 5000);
+            }
+        },
+        error: function() {
+            // Network error, move to next job
+            setTimeout(function() {
+                pollJobSequentially(jobQueue, index + 1);
+            }, 5000);
+        }
+    });
+}
+
+function startSequentialPolling() {
+    var activeRows = $('tr[data-status="pending"], tr[data-status="processing"]');
+    if (activeRows.length === 0) {
+        console.log('No active jobs to poll');
+        return;
+    }
+    
+    var jobQueue = [];
+    activeRows.each(function() {
+        jobQueue.push({
+            jobId: $(this).data('job-id'),
+            row: $(this)
+        });
+    });
+    
+    console.log('Starting sequential polling for ' + jobQueue.length + ' jobs');
+    pollJobSequentially(jobQueue, 0);
+}
+
+// Start polling if there are active jobs
+if ($('tr[data-status="pending"], tr[data-status="processing"]').length > 0) {
+    console.log('Found active jobs, starting sequential polling');
+    startSequentialPolling();
+}
 JS
 );
 ?>
