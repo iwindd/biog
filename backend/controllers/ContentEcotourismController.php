@@ -44,7 +44,7 @@ class ContentEcotourismController extends Controller
                 'rules' => [
                     //dashboard_view
                     [
-                        'actions' => ['index', 'view', 'create', 'update', 'delete', 'export', 'import', 'import-summary', 'import-confirm'],
+                        'actions' => ['index', 'view', 'create', 'update', 'delete', 'export', 'import', 'import-summary', 'import-confirm', 'start-export', 'export-status', 'download-export'],
                         'allow' => true,
                         'matchCallback' => function ($rule, $action) 
                         {
@@ -54,6 +54,9 @@ class ContentEcotourismController extends Controller
                                 case 'import':
                                 case 'import-summary':
                                 case 'import-confirm':
+                                case 'start-export':
+                                case 'export-status':
+                                case 'download-export':
                                     return PermissionAccess::BackendAccess('content_list', 'controller');
                                 break;
 
@@ -744,9 +747,169 @@ class ContentEcotourismController extends Controller
             $query->andFilterWhere(['like', 'updated_at', $_GET['updated_at'] ]);
         }
 
-        $model = $query->asArray()->all();
+        $offset = 0;
+        $size = 25000;
+        if (!empty($_GET['file'])) {
+            $offset = intval($_GET['file'] - 1) * $size ;
+        }
+
+        $model = $query->asArray()->limit($size)->offset($offset)->all();
 
         return $this->render('export',['model' => $model]);
+    }
+
+    public function actionStartExport()
+    {
+        Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+
+        $dateFrom = Yii::$app->request->post('date_from');
+        $dateTo = Yii::$app->request->post('date_to');
+        
+        if (empty($dateFrom) || empty($dateTo)) {
+            return [
+                'status' => 'error',
+                'message' => 'กรุณาเลือกช่วงวันที่ให้ครบถ้วน',
+            ];
+        }
+
+        $filters = $this->getEcotourismExportFilters();
+        $filters['date_from'] = $dateFrom;
+        $filters['date_to'] = $dateTo;
+
+        $exportJob = new \common\jobs\ExportJob([
+            'typeKey' => 'content_ecotourism',
+            'filters' => $filters,
+            'userId' => Yii::$app->user->identity->id,
+            'baseFileName' => 'รายงานข้อมูลแหล่งท่องเที่ยวเชิงนิเวศ',
+        ]);
+        
+        $jobId = Yii::$app->queue->push($exportJob);
+        $queueJobIdStr = (string)$jobId;
+        
+        $service = new \backend\components\ContentAsyncExportService();
+        $initialJobHash = $exportJob->getJobHash();
+        
+        $userId = Yii::$app->user->identity->id;
+        $userEmail = Yii::$app->user->identity->email;
+        $placeholderJob = $service->createJob('content_ecotourism', $filters, $userId, $userEmail);
+        
+        $placeholderJob['status'] = \backend\components\ContentAsyncExportService::STATUS_PENDING;
+        $service->saveJob($placeholderJob);
+        
+        $mappingService = new \common\components\DatabaseJobMappingService();
+        $mappingService->storeMappings($queueJobIdStr, $initialJobHash, $placeholderJob['id']);
+
+        return [
+            'status' => 'success',
+            'jobId' => $placeholderJob['id'],
+            'message' => 'เริ่มสร้างไฟล์ export แล้ว',
+        ];
+    }
+
+    public function actionExportStatus($jobId)
+    {
+        Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+
+        $job = \backend\components\ContentAsyncExportService::getJob($jobId);
+        
+        if ($job) {
+            if (($job['status'] === \backend\components\ContentAsyncExportService::STATUS_PENDING || 
+                 $job['status'] === \backend\components\ContentAsyncExportService::STATUS_PROCESSING) && 
+                 !empty($job['error_message'])) {
+                $job['status'] = \backend\components\ContentAsyncExportService::STATUS_FAILED;
+            }
+            
+            return [
+                'status' => 'success',
+                'job' => [
+                    'id' => $job['id'],
+                    'state' => $job['status'],
+                    'progressMessage' => $job['progress_message'],
+                    'totalRows' => $job['total_rows'],
+                    'totalFiles' => $job['total_files'],
+                    'currentPart' => !empty($job['current_part']) ? $job['current_part'] : 0,
+                    'chunkSize' => !empty($job['chunk_size']) ? $job['chunk_size'] : 0,
+                    'peakMemoryMb' => !empty($job['peak_memory_mb']) ? $job['peak_memory_mb'] : 0,
+                    'errorMessage' => $job['error_message'],
+                    'downloadReady' => (bool) $job['download_ready'],
+                    'downloadUrl' => $job['download_ready'] ? Yii::$app->urlManager->createUrl(['/content-ecotourism/download-export', 'jobId' => $job['id']]) : '',
+                ],
+            ];
+        }
+
+        if (is_numeric($jobId)) {
+            $isDone = Yii::$app->queue->isDone($jobId);
+            if ($isDone) {
+                return [
+                    'status' => 'success',
+                    'job' => [
+                        'id' => $jobId,
+                        'state' => 'completed',
+                        'progressMessage' => 'ดำเนินการเสร็จสิ้น (100%)',
+                        'totalRows' => 0,
+                        'totalFiles' => 0,
+                        'currentPart' => 0,
+                        'chunkSize' => 0,
+                        'peakMemoryMb' => 0,
+                        'errorMessage' => 'เกิดข้อผิดพลาดในการค้นหาไฟล์',
+                        'downloadReady' => false,
+                        'downloadUrl' => '',
+                    ],
+                ];
+            }
+            
+            return [
+                'status' => 'success',
+                'job' => [
+                    'id' => $jobId,
+                    'state' => 'processing',
+                    'progressMessage' => 'กำลังประมวลผล',
+                    'totalRows' => 0,
+                    'totalFiles' => 0,
+                    'currentPart' => 0,
+                    'chunkSize' => 0,
+                    'peakMemoryMb' => 0,
+                    'errorMessage' => '',
+                    'downloadReady' => false,
+                    'downloadUrl' => '',
+                ],
+            ];
+        }
+
+        return [
+            'status' => 'error',
+            'message' => 'ไม่พบงาน export ที่ระบุ',
+        ];
+    }
+
+    public function actionDownloadExport($jobId)
+    {
+        $job = \backend\components\ContentAsyncExportService::getJob($jobId);
+        if (empty($job) || $job['status'] !== \backend\components\ContentAsyncExportService::STATUS_COMPLETED) {
+            throw new NotFoundHttpException('ไม่พบไฟล์ export ที่พร้อมดาวน์โหลด');
+        }
+
+        $zipPath = \backend\components\ContentAsyncExportService::getDownloadPath($job);
+        if (empty($zipPath) || !is_file($zipPath)) {
+            throw new NotFoundHttpException('ไม่พบไฟล์ ZIP สำหรับดาวน์โหลด');
+        }
+
+        return Yii::$app->response->sendFile($zipPath, $job['zip_file_name']);
+    }
+
+    private function getEcotourismExportFilters()
+    {
+        $searchFilters = Yii::$app->request->get('ContentEcotourismSearch', []);
+
+        return [
+            'name' => !empty($searchFilters['name']) ? $searchFilters['name'] : Yii::$app->request->get('name', ''),
+            'created_by_user_id' => !empty($searchFilters['created_by_user_id']) ? $searchFilters['created_by_user_id'] : Yii::$app->request->get('created_by_user_id', ''),
+            'updated_by_user_id' => !empty($searchFilters['updated_by_user_id']) ? $searchFilters['updated_by_user_id'] : Yii::$app->request->get('updated_by_user_id', ''),
+            'approved_by_user_id' => !empty($searchFilters['approved_by_user_id']) ? $searchFilters['approved_by_user_id'] : Yii::$app->request->get('approved_by_user_id', ''),
+            'note' => !empty($searchFilters['note']) ? $searchFilters['note'] : Yii::$app->request->get('note', ''),
+            'status' => !empty($searchFilters['status']) ? $searchFilters['status'] : Yii::$app->request->get('status', ''),
+            'updated_at' => !empty($searchFilters['updated_at']) ? $searchFilters['updated_at'] : Yii::$app->request->get('updated_at', ''),
+        ];
     }
 
     /**

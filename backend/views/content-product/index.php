@@ -89,7 +89,7 @@ if(!empty($_GET['ContentProductSearch'])){
         <?= Html::a('เพิ่มข้อมูลผลิตภัณฑ์', ['create'], ['class' => 'btn btn-success']) ?>
         <?= Html::a('Import Excel', ['import'], ['class' => 'btn btn-primary']) ?>
 
-        <?= Html::a(  Html::img('/images/csv.png', ['class' => 'csv-export']).'Export ข้อมูลผลิตภัณฑ์ชุมชน', ['export'.$url], ['class' => 'btn btn-info export-bakcground f-right ','title' => 'Export Excel']) ?>
+        <?= Html::button(Html::img('/images/csv.png', ['class' => 'csv-export']) . 'Export ข้อมูลผลิตภัณฑ์ชุมชน', ['class' => 'btn btn-info', 'id' => 'openProductExportModal']) ?>
     </p>
 
     <?php // echo $this->render('_search', ['model' => $searchModel]); ?>
@@ -279,11 +279,17 @@ if(!empty($_GET['ContentProductSearch'])){
 
 </div>
 
+<?= \backend\widgets\AsyncExportModal::widget([
+    'contentType' => 'product',
+    'modalTitle' => 'Export ข้อมูลผลิตภัณฑ์ชุมชน',
+    'startExportUrl' => Url::to(['/export/start']),
+    'exportStatusUrl' => Url::to(['/export/status']),
+    'searchParams' => $_GET['ContentProductSearch'] ?? [],
+]) ?>
 
 <?php 
 
     $this->registerJs("
-
         $('td').click(function (e) {
             var id = $(this).closest('tr').data('id');
             if(id){
@@ -291,6 +297,5 @@ if(!empty($_GET['ContentProductSearch'])){
                     location.href = '" . Url::to(['/content-product/']) . "/' + id;
             }
         });
-
     ");
 ?>

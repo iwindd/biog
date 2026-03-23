@@ -13,70 +13,17 @@ use yii\web\JsExpression;
 $listUser = \yii\helpers\Url::to(['/api/userslist']);
 $listEditUser = \yii\helpers\Url::to(['/api/editslist']);
 $listApprovedUser = \yii\helpers\Url::to(['/api/approverlist']);
+
+$startExportUrl = Url::to(['/content-fungi/start-export']);
+$exportStatusUrl = Url::to(['/content-fungi/export-status']);
+$contentFungiViewBaseUrl = Url::to(['/content-fungi']);
+
 /* @var $this yii\web\View */
 /* @var $searchModel backend\models\ContentFungiSearch */
 /* @var $dataProvider yii\data\ActiveDataProvider */
 
 $this->title = 'จัดการข้อมูลจุลินทรีย์';
 $this->params['breadcrumbs'][] = $this->title;
-
-$url = "";
-if(!empty($_GET['ContentFungiSearch'])){
-    if(!empty($_GET['ContentFungiSearch']['name'])){
-        $url = "?name=".$_GET['ContentFungiSearch']['name'];
-    }
-
-    if(!empty($_GET['ContentFungiSearch']['created_by_user_id'])){
-        if (!empty($url)) {
-            $url = $url."&created_by_user_id=".$_GET['ContentFungiSearch']['created_by_user_id'];
-        }else{
-            $url = "?created_by_user_id=".$_GET['ContentFungiSearch']['created_by_user_id'];
-        }
-    }
-
-    if(!empty($_GET['ContentFungiSearch']['updated_by_user_id'])){
-        if (!empty($url)) {
-            $url = $url."&updated_by_user_id=".$_GET['ContentFungiSearch']['updated_by_user_id'];
-        }else{
-            $url = "?updated_by_user_id=".$_GET['ContentFungiSearch']['updated_by_user_id'];
-        }
-    }
-
-
-
-    if(!empty($_GET['ContentFungiSearch']['approved_by_user_id'])){
-        if (!empty($url)) {
-            $url = $url."&approved_by_user_id=".$_GET['ContentFungiSearch']['approved_by_user_id'];
-        }else{
-            $url = "?approved_by_user_id=".$_GET['ContentFungiSearch']['approved_by_user_id'];
-        }
-    }
-
-    if(!empty($_GET['ContentFungiSearch']['note'])){
-        if (!empty($url)) {
-            $url = $url."&note=".$_GET['ContentFungiSearch']['note'];
-        }else{
-            $url = "?note=".$_GET['ContentFungiSearch']['note'];
-        }
-    }
-
-    if(!empty($_GET['ContentFungiSearch']['status'])){
-        if (!empty($url)) {
-            $url = $url."&status=".$_GET['ContentFungiSearch']['status'];
-        }else{
-            $url = "?status=".$_GET['ContentFungiSearch']['status'];
-        }
-    }
-
-    if(!empty($_GET['ContentFungiSearch']['updated_at'])){
-        if (!empty($url)) {
-            $url = $url."&updated_at=".$_GET['ContentFungiSearch']['updated_at'];
-        }else{
-            $url = "?updated_at=".$_GET['ContentFungiSearch']['updated_at'];
-        }
-    }
-    
-}
 
 ?>
 <div class="content-index">
@@ -86,11 +33,9 @@ if(!empty($_GET['ContentFungiSearch'])){
     <p>
         <?= Html::a('เพิ่มข้อมูลจุลินทรีย์', ['create'], ['class' => 'btn btn-success']) ?>
         <?= Html::a('Import Excel', ['import'], ['class' => 'btn btn-primary']) ?>
-
-        <?= Html::a(  Html::img('/images/csv.png', ['class' => 'csv-export']).'Export ข้อมูลจุลินทรีย์', ['export'.$url], ['class' => 'btn btn-info export-bakcground f-right ','title' => 'Export Excel']) ?>
+        <?= Html::button(Html::img('/images/csv.png', ['class' => 'csv-export']) . 'Export ข้อมูลจุลินทรีย์', ['class' => 'btn btn-info export-bakcground f-right', 'title' => 'Export Excel', 'id' => 'openFungiExportModal']) ?>
     </p>
 
-    <?php // echo $this->render('_search', ['model' => $searchModel]); ?>
     <div class="table-responsive">
     <?= GridView::widget([
         'dataProvider' => $dataProvider,
@@ -279,18 +224,25 @@ if(!empty($_GET['ContentFungiSearch'])){
 
 </div>
 
+<?= \backend\widgets\AsyncExportModal::widget([
+    'contentType' => 'fungi',
+    'modalTitle' => 'Export ข้อมูลจุลินทรีย์',
+    'startExportUrl' => Url::to(['/export/start']),
+    'exportStatusUrl' => Url::to(['/export/status']),
+    'searchParams' => $_GET['ContentFungiSearch'] ?? [],
+]) ?>
 
-<?php 
+<?php
 
-    $this->registerJs("
-
-        $('td').click(function (e) {
-            var id = $(this).closest('tr').data('id');
-            if(id){
-                if(e.target == this)
-                    location.href = '" . Url::to(['/content-fungi/']) . "/' + id;
-            }
-        });
-
-    ");
+$this->registerJs(<<<JS
+$('td').click(function (e) {
+    var id = $(this).closest('tr').data('id');
+    if (id) {
+        if (e.target == this) {
+            location.href = contentFungiViewBaseUrl + '/' + id;
+        }
+    }
+});
+JS
+);
 ?>
