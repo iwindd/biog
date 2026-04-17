@@ -28,6 +28,7 @@ const State = {
   provinceNameToId: {},
   districtNameToId: {},
   provinceLayerMap: {},
+  districtLayerMap: {},
 };
 
 function normalizeThaiName(str) {
@@ -91,6 +92,7 @@ let worldCountriesLayer = null;
 let provinceLabelsLayer = L.layerGroup().addTo(map);
 let amphoeLabelsLayer = L.layerGroup().addTo(map);
 let markersLayerGroup = L.layerGroup().addTo(map);
+let highlightedDistrictLayer = null;
 
 // UTILITIES
 function getHeatmapColor(count) {
@@ -318,6 +320,9 @@ function findProvinceInLayerMap(provinceName) {
 async function focusProvince(provName) {
   if (!provName) return;
 
+  // Clear any district highlight when switching provinces
+  clearDistrictHighlight();
+
   const entry = findProvinceInLayerMap(provName);
   if (!entry) {
     console.warn("focusProvince: could not find province layer for:", provName);
@@ -370,6 +375,82 @@ async function focusProvince(provName) {
     console.error("Error loading amphoe data:", err);
   } finally {
     setLoading(false);
+  }
+}
+
+/**
+ * Look up a district in the districtLayerMap by name.
+ * Uses exact normalized match first, then falls back to bidirectional includes.
+ */
+function findDistrictInLayerMap(districtName) {
+  const norm = normalizeThaiName(districtName);
+  // Exact match
+  if (State.districtLayerMap[norm]) {
+    return State.districtLayerMap[norm];
+  }
+  // Bidirectional includes fallback for name variations
+  const keys = Object.keys(State.districtLayerMap);
+  for (const key of keys) {
+    if (norm.includes(key) || key.includes(norm)) {
+      return State.districtLayerMap[key];
+    }
+  }
+  return null;
+}
+
+/**
+ * Focus the map on a district by name: highlight its border and zoom to it.
+ */
+function focusDistrict(districtName) {
+  if (!districtName) {
+    // Clear any existing highlight
+    clearDistrictHighlight();
+    return;
+  }
+
+  const entry = findDistrictInLayerMap(districtName);
+  if (!entry) {
+    console.warn("focusDistrict: could not find district layer for:", districtName);
+    return;
+  }
+
+  const { layer } = entry;
+
+  // Clear previous highlight
+  clearDistrictHighlight();
+
+  // Apply highlight style to the selected district
+  layer.setStyle({
+    weight: 3,
+    color: "#f39c12",
+    fillOpacity: 0.9,
+  });
+  layer.bringToFront();
+
+  // Track highlighted layer for later reset
+  highlightedDistrictLayer = layer;
+
+  // Zoom to district bounds
+  map.fitBounds(layer.getBounds(), {
+    padding: [30, 30],
+    animate: true,
+    duration: 0.6,
+  });
+
+  // Update title
+  if (Elements.mainTitle) {
+    const provText = $("#map-province_id option:selected").text().trim();
+    Elements.mainTitle.innerText = `ขอบเขต: ${provText} > ${districtName}`;
+  }
+}
+
+/**
+ * Clear the current district highlight.
+ */
+function clearDistrictHighlight() {
+  if (highlightedDistrictLayer && amphoeLayer) {
+    amphoeLayer.resetStyle(highlightedDistrictLayer);
+    highlightedDistrictLayer = null;
   }
 }
 
@@ -486,6 +567,11 @@ function renderAmphoeMap(geoJsonData, targetProvName) {
   if (amphoeLayer) map.removeLayer(amphoeLayer);
   amphoeLabelsLayer.clearLayers();
 
+  // Reset district layer lookup map
+  State.districtLayerMap = {};
+  // Clear any previous district highlight
+  highlightedDistrictLayer = null;
+
   State.currentMode = "amphoe";
   amphoeLayer = L.geoJson(
     { type: "FeatureCollection", features: filteredFeatures },
@@ -504,9 +590,53 @@ function renderAmphoeMap(geoJsonData, targetProvName) {
         }
         const count = dCount || 0;
 
+        // Build district lookup map: normalized name → { feature, layer }
+        const ampNameNorm = normalizeThaiName(ampName);
+        const ampEnNorm = (feature.properties.ADM2_EN || "").toLowerCase().trim();
+        if (ampNameNorm) {
+          State.districtLayerMap[ampNameNorm] = { feature, layer };
+        }
+        if (ampEnNorm) {
+          State.districtLayerMap[ampEnNorm] = { feature, layer };
+        }
+
         layer.on({
           mouseover: (e) => highlightFeature(e),
-          mouseout: (e) => amphoeLayer.resetStyle(e.target),
+          mouseout: (e) => {
+            if (highlightedDistrictLayer === e.target) {
+              // Re-apply highlight style instead of resetting
+              e.target.setStyle({
+                weight: 3,
+                color: "#f39c12",
+                fillOpacity: 0.9,
+              });
+              e.target.bringToFront();
+            } else {
+              amphoeLayer.resetStyle(e.target);
+            }
+          },
+          click: () => {
+            // Look up district database ID from name mapping
+            const aThName = normalizeThaiName(ampName);
+            const aEnName = (feature.properties.ADM2_EN || "").toLowerCase();
+            const districtDbId = State.districtNameToId[aThName] || State.districtNameToId[aEnName];
+
+            if (districtDbId) {
+              // Update dropdown selection
+              $("#map-district_id").val(districtDbId);
+              // Update search data
+              searchData.district_id = districtDbId;
+              searchData.subdistrict_id = "";
+              // Highlight and zoom to the clicked district
+              focusDistrict(ampName);
+              // Load subdistricts and search
+              showSubDistrictMap("#map");
+              search();
+            } else {
+              // Fallback: try to focus by name even without ID
+              focusDistrict(ampName);
+            }
+          },
         });
 
         layer.bindTooltip(`${ampName} (เนื้อหา: ${count})`, { sticky: true });
@@ -590,6 +720,7 @@ function checkLabelsVisibility() {
 map.on("zoomend", checkLabelsVisibility);
 if (Elements.btnBack) Elements.btnBack.addEventListener("click", function() {
   switchMode("province");
+  clearDistrictHighlight();
   // Reset dropdowns when returning to country view
   $("#map-province_id").val("");
   $("#map-district_id").empty().append($("<option></option>").attr("value", "").html("กรุณาเลือกอำเภอ"));
@@ -837,6 +968,9 @@ $("#map-province_id").on("change", function () {
   searchData.district_id = "";
   searchData.subdistrict_id = "";
 
+  // Clear any district highlight when province changes
+  clearDistrictHighlight();
+
   if (searchData.province_id) {
     // Province selected: focus map on this province and show amphoe view
     const selectedProvinceName = $("#map-province_id option:selected").text().trim();
@@ -853,6 +987,16 @@ $("#map-province_id").on("change", function () {
 $("#map-district_id").on("change", function () {
   searchData.district_id = $(this).val();
   searchData.subdistrict_id = "";
+
+  if (searchData.district_id) {
+    // District selected: highlight and zoom to it on the map
+    const selectedDistrictName = $("#map-district_id option:selected").text().trim();
+    focusDistrict(selectedDistrictName);
+  } else {
+    // District cleared: remove highlight
+    clearDistrictHighlight();
+  }
+
   search();
   showSubDistrictMap("#map");
 });
@@ -1069,17 +1213,6 @@ function showSubDistrictMap(id_form, type = "") {
       if (urlParams.has('subdistrict_id') == true) {
         searchData.subdistrict_id = urlParams.get('subdistrict_id');
         $(id_form + "-subdistrict_id").val(searchData.subdistrict_id);
-      }
-      
-      // Attempt to zoom to amphoe
-      if(district_id !== "" && amphoeLayer) {
-        let selectedAmpText = $(id_form + "-district_id option:selected").text().trim().replace('อ.', '').replace('อำเภอ', '').trim();
-        amphoeLayer.eachLayer(function(layer) {
-           let mapAmpName = layer.feature.properties.ampName.replace('อ.', '').replace('อำเภอ', '').trim();
-           if(selectedAmpText.indexOf(mapAmpName) > -1 || mapAmpName.indexOf(selectedAmpText) > -1) {
-             map.fitBounds(layer.getBounds());
-           }
-        });
       }
 
       setContentBreadcrumb();
