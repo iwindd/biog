@@ -7,6 +7,11 @@ use dmstr\cookieconsent\widgets\CookieConsent;
 
 AppAsset::register($this);
 
+$backendApiUrl = Yii::$app->params['backendApiUrl'] ?? '';
+if (!empty($backendApiUrl)) {
+    $this->registerJs('var backendApiBaseUrl = ' . json_encode($backendApiUrl) . ';', \yii\web\View::POS_HEAD);
+}
+
 ?>
 <?php $this->beginPage() ?>
 <!DOCTYPE html>
