@@ -1144,6 +1144,16 @@ function showProvinceMap(id_form, type = "") {
         $(id_form + "-province_id").val(searchData.province_id);
       }
       setContentBreadcrumb();
+
+      // Focus province when loading from URL params
+      if (type === "get" && urlParams.has("province_id") && searchData.province_id) {
+        const provinceName = $(id_form + "-province_id option:selected").text().trim();
+        if (provinceName && provinceName !== "กรุณาเลือกจังหวัด") {
+          setTimeout(function() {
+            focusProvince(provinceName);
+          }, 1500);
+        }
+      }
     }
   });
 
@@ -1216,12 +1226,21 @@ function showSubDistrictMap(id_form, type = "") {
       }
 
       setContentBreadcrumb();
+
+      // Focus district when loading from URL params
+      if (type === "get" && urlParams.has("district_id") && searchData.district_id) {
+        const districtName = $(id_form + "-district_id option:selected").text().trim();
+        if (districtName && districtName !== "กรุณาเลือกอำเภอ") {
+          setTimeout(function() {
+            focusDistrict(districtName);
+          }, 2000);
+        }
+      }
     }
   });
 }
 
 function setContentBreadcrumb() {
-  $(".search-breadcrumb").html("");
 
   let txt = "ขอบเขต: ";
   let url = "";
