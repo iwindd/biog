@@ -27,6 +27,7 @@ const State = {
   districtCounts: {},
   provinceNameToId: {},
   districtNameToId: {},
+  provinceLayerMap: {},
 };
 
 function normalizeThaiName(str) {
@@ -216,6 +217,9 @@ async function loadProvinceMap() {
     if (provinceLayer) map.removeLayer(provinceLayer);
     provinceLabelsLayer.clearLayers();
 
+    // Reset province layer lookup map
+    State.provinceLayerMap = {};
+
     State.currentMode = "province";
     provinceLayer = L.geoJson(geoJsonData, {
       style: styleGeoJson,
@@ -223,6 +227,21 @@ async function loadProvinceMap() {
         const provName = feature.properties.provName;
         const pId = feature.properties.ID || feature.properties.id;
         let count = State.provinceCounts[pId];
+
+        // Build province lookup map: normalized Thai name → { feature, layer }
+        const thNameNorm = normalizeThaiName(feature.properties.ADM1_TH || feature.properties.name_th || feature.properties.name);
+        const enNameNorm = (feature.properties.ADM1_EN || "").toLowerCase().trim();
+        if (thNameNorm) {
+          State.provinceLayerMap[thNameNorm] = { feature, layer };
+        }
+        if (enNameNorm) {
+          State.provinceLayerMap[enNameNorm] = { feature, layer };
+        }
+        // Also map by the provName property itself (normalized)
+        const provNameNorm = normalizeThaiName(provName);
+        if (provNameNorm && !State.provinceLayerMap[provNameNorm]) {
+          State.provinceLayerMap[provNameNorm] = { feature, layer };
+        }
 
         if (count === undefined) {
           const thName = normalizeThaiName(feature.properties.ADM1_TH || feature.properties.name_th || feature.properties.name);
@@ -272,20 +291,51 @@ function highlightFeature(e) {
   }
 }
 
-// LOAD AMPHOE MAP
-async function handleProvinceClick(feature, layer) {
-  provinceLayer.resetStyle(layer);
+/**
+ * Look up a province in the provinceLayerMap by name.
+ * Uses exact normalized match first, then falls back to bidirectional indexOf.
+ */
+function findProvinceInLayerMap(provinceName) {
+  const norm = normalizeThaiName(provinceName);
+  // Exact match
+  if (State.provinceLayerMap[norm]) {
+    return State.provinceLayerMap[norm];
+  }
+  // Bidirectional indexOf fallback for name variations
+  const keys = Object.keys(State.provinceLayerMap);
+  for (const key of keys) {
+    if (norm.includes(key) || key.includes(norm)) {
+      return State.provinceLayerMap[key];
+    }
+  }
+  return null;
+}
 
-  // Hide world countries when clicking into a province
+/**
+ * Focus the map on a province by name: zoom to it and render amphoe (district) boundaries.
+ * This is the shared visual logic used by both province-click and province-dropdown-change.
+ */
+async function focusProvince(provName) {
+  if (!provName) return;
+
+  const entry = findProvinceInLayerMap(provName);
+  if (!entry) {
+    console.warn("focusProvince: could not find province layer for:", provName);
+    return;
+  }
+
+  const { feature, layer } = entry;
+
+  // Hide world countries layer
   if (worldCountriesLayer && map.hasLayer(worldCountriesLayer)) {
     map.removeLayer(worldCountriesLayer);
   }
 
-  const provName = feature.properties.provName;
+  // Update UI
   if (Elements.mainTitle) Elements.mainTitle.innerText = `ขอบเขต: ${provName}`;
   if (Elements.btnBack) Elements.btnBack.style.display = "inline-block";
 
-  // Smoothly zoom to target
+  // Smoothly zoom to province
   map.fitBounds(layer.getBounds(), {
     padding: [50, 50],
     animate: true,
@@ -295,73 +345,9 @@ async function handleProvinceClick(feature, layer) {
   setLoading(true);
 
   try {
-    // Update filters based on selected province
-    try {
-      const provInfoRes = await fetch(host + `/api/province-info?province_name=${provName}`);
-      const provInfo = await provInfoRes.json();
-      
-      if (provInfo.status === 200 && provInfo.data) {
-        // 1. Update searchData
-        searchData.region_id = provInfo.data.region_id;
-        searchData.province_id = provInfo.data.id;
-        searchData.district_id = "";
-        searchData.subdistrict_id = "";
-        
-        // 2. Update dropdowns
-        $("#map-region_id").val(searchData.region_id);
-        
-        // Wait for province dropdown to populate, then set value and load districts
-        await new Promise((resolve, reject) => {
-            $.ajax({
-                method: "GET",
-                url: host + "/api/province?region_id=" + searchData.region_id,
-                cache: false,
-                dataType: "json",
-                contentType: "application/json; charset=utf-8",
-                success: function (result) {
-                    $("#map-province_id").empty().append($("<option></option>").attr("value", "").html("กรุณาเลือกจังหวัด"));
-                    for (let i = 0; i < result.data.length; i++) {
-                        $("#map-province_id").append($("<option></option>").attr("value", +(result.data[i].id)).html(result.data[i].name).attr("selected", false));
-                    }
-                    $("#map-province_id").val(searchData.province_id);
-                    resolve();
-                },
-                error: reject
-            });
-        });
-
-        // Wait for district dropdown to populate
-        await new Promise((resolve, reject) => {
-            $.ajax({
-                method: "GET",
-                url: host + "/api/district?province_id=" + searchData.province_id,
-                cache: false,
-                dataType: "json",
-                contentType: "application/json; charset=utf-8",
-                success: function (result) {
-                    $("#map-district_id").empty().append($("<option></option>").attr("value", "").html("กรุณาเลือกอำเภอ"));
-                    for (let i = 0; i < result.data.length; i++) {
-                        $("#map-district_id").append($("<option></option>").attr("value", +(result.data[i].id)).html(result.data[i].name).attr("selected", false));
-                    }
-                    resolve();
-                },
-                error: reject
-            });
-        });
-        
-        // Clear subdistrict dropdown
-        $("#map-subdistrict_id").empty().append($("<option></option>").attr("value", "").html("กรุณาเลือกตำบล"));
-        
-        setContentBreadcrumb();
-        
-        // 3. Search and update content list
-        search();
-      }
-    } catch (err) {
-      console.error("Error updating filters:", err);
-    }
-
-    const countRes = await fetch(host + `/api/heatmap-district?province_name=${feature.properties.ADM1_TH}`);
+    // Fetch district heatmap data
+    const admTh = feature.properties.ADM1_TH || provName;
+    const countRes = await fetch(host + `/api/heatmap-district?province_name=${admTh}`);
     const countResult = await countRes.json();
     if (countResult.status === 200) {
       State.districtCounts = {};
@@ -373,6 +359,7 @@ async function handleProvinceClick(feature, layer) {
       });
     }
 
+    // Load amphoe GeoJSON and render
     if (!State.cachedAmphoeData) {
       const res = await fetch(CONFIG.paths.amphoe);
       const data = await res.json();
@@ -384,6 +371,82 @@ async function handleProvinceClick(feature, layer) {
   } finally {
     setLoading(false);
   }
+}
+
+// LOAD AMPHOE MAP
+async function handleProvinceClick(feature, layer) {
+  provinceLayer.resetStyle(layer);
+
+  const provName = feature.properties.provName;
+
+  // Update filters and dropdowns based on selected province
+  try {
+    const provInfoRes = await fetch(host + `/api/province-info?province_name=${provName}`);
+    const provInfo = await provInfoRes.json();
+    
+    if (provInfo.status === 200 && provInfo.data) {
+      // 1. Update searchData
+      searchData.region_id = provInfo.data.region_id;
+      searchData.province_id = provInfo.data.id;
+      searchData.district_id = "";
+      searchData.subdistrict_id = "";
+      
+      // 2. Update dropdowns
+      $("#map-region_id").val(searchData.region_id);
+      
+      // Wait for province dropdown to populate, then set value and load districts
+      await new Promise((resolve, reject) => {
+          $.ajax({
+              method: "GET",
+              url: host + "/api/province?region_id=" + searchData.region_id,
+              cache: false,
+              dataType: "json",
+              contentType: "application/json; charset=utf-8",
+              success: function (result) {
+                  $("#map-province_id").empty().append($("<option></option>").attr("value", "").html("กรุณาเลือกจังหวัด"));
+                  for (let i = 0; i < result.data.length; i++) {
+                      $("#map-province_id").append($("<option></option>").attr("value", +(result.data[i].id)).html(result.data[i].name).attr("selected", false));
+                  }
+                  $("#map-province_id").val(searchData.province_id);
+                  resolve();
+              },
+              error: reject
+          });
+      });
+
+      // Wait for district dropdown to populate
+      await new Promise((resolve, reject) => {
+          $.ajax({
+              method: "GET",
+              url: host + "/api/district?province_id=" + searchData.province_id,
+              cache: false,
+              dataType: "json",
+              contentType: "application/json; charset=utf-8",
+              success: function (result) {
+                  $("#map-district_id").empty().append($("<option></option>").attr("value", "").html("กรุณาเลือกอำเภอ"));
+                  for (let i = 0; i < result.data.length; i++) {
+                      $("#map-district_id").append($("<option></option>").attr("value", +(result.data[i].id)).html(result.data[i].name).attr("selected", false));
+                  }
+                  resolve();
+              },
+              error: reject
+          });
+      });
+      
+      // Clear subdistrict dropdown
+      $("#map-subdistrict_id").empty().append($("<option></option>").attr("value", "").html("กรุณาเลือกตำบล"));
+      
+      setContentBreadcrumb();
+      
+      // 3. Search and update content list
+      search();
+    }
+  } catch (err) {
+    console.error("Error updating filters:", err);
+  }
+
+  // Focus map on the province and render amphoe boundaries
+  await focusProvince(provName);
 }
 
 // RENDER AMPHOE
@@ -525,7 +588,17 @@ function checkLabelsVisibility() {
 
 // BIND EVENTS
 map.on("zoomend", checkLabelsVisibility);
-if (Elements.btnBack) Elements.btnBack.addEventListener("click", () => switchMode("province"));
+if (Elements.btnBack) Elements.btnBack.addEventListener("click", function() {
+  switchMode("province");
+  // Reset dropdowns when returning to country view
+  $("#map-province_id").val("");
+  $("#map-district_id").empty().append($("<option></option>").attr("value", "").html("กรุณาเลือกอำเภอ"));
+  $("#map-subdistrict_id").empty().append($("<option></option>").attr("value", "").html("กรุณาเลือกตำบล"));
+  searchData.province_id = "";
+  searchData.district_id = "";
+  searchData.subdistrict_id = "";
+  setContentBreadcrumb();
+});
 
 // ------- INTEGRATING OLD MAP.JS API LOGIC --------
 
@@ -763,6 +836,16 @@ $("#map-province_id").on("change", function () {
   searchData.province_id = $(this).val();
   searchData.district_id = "";
   searchData.subdistrict_id = "";
+
+  if (searchData.province_id) {
+    // Province selected: focus map on this province and show amphoe view
+    const selectedProvinceName = $("#map-province_id option:selected").text().trim();
+    focusProvince(selectedProvinceName);
+  } else {
+    // Province cleared: return to country-level province view
+    switchMode("province");
+  }
+
   search();
   showDistrictMap("#map");
 });
@@ -954,17 +1037,6 @@ function showDistrictMap(id_form, type = "") {
         $(id_form + "-district_id").val(searchData.district_id);
       }
       
-      // Attempt to zoom to province
-      if (province_id !== "" && result.data.length > 0 && provinceLayer) {
-        let selectedProvinceText = $(id_form + "-province_id option:selected").text().trim();
-        provinceLayer.eachLayer(function(layer) {
-           let mapProvName = layer.feature.properties.provName.replace('จ.', '').replace('จังหวัด', '').trim();
-           if(selectedProvinceText.indexOf(mapProvName) > -1 || mapProvName.indexOf(selectedProvinceText) > -1) {
-             map.fitBounds(layer.getBounds());
-           }
-        });
-      }
-
       setContentBreadcrumb();
     }
   });
