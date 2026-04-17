@@ -1,6 +1,8 @@
-var host = "/admin"
-if (location.hostname === "localhost" || location.hostname === "127.0.0.1"){
-    host = '';
+var host = (typeof backendApiBaseUrl !== "undefined" && backendApiBaseUrl) ? backendApiBaseUrl : "/admin";
+host = host.replace(/\/+$/, "");
+
+function apiUrl(path) {
+    return host + "/api/" + path;
 }
 $("#search-region_id").on('change', function () {
     showProvince("#search");
@@ -90,7 +92,8 @@ function showProvince(idTag) {
     //console.log(region_id);
     $.ajax({
         method: "GET",
-        url: host+"/api/province?region_id=" + region_id,
+        url: apiUrl("province"),
+        data: { region_id: region_id },
         cache: false,
         dataType: "json",
         contentType: 'application/json; charset=utf-8',
@@ -158,7 +161,8 @@ function showDistrict(idTag) {
     var province_id = $(idTag+"-province_id").val()
     $.ajax({
         method: "GET",
-        url: host+"/api/district?province_id=" + province_id,
+        url: apiUrl("district"),
+        data: { province_id: province_id },
         cache: false,
         dataType: "json",
         contentType: 'application/json; charset=utf-8',
@@ -208,7 +212,8 @@ function showSubDistrict(idTag) {
     var district_id = $(idTag+"-district_id").val()
     $.ajax({
         method: "GET",
-        url: host+"/api/subdistrict?district_id=" + district_id,
+        url: apiUrl("subdistrict"),
+        data: { district_id: district_id },
         cache: false,
         dataType: "json",
         contentType: 'application/json; charset=utf-8',
@@ -247,7 +252,8 @@ function showZipcode(idTag) {
 
     $.ajax({
         method: "GET",
-        url: host+"/api/zipcode?subdistrict_id=" + subdistrict_id,
+        url: apiUrl("zipcode"),
+        data: { subdistrict_id: subdistrict_id },
         cache: false,
         dataType: "json",
         contentType: 'application/json; charset=utf-8',
