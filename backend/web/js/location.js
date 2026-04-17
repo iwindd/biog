@@ -5,7 +5,10 @@
  * Uses appBaseUrl variable injected from PHP (via Yii2 Url::base()).
  * This ensures AJAX calls use the correct base path matching Yii2's baseUrl config.
  */
-var host = (typeof appBaseUrl !== 'undefined') ? appBaseUrl : '';
+var host = (typeof backendApiBaseUrl !== 'undefined' && backendApiBaseUrl)
+    ? backendApiBaseUrl
+    : ((typeof appBaseUrl !== 'undefined' && appBaseUrl) ? appBaseUrl : '/admin');
+host = host.replace(/\/+$/, '');
 
 /**
  * Load provinces by region_id
