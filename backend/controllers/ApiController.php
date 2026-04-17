@@ -100,6 +100,26 @@ class ApiController extends \yii\web\Controller
 
         $this->enableCsrfValidation = false;
 
+        $request = Yii::$app->request;
+        $response = Yii::$app->response;
+        $headers = $response->headers;
+        $origin = $request->headers->get('Origin');
+        $allowedOrigins = Yii::$app->params['corsAllowedOrigins'] ?? [];
+        $allowWildcard = !empty(Yii::$app->params['corsAllowWildcard']) || in_array('*', $allowedOrigins, true);
+
+        if (!empty($origin) && ($allowWildcard || in_array($origin, $allowedOrigins, true))) {
+            $headers->set('Access-Control-Allow-Origin', $origin);
+            $headers->set('Vary', 'Origin');
+        }
+
+        $headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+        $headers->set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+
+        if ($request->isOptions) {
+            $response->statusCode = 200;
+            return false;
+        }
+
         return parent::beforeAction($action);
 
     }
@@ -656,7 +676,7 @@ class ApiController extends \yii\web\Controller
 
     private function _response($status = 200, $message = "", $content = "", $total = "0")
     {
-        header('Access-Control-Allow-Origin: *');
+        $this->setLegacyCorsHeader();
         if (empty($message)) :
 
 
@@ -745,7 +765,19 @@ class ApiController extends \yii\web\Controller
 
         header($status_header);
         header('Content-type: ' . $content_type);
-        header('Access-Control-Allow-Origin: *');
+        $this->setLegacyCorsHeader();
+    }
+
+    private function setLegacyCorsHeader()
+    {
+        $origin = Yii::$app->request->headers->get('Origin');
+        $allowedOrigins = Yii::$app->params['corsAllowedOrigins'] ?? [];
+        $allowWildcard = !empty(Yii::$app->params['corsAllowWildcard']) || in_array('*', $allowedOrigins, true);
+
+        if (!empty($origin) && ($allowWildcard || in_array($origin, $allowedOrigins, true))) {
+            header('Access-Control-Allow-Origin: ' . $origin);
+            header('Vary: Origin');
+        }
     }
 
 
