@@ -14,8 +14,7 @@ $listUser = \yii\helpers\Url::to(['/api/userslist']);
 $listEditUser = \yii\helpers\Url::to(['/api/editslist']);
 $listApprovedUser = \yii\helpers\Url::to(['/api/approverlist']);
 
-$startExportUrl = Url::to(['/content-animal/start-export']);
-$exportStatusUrl = Url::to(['/content-animal/export-status']);
+
 $contentAnimalViewBaseUrl = Url::to(['/content-animal']);
 
 $total = $dataProvider->totalCount; //total records // 15 
@@ -235,8 +234,7 @@ $this->params['breadcrumbs'][] = $this->title;
 <?= \backend\widgets\AsyncExportModal::widget([
     'contentType' => 'animal',
     'modalTitle' => 'Export ข้อมูลสัตว์',
-    'startExportUrl' => Url::to(['/export/start']),
-    'exportStatusUrl' => Url::to(['/export/status']),
+    'fetchDataUrl' => Url::to(['/export/fetch-data']),
     'searchParams' => $_GET['ContentAnimalSearch'] ?? [],
 ]) ?>
 

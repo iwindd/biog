@@ -12,8 +12,7 @@ use yii\web\JsExpression;
 $listUser = \yii\helpers\Url::to(['/api/userslist']);
 $listEditUser = \yii\helpers\Url::to(['/api/editslist']);
 $listApprovedUser = \yii\helpers\Url::to(['/api/approverlist']);
-$startExportUrl = Url::to(['/content-plant/start-export']);
-$exportStatusUrl = Url::to(['/content-plant/export-status']);
+
 $contentPlantViewBaseUrl = Url::to(['/content-plant']);
 
 $total = $dataProvider->totalCount;  // total records // 15
@@ -234,8 +233,7 @@ $this->params['breadcrumbs'][] = $this->title;
 <?= \backend\widgets\AsyncExportModal::widget([
     'contentType' => 'plant',
     'modalTitle' => 'Export ข้อมูลพืช',
-    'startExportUrl' => Url::to(['/export/start']),
-    'exportStatusUrl' => Url::to(['/export/status']),
+    'fetchDataUrl' => Url::to(['/export/fetch-data']),
     'searchParams' => $_GET['ContentPlantSearch'] ?? [],
 ]) ?>
 

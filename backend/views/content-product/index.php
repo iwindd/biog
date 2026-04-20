@@ -282,8 +282,7 @@ if(!empty($_GET['ContentProductSearch'])){
 <?= \backend\widgets\AsyncExportModal::widget([
     'contentType' => 'product',
     'modalTitle' => 'Export ข้อมูลผลิตภัณฑ์ชุมชน',
-    'startExportUrl' => Url::to(['/export/start']),
-    'exportStatusUrl' => Url::to(['/export/status']),
+    'fetchDataUrl' => Url::to(['/export/fetch-data']),
     'searchParams' => $_GET['ContentProductSearch'] ?? [],
 ]) ?>
 

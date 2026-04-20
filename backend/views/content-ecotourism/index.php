@@ -14,8 +14,7 @@ $listUser = \yii\helpers\Url::to(['/api/userslist']);
 $listEditUser = \yii\helpers\Url::to(['/api/editslist']);
 $listApprovedUser = \yii\helpers\Url::to(['/api/approverlist']);
 
-$startExportUrl = Url::to(['/content-ecotourism/start-export']);
-$exportStatusUrl = Url::to(['/content-ecotourism/export-status']);
+
 $contentEcotourismViewBaseUrl = Url::to(['/content-ecotourism']);
 
 /* @var $this yii\web\View */
@@ -227,8 +226,7 @@ $this->params['breadcrumbs'][] = $this->title;
 <?= \backend\widgets\AsyncExportModal::widget([
     'contentType' => 'ecotourism',
     'modalTitle' => 'Export ข้อมูลท่องเที่ยวเชิงนิเวศ',
-    'startExportUrl' => Url::to(['/export/start']),
-    'exportStatusUrl' => Url::to(['/export/status']),
+    'fetchDataUrl' => Url::to(['/export/fetch-data']),
     'searchParams' => $_GET['ContentEcotourismSearch'] ?? [],
 ]) ?>
 
