@@ -1,21 +1,39 @@
 /**
- * AsyncExportModal - Reusable export modal component
- * Handles async export functionality for all content types
+ * AsyncExportModal - Client-side export with batched data fetch and XLSX/ZIP generation
+ *
+ * Flow:
+ * 1. User selects date range and clicks "เริ่ม Export"
+ * 2. Client fetches data page by page (3 concurrent requests) from /export/fetch-data
+ * 3. Accumulates all rows in memory
+ * 4. Generates XLSX using SheetJS
+ * 5. Creates ZIP using JSZip
+ * 6. Downloads via FileSaver
+ *
+ * Dependencies: jQuery, XLSX (SheetJS), JSZip, FileSaver
  */
 class AsyncExportModal {
     constructor(options) {
         this.options = Object.assign({
             contentType: 'content',
             modalTitle: 'Export ข้อมูล',
-            startExportUrl: '',
-            exportStatusUrl: '',
+            fetchDataUrl: '',
             searchParams: {},
-            pollInterval: 2000
+            pageSize: 3000,
+            maxConcurrentRequests: 3,
+            largeDatasetThreshold: 50000
         }, options);
 
         this.modalId = this.options.contentType + 'ExportModal';
-        this.pollTimer = null;
-        
+        this.allRows = [];
+        this.allHeaders = [];
+        this.baseFileName = '';
+        this.totalRows = 0;
+        this.totalPages = 0;
+        this.fetchedPages = 0;
+        this.isCancelled = false;
+        this.activeRequests = [];
+        this._retryCount = {};
+
         this.init();
     }
 
@@ -42,9 +60,9 @@ class AsyncExportModal {
             self.resetModal();
         });
 
-        // Modal close event
+        // Modal close event - cancel any pending requests
         $('#' + this.modalId).on('hidden.bs.modal', function() {
-            self.resetModal();
+            self.cancelExport();
         });
     }
 
@@ -71,7 +89,7 @@ class AsyncExportModal {
     toggleLoading(isLoading) {
         const submitBtn = $('#' + this.options.contentType + 'ExportSubmitBtn');
         const cancelBtn = $('#' + this.options.contentType + 'ExportCancelBtn');
-        
+
         if (isLoading) {
             submitBtn.prop('disabled', true);
             submitBtn.html('<i class="fa fa-spinner fa-spin"></i> กำลังดำเนินการ...');
@@ -81,6 +99,13 @@ class AsyncExportModal {
             submitBtn.html('เริ่ม Export');
             cancelBtn.prop('disabled', false);
         }
+    }
+
+    showProgressState() {
+        $('#' + this.options.contentType + 'ExportFormState').hide();
+        $('#' + this.options.contentType + 'ExportSuccessState').show();
+        $('#' + this.options.contentType + 'ExportInitialFooter').hide();
+        $('#' + this.options.contentType + 'ExportSuccessFooter').hide();
     }
 
     showSuccessState() {
@@ -94,120 +119,27 @@ class AsyncExportModal {
         $('#' + this.options.contentType + 'ExportProgressText').text(text);
     }
 
-    startExport() {
-        const self = this;
-        const dateFrom = $('#' + this.options.contentType + 'ExportDateFrom').val();
-        const dateTo = $('#' + this.options.contentType + 'ExportDateTo').val();
-
-        console.log('dateFrom', dateFrom, 'dateTo', dateTo);
-
-        // ALL content types require date validation
-        if (!dateFrom || !dateTo) {
-            console.log("ERROR", 'date')
-            this.setStatus('กรุณาเลือกช่วงวันที่ให้ครบถ้วน', 'alert-danger');
-            this.toggleLoading(false);
-            return;
-        }
-
-        if (dateFrom > dateTo) {
-            this.setStatus('วันที่เริ่มต้นต้องไม่มากกว่าวันที่สิ้นสุด', 'alert-danger');
-            this.toggleLoading(false);
-            return;
-        }
-
-        console.log("ALL GOOD")
-
-        this.toggleLoading(true);
-        this.setStatus('กำลังเริ่มต้นการ Export...', 'alert-info');
-
-        const postData = Object.assign({}, this.options.searchParams, {
-            content_type: 'content_' + this.options.contentType,
-            date_from: dateFrom,
-            date_to: dateTo
+    cancelExport() {
+        this.isCancelled = true;
+        // Abort all active AJAX requests
+        this.activeRequests.forEach(function(xhr) {
+            try { xhr.abort(); } catch(e) {}
         });
-
-        $.ajax({
-            url: this.options.startExportUrl,
-            method: 'POST',
-            data: postData,
-            dataType: 'json',
-            success: function(response) {
-                console.log('Response:', response);
-                if (response.jobId) {
-                    self.showSuccessState();
-                    self.updateProgressText('กำลังเริ่มต้นการ Export...');
-                    self.pollExportStatus(response.jobId);
-                } else {
-                    self.setStatus('เกิดข้อผิดพลาด: ' + (response.message || 'ไม่สามารถเริ่มต้นการ Export ได้'), 'alert-danger');
-                    self.toggleLoading(false);
-                }
-            },
-            error: function(xhr, status, error) {
-                self.setStatus('เกิดข้อผิดพลาดในการเชื่อมต่อ: ' + error, 'alert-danger');
-                self.toggleLoading(false);
-            }
-        });
-    }
-
-    pollExportStatus(jobId) {
-        const self = this;
-        
-        // Clear any existing timer
-        if (this.pollTimer) {
-            clearInterval(this.pollTimer);
-        }
-
-        this.pollTimer = setInterval(function() {
-            $.ajax({
-                url: self.options.exportStatusUrl,
-                method: 'GET',
-                data: { jobId: jobId },
-                dataType: 'json',
-                success: function(response) {
-                    console.log('Status response:', response);
-                    if (response.status === 'success' && response.job) {
-                        if (response.job.state === 'completed') {
-                            self.updateProgressText('Export เสร็จสมบูรณ์! ไฟล์พร้อมดาวน์โหลด');
-                            clearInterval(self.pollTimer);
-                            self.pollTimer = null;
-                            // Start download
-                            if (response.job.downloadReady && response.job.downloadUrl) {
-                                window.location.href = response.job.downloadUrl;
-                                setTimeout(function () {
-                                    $('#' + self.options.contentType + 'ExportModal').modal('hide');
-                                }, 800);
-                            }
-                        } else if (response.job.state === 'processing') {
-                            const progress = response.job.progress || 0;
-                            const message = response.job.progressMessage || 'กำลังดำเนินการ Export...';
-                            self.updateProgressText(message + ' ' + progress + '%');
-                        } else if (response.job.state === 'failed') {
-                            const errorMsg = response.job.errorMessage || 'Export ล้มเหลว';
-                            self.updateProgressText(errorMsg);
-                            clearInterval(self.pollTimer);
-                            self.pollTimer = null;
-                        }
-                    } else {
-                        self.updateProgressText('เกิดข้อผิดพลาดในการตรวจสอบสถานะ');
-                        clearInterval(self.pollTimer);
-                        self.pollTimer = null;
-                    }
-                },
-                error: function() {
-                    self.updateProgressText('เกิดข้อผิดพลาดในการตรวจสอบสถานะ');
-                    clearInterval(self.pollTimer);
-                    self.pollTimer = null;
-                }
-            });
-        }, this.options.pollInterval);
+        this.activeRequests = [];
     }
 
     resetModal() {
-        // Clear poll timer
-        if (this.pollTimer) {
-            clearInterval(this.pollTimer);
-            this.pollTimer = null;
-        }
+        this.cancelExport();
+
+        // Reset data
+        this.allRows = [];
+        this.allHeaders = [];
+        this.baseFileName = '';
+        this.totalRows = 0;
+        this.totalPages = 0;
+        this.fetchedPages = 0;
+        this.isCancelled = false;
+        this._retryCount = {};
 
         // Reset form
         $('#' + this.options.contentType + 'ExportDateFrom').val('');
@@ -222,6 +154,345 @@ class AsyncExportModal {
         // Reset status
         $('#' + this.options.contentType + 'ExportStatusBox').hide();
         this.toggleLoading(false);
+    }
+
+    startExport() {
+        const self = this;
+        const dateFrom = $('#' + this.options.contentType + 'ExportDateFrom').val();
+        const dateTo = $('#' + this.options.contentType + 'ExportDateTo').val();
+
+        // Validate dates
+        if (!dateFrom || !dateTo) {
+            this.setStatus('กรุณาเลือกช่วงวันที่ให้ครบถ้วน', 'alert-danger');
+            return;
+        }
+
+        if (dateFrom > dateTo) {
+            this.setStatus('วันที่เริ่มต้นต้องไม่มากกว่าวันที่สิ้นสุด', 'alert-danger');
+            return;
+        }
+
+        // Reset state
+        this.allRows = [];
+        this.allHeaders = [];
+        this.baseFileName = '';
+        this.isCancelled = false;
+        this.fetchedPages = 0;
+        this._retryCount = {};
+
+        // Check dependencies
+        if (typeof XLSX === 'undefined') {
+            this.setStatus('ไม่พบไลบรารี SheetJS กรุณารีเฟรชหน้าแล้วลองใหม่', 'alert-danger');
+            return;
+        }
+        if (typeof JSZip === 'undefined') {
+            this.setStatus('ไม่พบไลบรารี JSZip กรุณารีเฟรชหน้าแล้วลองใหม่', 'alert-danger');
+            return;
+        }
+
+        this.toggleLoading(true);
+        this.showProgressState();
+        this.updateProgressText('กำลังเตรียมดึงข้อมูล...');
+
+        // Fetch first page to get total count and headers
+        this.fetchPage(1, dateFrom, dateTo);
+    }
+
+    fetchPage(page, dateFrom, dateTo) {
+        const self = this;
+
+        if (this.isCancelled) return;
+
+        const params = Object.assign({}, this.options.searchParams, {
+            content_type: 'content_' + this.options.contentType,
+            date_from: dateFrom,
+            date_to: dateTo,
+            page: page,
+            per_page: this.options.pageSize
+        });
+
+        const queryString = jQuery.param(params);
+
+        const xhr = jQuery.ajax({
+            url: this.options.fetchDataUrl + '?' + queryString,
+            method: 'GET',
+            dataType: 'json',
+            success: function(response) {
+                // Remove from active requests
+                self.activeRequests = self.activeRequests.filter(function(r) { return r !== xhr; });
+
+                if (self.isCancelled) return;
+
+                if (response.status === 'error') {
+                    self.setStatus('เกิดข้อผิดพลาด: ' + (response.message || 'ไม่สามารถดึงข้อมูลได้'), 'alert-danger');
+                    self.toggleLoading(false);
+                    $('#' + self.options.contentType + 'ExportFormState').show();
+                    $('#' + self.options.contentType + 'ExportSuccessState').hide();
+                    $('#' + self.options.contentType + 'ExportInitialFooter').show();
+                    return;
+                }
+
+                // On first page, setup metadata
+                if (page === 1) {
+                    self.totalRows = response.total;
+                    self.totalPages = response.total_pages;
+                    self.allHeaders = response.headers || [];
+                    self.baseFileName = response.base_file_name || 'Export';
+
+                    // Show large dataset warning
+                    if (response.large_dataset_warning) {
+                        if (!confirm('ข้อมูลมีจำนวนมาก (' + self.totalRows.toLocaleString() + ' รายการ) อาจใช้เวลานานในการประมวลผล ต้องการดำเนินการต่อหรือไม่?')) {
+                            self.isCancelled = true;
+                            self.resetModal();
+                            return;
+                        }
+                    }
+
+                    // Check if no data
+                    if (self.totalRows === 0) {
+                        self.setStatus('ไม่พบข้อมูลตามเงื่อนไขที่เลือก', 'alert-warning');
+                        self.toggleLoading(false);
+                        $('#' + self.options.contentType + 'ExportFormState').show();
+                        $('#' + self.options.contentType + 'ExportSuccessState').hide();
+                        $('#' + self.options.contentType + 'ExportInitialFooter').show();
+                        return;
+                    }
+                }
+
+                // Append rows
+                if (response.rows && response.rows.length > 0) {
+                    self.allRows = self.allRows.concat(response.rows);
+                }
+                self.fetchedPages++;
+
+                // Update progress (0-70% for data fetching)
+                const progressPercent = self.totalPages > 0
+                    ? Math.round((self.fetchedPages / self.totalPages) * 70)
+                    : 0;
+                self.updateProgressText(
+                    'กำลังโหลดข้อมูล... หน้า ' + self.fetchedPages + '/' + self.totalPages +
+                    ' (' + self.allRows.length.toLocaleString() + '/' + self.totalRows.toLocaleString() + ' รายการ) ' + progressPercent + '%'
+                );
+
+                // If first page, start parallel fetching for remaining pages
+                if (page === 1 && self.totalPages > 1) {
+                    self.fetchRemainingPages(dateFrom, dateTo);
+                } else if (self.fetchedPages >= self.totalPages) {
+                    // All pages fetched, generate file
+                    self.generateAndDownload();
+                }
+            },
+            error: function(xhr, status, error) {
+                self.activeRequests = self.activeRequests.filter(function(r) { return r !== xhr; });
+
+                if (self.isCancelled) return;
+                if (status === 'abort') return; // Cancelled by user
+
+                // Retry logic
+                self._retryCount = self._retryCount || {};
+                self._retryCount[page] = (self._retryCount[page] || 0) + 1;
+
+                if (self._retryCount[page] <= 3) {
+                    console.warn('Retrying page ' + page + ' (attempt ' + self._retryCount[page] + ')');
+                    setTimeout(function() {
+                        self.fetchPage(page, dateFrom, dateTo);
+                    }, 1000 * self._retryCount[page]);
+                } else {
+                    self.setStatus('เกิดข้อผิดพลาดในการดึงข้อมูลหน้า ' + page + ': ' + error, 'alert-danger');
+                    self.toggleLoading(false);
+                }
+            }
+        });
+
+        this.activeRequests.push(xhr);
+    }
+
+    fetchRemainingPages(dateFrom, dateTo) {
+        const self = this;
+        const maxConcurrent = this.options.maxConcurrentRequests;
+        const totalPages = this.totalPages;
+        let nextPage = 2; // Page 1 already fetched
+        let activeRequests = 0;
+        let completedPages = 1; // Page 1 already counted
+        let failedPages = [];
+
+        function fetchNext() {
+            if (self.isCancelled) return;
+
+            while (activeRequests < maxConcurrent && nextPage <= totalPages) {
+                const page = nextPage++;
+                activeRequests++;
+
+                const params = Object.assign({}, self.options.searchParams, {
+                    content_type: 'content_' + self.options.contentType,
+                    date_from: dateFrom,
+                    date_to: dateTo,
+                    page: page,
+                    per_page: self.options.pageSize
+                });
+
+                const queryString = jQuery.param(params);
+
+                const xhr = jQuery.ajax({
+                    url: self.options.fetchDataUrl + '?' + queryString,
+                    method: 'GET',
+                    dataType: 'json',
+                    success: function(response) {
+                        activeRequests--;
+
+                        if (self.isCancelled) return;
+
+                        if (response.status === 'error') {
+                            failedPages.push(page);
+                            console.error('Error fetching page ' + page + ': ' + (response.message || ''));
+                        } else {
+                            // Append rows
+                            if (response.rows && response.rows.length > 0) {
+                                self.allRows = self.allRows.concat(response.rows);
+                            }
+                            self.fetchedPages++;
+                            completedPages++;
+
+                            // Update progress (0-70% for data fetching)
+                            const progressPercent = Math.round((self.fetchedPages / self.totalPages) * 70);
+                            self.updateProgressText(
+                                'กำลังโหลดข้อมูล... หน้า ' + self.fetchedPages + '/' + self.totalPages +
+                                ' (' + self.allRows.length.toLocaleString() + '/' + self.totalRows.toLocaleString() + ' รายการ) ' + progressPercent + '%'
+                            );
+                        }
+
+                        // Check if all done
+                        if (completedPages >= totalPages) {
+                            if (failedPages.length === 0) {
+                                self.generateAndDownload();
+                            } else {
+                                self.setStatus('เกิดข้อผิดพลาดในการดึงข้อมูลบางหน้า กรุณาลองใหม่', 'alert-danger');
+                                self.toggleLoading(false);
+                            }
+                        } else {
+                            fetchNext();
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        activeRequests--;
+
+                        if (self.isCancelled) return;
+                        if (status === 'abort') return;
+
+                        failedPages.push(page);
+                        completedPages++;
+                        console.error('Failed to fetch page ' + page + ': ' + error);
+
+                        // Check if all done
+                        if (completedPages >= totalPages) {
+                            if (failedPages.length === 0) {
+                                self.generateAndDownload();
+                            } else {
+                                self.setStatus('เกิดข้อผิดพลาดในการดึงข้อมูลบางหน้า กรุณาลองใหม่', 'alert-danger');
+                                self.toggleLoading(false);
+                            }
+                        } else {
+                            fetchNext();
+                        }
+                    }
+                });
+
+                self.activeRequests.push(xhr);
+            }
+        }
+
+        fetchNext();
+    }
+
+    generateAndDownload() {
+        const self = this;
+
+        if (this.isCancelled) return;
+
+        if (this.allRows.length === 0) {
+            this.setStatus('ไม่พบข้อมูลสำหรับ Export', 'alert-warning');
+            this.toggleLoading(false);
+            $('#' + this.options.contentType + 'ExportFormState').show();
+            $('#' + this.options.contentType + 'ExportSuccessState').hide();
+            $('#' + this.options.contentType + 'ExportInitialFooter').show();
+            return;
+        }
+
+        // Step 1: Create XLSX (70-85%)
+        this.updateProgressText('กำลังสร้างไฟล์ Excel... 75%');
+
+        // Use setTimeout to allow UI to update
+        setTimeout(function() {
+            try {
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.aoa_to_sheet([self.allHeaders].concat(self.allRows));
+
+                // Set column widths
+                const colWidths = self.allHeaders.map(function(h) {
+                    return { wch: Math.max(h.length * 2, 15) };
+                });
+                ws['!cols'] = colWidths;
+
+                // Excel sheet name max 31 chars, only valid chars
+                var sheetName = self.baseFileName.replace(/[\[\]\*\?\/\\:]/g, '').substring(0, 31);
+                XLSX.utils.book_append_sheet(wb, ws, sheetName);
+
+                // Generate XLSX binary
+                self.updateProgressText('กำลังสร้างไฟล์ Excel... 85%');
+
+                var wbOut = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+
+                // Step 2: Create ZIP (85-95%)
+                self.updateProgressText('กำลังบีบอัดไฟล์ ZIP... 90%');
+
+                setTimeout(function() {
+                    try {
+                        var zip = new JSZip();
+                        var timestamp = self.formatDateForFilename(new Date());
+                        var xlsxFileName = self.baseFileName + '_' + timestamp + '.xlsx';
+                        var zipFileName = self.baseFileName + '_' + timestamp + '.zip';
+
+                        zip.file(xlsxFileName, wbOut);
+
+                        self.updateProgressText('กำลังบีบอัดไฟล์ ZIP... 95%');
+
+                        zip.generateAsync({ type: 'blob' }).then(function(content) {
+                            // Step 3: Download (95-100%)
+                            self.updateProgressText('กำลังดาวน์โหลด... 100%');
+
+                            saveAs(content, zipFileName);
+
+                            // Show success
+                            self.showSuccessState();
+
+                            self.updateProgressText('Export เสร็จสมบูรณ์! ดาวน์โหลด ' + self.allRows.length.toLocaleString() + ' รายการ');
+
+                            self.toggleLoading(false);
+                        }).catch(function(err) {
+                            self.setStatus('เกิดข้อผิดพลาดในการสร้างไฟล์ ZIP: ' + err.message, 'alert-danger');
+                            self.toggleLoading(false);
+                        });
+                    } catch (err) {
+                        self.setStatus('เกิดข้อผิดพลาดในการสร้างไฟล์ ZIP: ' + err.message, 'alert-danger');
+                        self.toggleLoading(false);
+                    }
+                }, 100);
+
+            } catch (err) {
+                self.setStatus('เกิดข้อผิดพลาดในการสร้างไฟล์ Excel: ' + err.message, 'alert-danger');
+                self.toggleLoading(false);
+            }
+        }, 100);
+    }
+
+    formatDateForFilename(date) {
+        var y = date.getFullYear();
+        var m = String(date.getMonth() + 1).padStart(2, '0');
+        var d = String(date.getDate()).padStart(2, '0');
+        var h = String(date.getHours()).padStart(2, '0');
+        var min = String(date.getMinutes()).padStart(2, '0');
+        var s = String(date.getSeconds()).padStart(2, '0');
+        return y + m + d + '_' + h + min + s + 's';
     }
 }
 

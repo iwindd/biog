@@ -7,22 +7,21 @@ use yii\helpers\Html;
 use yii\helpers\Json;
 
 /**
- * AsyncExportModal Widget
- * Renders a reusable async export modal for content types
+ * AsyncExportModal Widget (Client-Side Fetch + Generate)
+ * Renders a reusable export modal that fetches data in batches and generates XLSX/ZIP client-side.
  * 
  * Usage:
  * <?= AsyncExportModal::widget([
- *     'contentType' => 'animal',
- *     'modalTitle' => 'Export ข้อมูลสัตว์',
- *     'startExportUrl' => Url::to(['/content-animal/start-export']),
- *     'exportStatusUrl' => Url::to(['/content-animal/export-status']),
- *     'searchParams' => $_GET['ContentAnimalSearch'] ?? [],
+ *     'contentType' => 'fungi',
+ *     'modalTitle' => 'Export ข้อมูลจุลินทรีย์',
+ *     'fetchDataUrl' => Url::to(['/export/fetch-data']),
+ *     'searchParams' => $_GET['ContentFungiSearch'] ?? [],
  * ]) ?>
  */
 class AsyncExportModal extends Widget
 {
     /**
-     * @var string Content type identifier (e.g., 'animal', 'fungi', 'product')
+     * @var string Content type identifier (e.g., 'fungi', 'animal', 'product')
      */
     public $contentType;
 
@@ -32,14 +31,9 @@ class AsyncExportModal extends Widget
     public $modalTitle;
 
     /**
-     * @var string URL for starting export
+     * @var string URL for fetching paginated export data
      */
-    public $startExportUrl;
-
-    /**
-     * @var string URL for checking export status
-     */
-    public $exportStatusUrl;
+    public $fetchDataUrl;
 
     /**
      * @var array Search parameters to pass to export
@@ -47,9 +41,14 @@ class AsyncExportModal extends Widget
     public $searchParams = [];
 
     /**
-     * @var int Poll interval in milliseconds
+     * @var int Page size for data fetching (rows per request)
      */
-    public $pollInterval = 2000;
+    public $pageSize = 3000;
+
+    /**
+     * @var int Maximum concurrent requests for parallel fetching
+     */
+    public $maxConcurrentRequests = 3;
 
     /**
      * @inheritdoc
@@ -64,11 +63,9 @@ class AsyncExportModal extends Widget
         if (empty($this->modalTitle)) {
             throw new \yii\base\InvalidConfigException('The "modalTitle" property must be set.');
         }
-        if (empty($this->startExportUrl)) {
-            throw new \yii\base\InvalidConfigException('The "startExportUrl" property must be set.');
-        }
-        if (empty($this->exportStatusUrl)) {
-            throw new \yii\base\InvalidConfigException('The "exportStatusUrl" property must be set.');
+        if (empty($this->fetchDataUrl)) {
+            // Default to the export controller's fetch-data action
+            $this->fetchDataUrl = \yii\helpers\Url::to(['/export/fetch-data']);
         }
     }
 
@@ -85,13 +82,32 @@ class AsyncExportModal extends Widget
     }
 
     /**
-     * Register JavaScript assets
+     * Register JavaScript assets (CDN dependencies + module)
      */
     protected function registerAssets()
     {
         $view = $this->getView();
         
-        // Register the JavaScript module
+        // Register CDN dependencies for client-side XLSX/ZIP generation
+        // SheetJS (XLSX) - for Excel generation
+        $view->registerJsFile(
+            'https://cdn.sheetjs.com/xlsx-0.18.5/package/dist/xlsx.full.min.js',
+            ['depends' => [\yii\web\JqueryAsset::class], 'position' => \yii\web\View::POS_HEAD]
+        );
+        
+        // JSZip - for ZIP creation
+        $view->registerJsFile(
+            'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+            ['depends' => [\yii\web\JqueryAsset::class], 'position' => \yii\web\View::POS_HEAD]
+        );
+        
+        // FileSaver - for browser download trigger
+        $view->registerJsFile(
+            'https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js',
+            ['depends' => [\yii\web\JqueryAsset::class], 'position' => \yii\web\View::POS_HEAD]
+        );
+        
+        // Register the modal JavaScript module
         $jsFile = \Yii::getAlias('@web/js/async-export-modal.js');
         $view->registerJsFile($jsFile, ['depends' => [\yii\web\JqueryAsset::class]]);
         
@@ -99,10 +115,10 @@ class AsyncExportModal extends Widget
         $config = Json::encode([
             'contentType' => $this->contentType,
             'modalTitle' => $this->modalTitle,
-            'startExportUrl' => $this->startExportUrl,
-            'exportStatusUrl' => $this->exportStatusUrl,
+            'fetchDataUrl' => $this->fetchDataUrl,
             'searchParams' => $this->searchParams,
-            'pollInterval' => $this->pollInterval,
+            'pageSize' => $this->pageSize,
+            'maxConcurrentRequests' => $this->maxConcurrentRequests,
         ]);
         
         $js = <<<JS

@@ -1,6 +1,6 @@
 <?php
 /**
- * Async Export Modal Template
+ * Async Export Modal Template (Client-Side Fetch + Generate)
  * 
  * @var string $contentType
  * @var string $modalTitle
@@ -38,10 +38,11 @@ $prefix = $contentType;
                         </div>
                     </div>
                     <div class="alert alert-info" style="margin-bottom: 10px;">
-                        <i class="fa fa-info-circle"></i> ระบบจะทำงานเบื้องหลัง คุณสามารถปิดหน้าต่างนี้ได้<br>
+                        <i class="fa fa-info-circle"></i> ระบบจะดึงข้อมูลและสร้างไฟล์ Excel บนเบราว์เซอร์ของคุณ<br>
                         <small>
-                            - ระบบจะส่งอีเมลแจ้งเตือนเมื่อ export เสร็จ พร้อมลิงก์ดาวน์โหลด<br>
-                            - ไฟล์จะเก็บไว้ 48 ชั่วโมง และสามารถดูย้อนหลังได้ที่ <a href="/admin/export-downloads" target="_blank">ไฟล์ Export ของฉัน</a>
+                            - เลือกช่วงวันที่แล้วกดเริ่ม Export<br>
+                            - ระบบจะดึงข้อมูลทีละส่วนและสร้างไฟล์ให้อัตโนมัติ<br>
+                            - <b>กรุณาอย่าปิดหน้านี้จนกว่าจะดาวน์โหลดเสร็จ</b>
                         </small>
                     </div>
                     <div id="<?= $prefix ?>ExportStatusBox" class="alert alert-warning" style="display:none; margin-bottom: 0;"></div>
@@ -50,18 +51,19 @@ $prefix = $contentType;
                 <div id="<?= $prefix ?>ExportSuccessState" style="display: none;">
                     <div class="text-center" style="padding: 20px 0;">
                         <div style="font-size: 48px; color: #28a745; margin-bottom: 20px;">
-                            <i class="fa fa-check-circle"></i>
+                            <i class="fa fa-spinner fa-spin"></i>
                         </div>
-                        <h4 style="color: #28a745; margin-bottom: 15px;">กำลังดำเนินการ!</h4>
+                        <h4 style="color: #007bff; margin-bottom: 15px;">กำลังดำเนินการ...</h4>
                         <p style="font-size: 16px; color: #6c757d; margin-bottom: 15px;">
-                            ระบบกำลังสร้างไฟล์ Export ของคุณในเบื้องหลัง<br>
-                            คุณสามารถปิดหน้าต่างนี้ได้<br>
-                            เราจะแจ้งเตือนทางอีเมลเมื่อไฟล์พร้อมดาวน์โหลด
+                            ระบบกำลังดึงข้อมูลและสร้างไฟล์ Export<br>
+                            <b>กรุณาอย่าปิดหน้าต่างนี้</b>
                         </p>
-                        <div class="alert alert-success" style="margin-bottom: 0;">
-                            <i class="fa fa-envelope"></i> อีเมลแจ้งเตือนจะถูกส่งไปยังอีเมลของคุณเมื่อ Export เสร็จสมบูรณ์
+                        <div class="progress" style="margin-bottom: 15px;">
+                            <div id="<?= $prefix ?>ExportProgressBar" class="progress-bar progress-bar-striped active" role="progressbar" style="width: 0%">
+                                <span id="<?= $prefix ?>ExportProgressPercent">0%</span>
+                            </div>
                         </div>
-                        <div style="margin-top: 20px;">
+                        <div style="margin-top: 10px;">
                             <small id="<?= $prefix ?>ExportProgressText" class="text-muted">กำลังเริ่มต้นการ Export...</small>
                         </div>
                     </div>
