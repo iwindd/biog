@@ -1,13 +1,18 @@
 /**
- * AsyncExportModal - Client-side export with batched data fetch and XLSX/ZIP generation
+ * AsyncExportModal - Client-side chunked export with memory-safe XLSX/ZIP generation
  *
- * Flow:
+ * Flow (memory-safe chunked approach):
  * 1. User selects date range and clicks "เริ่ม Export"
- * 2. Client fetches data page by page (3 concurrent requests) from /export/fetch-data
- * 3. Accumulates all rows in memory
- * 4. Generates XLSX using SheetJS
- * 5. Creates ZIP using JSZip
- * 6. Downloads via FileSaver
+ * 2. Fetch page 1 to get total count and headers
+ * 3. Calculate number of parts (each part = up to rowsPerPart rows)
+ * 4. For each part:
+ *    a. Fetch pages sequentially into chunkBuffer (up to rowsPerPart rows)
+ *    b. Generate XLSX from chunkBuffer using SheetJS
+ *    c. Add XLSX binary to ZIP
+ *    d. Clear chunkBuffer and release references
+ * 5. Generate ZIP and download via FileSaver
+ *
+ * Memory stays bounded at ~rowsPerPart rows regardless of total dataset size.
  *
  * Dependencies: jQuery, XLSX (SheetJS), JSZip, FileSaver
  */
@@ -18,21 +23,35 @@ class AsyncExportModal {
             modalTitle: 'Export ข้อมูล',
             fetchDataUrl: '',
             searchParams: {},
-            pageSize: 3000,
-            maxConcurrentRequests: 3,
+            pageSize: 2500,
+            rowsPerPart: 10000, // Max rows per XLSX file
             largeDatasetThreshold: 50000
         }, options);
 
         this.modalId = this.options.contentType + 'ExportModal';
-        this.allRows = [];
+
+        // Chunked state
+        this.chunkBuffer = [];   // Current chunk's rows (cleared after each XLSX generation)
         this.allHeaders = [];
         this.baseFileName = '';
         this.totalRows = 0;
         this.totalPages = 0;
+        this.totalParts = 1;
+        this.currentPart = 0;
+
+        // Fetch state
         this.fetchedPages = 0;
         this.isCancelled = false;
         this.activeRequests = [];
         this._retryCount = {};
+
+        // ZIP state
+        this.zipInstance = null;
+        this.zipPartCount = 0;
+
+        // Date state (saved for re-fetch across chunks)
+        this.dateFrom = '';
+        this.dateTo = '';
 
         this.init();
     }
@@ -161,20 +180,31 @@ class AsyncExportModal {
             try { xhr.abort(); } catch(e) {}
         });
         this.activeRequests = [];
+        // Release memory
+        this.chunkBuffer = [];
+        if (this.zipInstance) {
+            this.zipInstance = null;
+        }
     }
 
     resetModal() {
         this.cancelExport();
 
-        // Reset data
-        this.allRows = [];
+        // Reset all state
+        this.chunkBuffer = [];
         this.allHeaders = [];
         this.baseFileName = '';
         this.totalRows = 0;
         this.totalPages = 0;
+        this.totalParts = 1;
+        this.currentPart = 0;
         this.fetchedPages = 0;
         this.isCancelled = false;
+        this.zipInstance = null;
+        this.zipPartCount = 0;
         this._retryCount = {};
+        this.dateFrom = '';
+        this.dateTo = '';
 
         // Reset form
         $('#' + this.options.contentType + 'ExportDateFrom').val('');
@@ -208,22 +238,27 @@ class AsyncExportModal {
         }
 
         // Reset state
-        this.allRows = [];
+        this.chunkBuffer = [];
         this.allHeaders = [];
         this.baseFileName = '';
         this.isCancelled = false;
         this.fetchedPages = 0;
+        this.currentPart = 0;
+        this.zipInstance = null;
+        this.zipPartCount = 0;
         this._retryCount = {};
+        this.dateFrom = dateFrom;
+        this.dateTo = dateTo;
 
         // Check dependencies
         if (typeof XLSX === 'undefined') {
-            console.error(`not found XLSX library. Please refresh the page and try again.`);
+            console.error('XLSX library not found. Please refresh the page and try again.');
             this.setStatus('เกิดข้อผิดพลาดกรุณาลองใหม่อีกครั้งภายหลัง!', 'alert-danger');
             return;
         }
-        
+
         if (typeof JSZip === 'undefined') {
-            console.error(`not found JSZip library. Please refresh the page and try again.`);
+            console.error('JSZip library not found. Please refresh the page and try again.');
             this.setStatus('เกิดข้อผิดพลาดกรุณาลองใหม่อีกครั้งภายหลัง!', 'alert-danger');
             return;
         }
@@ -233,19 +268,23 @@ class AsyncExportModal {
         this.updateProgressText('กำลังเตรียมดึงข้อมูล...');
 
         // Fetch first page to get total count and headers
-        this.fetchPage(1, dateFrom, dateTo);
+        this.fetchMetadataPage();
     }
 
-    fetchPage(page, dateFrom, dateTo) {
+    /**
+     * Fetch page 1 to get total count, total pages, and headers.
+     * Then kick off chunk processing.
+     */
+    fetchMetadataPage() {
         const self = this;
 
         if (this.isCancelled) return;
 
         const params = Object.assign({}, this.options.searchParams, {
             content_type: 'content_' + this.options.contentType,
-            date_from: dateFrom,
-            date_to: dateTo,
-            page: page,
+            date_from: this.dateFrom,
+            date_to: this.dateTo,
+            page: 1,
             per_page: this.options.pageSize
         });
 
@@ -256,7 +295,6 @@ class AsyncExportModal {
             method: 'GET',
             dataType: 'json',
             success: function(response) {
-                // Remove from active requests
                 self.activeRequests = self.activeRequests.filter(function(r) { return r !== xhr; });
 
                 if (self.isCancelled) return;
@@ -270,74 +308,63 @@ class AsyncExportModal {
                     return;
                 }
 
-                // On first page, setup metadata
-                if (page === 1) {
-                    self.totalRows = response.total;
-                    self.totalPages = response.total_pages;
-                    self.allHeaders = response.headers || [];
-                    self.baseFileName = response.base_file_name || 'Export';
+                // Store metadata
+                self.totalRows = response.total;
+                self.totalPages = response.total_pages;
+                self.allHeaders = response.headers || [];
+                self.baseFileName = response.base_file_name || 'Export';
 
-                    // Show large dataset warning
-                    if (response.large_dataset_warning) {
-                        if (!confirm('ข้อมูลมีจำนวนมาก (' + self.totalRows.toLocaleString() + ' รายการ) อาจใช้เวลานานในการประมวลผล ต้องการดำเนินการต่อหรือไม่?')) {
-                            self.isCancelled = true;
-                            self.resetModal();
-                            return;
-                        }
-                    }
+                // Check for no data
+                if (self.totalRows === 0) {
+                    self.setStatus('ไม่พบข้อมูลตามเงื่อนไขที่เลือก', 'alert-warning');
+                    self.toggleLoading(false);
+                    $('#' + self.options.contentType + 'ExportFormState').show();
+                    $('#' + self.options.contentType + 'ExportSuccessState').hide();
+                    $('#' + self.options.contentType + 'ExportInitialFooter').show();
+                    return;
+                }
 
-                    // Check if no data
-                    if (self.totalRows === 0) {
-                        self.setStatus('ไม่พบข้อมูลตามเงื่อนไขที่เลือก', 'alert-warning');
-                        self.toggleLoading(false);
-                        $('#' + self.options.contentType + 'ExportFormState').show();
-                        $('#' + self.options.contentType + 'ExportSuccessState').hide();
-                        $('#' + self.options.contentType + 'ExportInitialFooter').show();
+                // Show large dataset warning
+                if (self.totalRows >= self.options.largeDatasetThreshold) {
+                    const partCount = Math.ceil(self.totalRows / self.options.rowsPerPart);
+                    if (!confirm('ข้อมูลมีจำนวนมาก (' + self.totalRows.toLocaleString() + ' รายการ)\nระบบจะแบ่งเป็น ' + partCount + ' ไฟล์ Excel ในไฟล์ ZIP\nอาจใช้เวลานานในการประมวลผล ต้องการดำเนินการต่อหรือไม่?')) {
+                        self.isCancelled = true;
+                        self.resetModal();
                         return;
                     }
                 }
 
-                // Append rows
+                // Calculate parts
+                self.totalParts = Math.ceil(self.totalRows / self.options.rowsPerPart);
+
+                // Add page 1 rows to first chunk buffer
                 if (response.rows && response.rows.length > 0) {
-                    self.allRows = self.allRows.concat(response.rows);
+                    self.chunkBuffer = self.chunkBuffer.concat(response.rows);
                 }
-                self.fetchedPages++;
+                self.fetchedPages = 1;
 
-                // Update progress (0-70% for data fetching)
-                const progressPercent = self.totalPages > 0
-                    ? Math.round((self.fetchedPages / self.totalPages) * 70)
-                    : 0;
-                self.updateProgressBar(progressPercent);
-                self.updateProgressText(
-                    'กำลังโหลดข้อมูล... หน้า ' + self.fetchedPages + '/' + self.totalPages +
-                    ' (' + self.allRows.length.toLocaleString() + '/' + self.totalRows.toLocaleString() + ' รายการ) ' + progressPercent + '%'
-                );
+                // Initialize ZIP
+                self.zipInstance = new JSZip();
 
-                // If first page, start parallel fetching for remaining pages
-                if (page === 1 && self.totalPages > 1) {
-                    self.fetchRemainingPages(dateFrom, dateTo);
-                } else if (self.fetchedPages >= self.totalPages) {
-                    // All pages fetched, generate file
-                    self.generateAndDownload();
-                }
+                // Start processing chunks
+                self.processNextChunk();
             },
             error: function(xhr, status, error) {
                 self.activeRequests = self.activeRequests.filter(function(r) { return r !== xhr; });
 
                 if (self.isCancelled) return;
-                if (status === 'abort') return; // Cancelled by user
+                if (status === 'abort') return;
 
-                // Retry logic
                 self._retryCount = self._retryCount || {};
-                self._retryCount[page] = (self._retryCount[page] || 0) + 1;
+                self._retryCount[1] = (self._retryCount[1] || 0) + 1;
 
-                if (self._retryCount[page] <= 3) {
-                    console.warn('Retrying page ' + page + ' (attempt ' + self._retryCount[page] + ')');
+                if (self._retryCount[1] <= 3) {
+                    console.warn('Retrying page 1 (attempt ' + self._retryCount[1] + ')');
                     setTimeout(function() {
-                        self.fetchPage(page, dateFrom, dateTo);
-                    }, 1000 * self._retryCount[page]);
+                        self.fetchMetadataPage();
+                    }, 1000 * self._retryCount[1]);
                 } else {
-                    self.setStatus('เกิดข้อผิดพลาดในการดึงข้อมูลหน้า ' + page + ': ' + error, 'alert-danger');
+                    self.setStatus('เกิดข้อผิดพลาดในการดึงข้อมูล: ' + error, 'alert-danger');
                     self.toggleLoading(false);
                 }
             }
@@ -346,127 +373,181 @@ class AsyncExportModal {
         this.activeRequests.push(xhr);
     }
 
-    fetchRemainingPages(dateFrom, dateTo) {
+    /**
+     * Process the next chunk: fetch remaining pages for this chunk,
+     * then generate XLSX part, then move to next chunk or finalize ZIP.
+     */
+    processNextChunk() {
+        if (this.isCancelled) return;
+
+        this.currentPart++;
+
+        // Check if chunk buffer already has enough rows for this part
+        if (this.chunkBuffer.length >= this.options.rowsPerPart || this.fetchedPages >= this.totalPages) {
+            // Chunk buffer already full or all pages fetched — generate XLSX part now
+            this.generatePartXlsx();
+            return;
+        }
+
+        // Calculate how many pages we need to fetch for this chunk
+        const rowsNeeded = this.options.rowsPerPart - this.chunkBuffer.length;
+        const pagesRemaining = this.totalPages - this.fetchedPages;
+        const pagesToFetch = Math.min(pagesRemaining, Math.ceil(rowsNeeded / this.options.pageSize));
+
+        // Update progress text with part info
+        const partInfo = this.totalParts > 1
+            ? ' (ส่วนที่ ' + this.currentPart + '/' + this.totalParts + ')'
+            : '';
+
+        this.updateProgressText(
+            'กำลังโหลดข้อมูล' + partInfo + '... หน้า ' + this.fetchedPages + '/' + this.totalPages 
+        );
+
+        // Fetch pages for this chunk sequentially
+        this.fetchChunkPagesSequentially(this.fetchedPages + 1, pagesToFetch);
+    }
+
+    /**
+     * Fetch pages one by one for the current chunk.
+     * After all pages for this chunk are fetched, call generatePartXlsx().
+     */
+    fetchChunkPagesSequentially(startPage, pageCount) {
+        if (this.isCancelled) return;
+
+        let currentPage = startPage;
+        let remaining = pageCount;
         const self = this;
-        const maxConcurrent = this.options.maxConcurrentRequests;
-        const totalPages = this.totalPages;
-        let nextPage = 2; // Page 1 already fetched
-        let activeRequests = 0;
-        let completedPages = 1; // Page 1 already counted
-        let failedPages = [];
 
         function fetchNext() {
-            if (self.isCancelled) return;
-
-            while (activeRequests < maxConcurrent && nextPage <= totalPages) {
-                const page = nextPage++;
-                activeRequests++;
-
-                const params = Object.assign({}, self.options.searchParams, {
-                    content_type: 'content_' + self.options.contentType,
-                    date_from: dateFrom,
-                    date_to: dateTo,
-                    page: page,
-                    per_page: self.options.pageSize
-                });
-
-                const queryString = jQuery.param(params);
-
-                const xhr = jQuery.ajax({
-                    url: self.options.fetchDataUrl + '?' + queryString,
-                    method: 'GET',
-                    dataType: 'json',
-                    success: function(response) {
-                        activeRequests--;
-
-                        if (self.isCancelled) return;
-
-                        if (response.status === 'error') {
-                            failedPages.push(page);
-                            console.error('Error fetching page ' + page + ': ' + (response.message || ''));
-                        } else {
-                            // Append rows
-                            if (response.rows && response.rows.length > 0) {
-                                self.allRows = self.allRows.concat(response.rows);
-                            }
-                            self.fetchedPages++;
-                            completedPages++;
-
-                            // Update progress (0-70% for data fetching)
-                            const progressPercent = Math.round((self.fetchedPages / self.totalPages) * 70);
-                            self.updateProgressBar(progressPercent);
-                            self.updateProgressText(
-                                'กำลังโหลดข้อมูล... หน้า ' + self.fetchedPages + '/' + self.totalPages +
-                                ' (' + self.allRows.length.toLocaleString() + '/' + self.totalRows.toLocaleString() + ' รายการ) ' + progressPercent + '%'
-                            );
-                        }
-
-                        // Check if all done
-                        if (completedPages >= totalPages) {
-                            if (failedPages.length === 0) {
-                                self.generateAndDownload();
-                            } else {
-                                self.setStatus('เกิดข้อผิดพลาดในการดึงข้อมูลบางหน้า กรุณาลองใหม่', 'alert-danger');
-                                self.toggleLoading(false);
-                            }
-                        } else {
-                            fetchNext();
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        activeRequests--;
-
-                        if (self.isCancelled) return;
-                        if (status === 'abort') return;
-
-                        failedPages.push(page);
-                        completedPages++;
-                        console.error('Failed to fetch page ' + page + ': ' + error);
-
-                        // Check if all done
-                        if (completedPages >= totalPages) {
-                            if (failedPages.length === 0) {
-                                self.generateAndDownload();
-                            } else {
-                                self.setStatus('เกิดข้อผิดพลาดในการดึงข้อมูลบางหน้า กรุณาลองใหม่', 'alert-danger');
-                                self.toggleLoading(false);
-                            }
-                        } else {
-                            fetchNext();
-                        }
-                    }
-                });
-
-                self.activeRequests.push(xhr);
+            if (self.isCancelled || remaining <= 0 || currentPage > self.totalPages) {
+                // Done fetching for this chunk — generate XLSX part
+                self.generatePartXlsx();
+                return;
             }
+
+            // Check if chunk buffer already has enough rows
+            if (self.chunkBuffer.length >= self.options.rowsPerPart) {
+                // Chunk buffer is full — generate XLSX part
+                self.generatePartXlsx();
+                return;
+            }
+
+            const params = Object.assign({}, self.options.searchParams, {
+                content_type: 'content_' + self.options.contentType,
+                date_from: self.dateFrom,
+                date_to: self.dateTo,
+                page: currentPage,
+                per_page: self.options.pageSize
+            });
+
+            const queryString = jQuery.param(params);
+
+            const xhr = jQuery.ajax({
+                url: self.options.fetchDataUrl + '?' + queryString,
+                method: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                    self.activeRequests = self.activeRequests.filter(function(r) { return r !== xhr; });
+
+                    if (self.isCancelled) return;
+
+                    if (response.status === 'error') {
+                        self.setStatus('เกิดข้อผิดพลาด: ' + (response.message || 'ไม่สามารถดึงข้อมูลได้'), 'alert-danger');
+                        self.toggleLoading(false);
+                        $('#' + self.options.contentType + 'ExportFormState').show();
+                        $('#' + self.options.contentType + 'ExportSuccessState').hide();
+                        $('#' + self.options.contentType + 'ExportInitialFooter').show();
+                        return;
+                    }
+
+                    // Append rows to chunk buffer
+                    if (response.rows && response.rows.length > 0) {
+                        self.chunkBuffer = self.chunkBuffer.concat(response.rows);
+                    }
+                    self.fetchedPages++;
+                    remaining--;
+
+                    // Update progress (0-60% for data fetching)
+                    const fetchProgress = Math.round((self.fetchedPages / self.totalPages) * 60);
+                    const partInfo = self.totalParts > 1
+                        ? ' (ส่วนที่ ' + self.currentPart + '/' + self.totalParts + ')'
+                        : '';
+
+                    self.updateProgressBar(fetchProgress);
+                    self.updateProgressText(
+                        'กำลังโหลดข้อมูล' + partInfo + '... หน้า ' + self.fetchedPages + '/' + self.totalPages 
+                    );
+
+                    // Check if chunk buffer has enough rows or all pages fetched
+                    if (self.chunkBuffer.length >= self.options.rowsPerPart || self.fetchedPages >= self.totalPages) {
+                        self.generatePartXlsx();
+                    } else {
+                        currentPage++;
+                        fetchNext();
+                    }
+                },
+                error: function(xhr, status, error) {
+                    self.activeRequests = self.activeRequests.filter(function(r) { return r !== xhr; });
+
+                    if (self.isCancelled) return;
+                    if (status === 'abort') return;
+
+                    // Retry logic
+                    self._retryCount = self._retryCount || {};
+                    self._retryCount[currentPage] = (self._retryCount[currentPage] || 0) + 1;
+
+                    if (self._retryCount[currentPage] <= 3) {
+                        console.warn('Retrying page ' + currentPage + ' (attempt ' + self._retryCount[currentPage] + ')');
+                        setTimeout(function() {
+                            fetchNext(); // retry same page — note: remaining not decremented
+                        }, 1000 * self._retryCount[currentPage]);
+                    } else {
+                        self.setStatus('เกิดข้อผิดพลาดในการดึงข้อมูลหน้า ' + currentPage + ': ' + error, 'alert-danger');
+                        self.toggleLoading(false);
+                    }
+                }
+            });
+
+            self.activeRequests.push(xhr);
         }
 
         fetchNext();
     }
 
-    generateAndDownload() {
+    /**
+     * Generate one XLSX part from the current chunkBuffer,
+     * add it to the ZIP, then clear chunkBuffer and process next chunk or finalize.
+     */
+    generatePartXlsx() {
         const self = this;
 
         if (this.isCancelled) return;
 
-        if (this.allRows.length === 0) {
-            this.setStatus('ไม่พบข้อมูลสำหรับ Export', 'alert-warning');
-            this.toggleLoading(false);
-            $('#' + this.options.contentType + 'ExportFormState').show();
-            $('#' + this.options.contentType + 'ExportSuccessState').hide();
-            $('#' + this.options.contentType + 'ExportInitialFooter').show();
+        if (this.chunkBuffer.length === 0) {
+            // No data in this chunk — skip
+            if (this.fetchedPages >= this.totalPages) {
+                this.finalizeZip();
+            } else {
+                this.processNextChunk();
+            }
             return;
         }
 
-        // Step 1: Create XLSX (70-85%)
-        this.updateProgressBar(75);
-        this.updateProgressText('กำลังสร้างไฟล์ Excel... 75%');
+        this.zipPartCount++;
+        const partNumber = this.zipPartCount;
+
+        const partInfo = this.totalParts > 1
+            ? ' (ไฟล์ที่ ' + partNumber + '/' + this.totalParts + ')'
+            : '';
+        this.updateProgressText('กำลังสร้างไฟล์ Excel' + partInfo + '... ');
 
         // Use setTimeout to allow UI to update
         setTimeout(function() {
             try {
-                const wb = XLSX.utils.book_new();
-                const ws = XLSX.utils.aoa_to_sheet([self.allHeaders].concat(self.allRows));
+                if (self.isCancelled) return;
+
+                var wb = XLSX.utils.book_new();
+                var ws = XLSX.utils.aoa_to_sheet([self.allHeaders].concat(self.chunkBuffer));
 
                 // Set column widths
                 const colWidths = self.allHeaders.map(function(h) {
@@ -479,55 +560,111 @@ class AsyncExportModal {
                 XLSX.utils.book_append_sheet(wb, ws, sheetName);
 
                 // Generate XLSX binary
-                self.updateProgressBar(85);
-                self.updateProgressText('กำลังสร้างไฟล์ Excel... 85%');
-
                 var wbOut = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
 
-                // Step 2: Create ZIP (85-95%)
-                self.updateProgressBar(90);
-                self.updateProgressText('กำลังบีบอัดไฟล์ ZIP... 90%');
+                // Build filename for this part
+                var timestamp = self.formatDateForFilename(new Date());
+                var xlsxFileName;
+                if (self.totalParts > 1) {
+                    xlsxFileName = self.baseFileName + '_' + timestamp + '_part' + partNumber + '.xlsx';
+                } else {
+                    xlsxFileName = self.baseFileName + '_' + timestamp + '.xlsx';
+                }
 
-                setTimeout(function() {
-                    try {
-                        var zip = new JSZip();
-                        var timestamp = self.formatDateForFilename(new Date());
-                        var xlsxFileName = self.baseFileName + '_' + timestamp + '.xlsx';
-                        var zipFileName = self.baseFileName + '_' + timestamp + '.zip';
+                // Add to ZIP
+                self.zipInstance.file(xlsxFileName, wbOut);
 
-                        zip.file(xlsxFileName, wbOut);
+                // Release memory: null out workbook objects
+                wb = null;
+                ws = null;
+                wbOut = null;
 
-                        self.updateProgressBar(95);
-                        self.updateProgressText('กำลังบีบอัดไฟล์ ZIP... 95%');
+                // Clear chunk buffer to free memory
+                var rowsInPart = self.chunkBuffer.length;
+                self.chunkBuffer = [];
 
-                        zip.generateAsync({ type: 'blob' }).then(function(content) {
-                            // Step 3: Download (95-100%)
-                            self.updateProgressBar(100);
-                            self.updateProgressText('กำลังดาวน์โหลด... 100%');
+                console.log('Generated XLSX part ' + partNumber + ': ' + xlsxFileName + ' (' + rowsInPart + ' rows)');
 
-                            saveAs(content, zipFileName);
-
-                            // Show success
-                            self.showSuccessState();
-
-                            self.updateProgressText('Export เสร็จสมบูรณ์! ดาวน์โหลด ' + self.allRows.length.toLocaleString() + ' รายการ');
-
-                            self.toggleLoading(false);
-                        }).catch(function(err) {
-                            self.setStatus('เกิดข้อผิดพลาดในการสร้างไฟล์ ZIP: ' + err.message, 'alert-danger');
-                            self.toggleLoading(false);
-                        });
-                    } catch (err) {
-                        self.setStatus('เกิดข้อผิดพลาดในการสร้างไฟล์ ZIP: ' + err.message, 'alert-danger');
-                        self.toggleLoading(false);
-                    }
-                }, 100);
+                // Check if there are more pages to fetch
+                if (self.fetchedPages >= self.totalPages) {
+                    // All pages fetched — finalize ZIP
+                    self.finalizeZip();
+                } else {
+                    // Process next chunk
+                    self.processNextChunk();
+                }
 
             } catch (err) {
-                self.setStatus('เกิดข้อผิดพลาดในการสร้างไฟล์ Excel: ' + err.message, 'alert-danger');
+                self.setStatus('เกิดข้อผิดพลาดในการสร้างไฟล์ Excel' + partInfo + ': ' + err.message, 'alert-danger');
                 self.toggleLoading(false);
             }
-        }, 100);
+        }, 50);
+    }
+
+    /**
+     * Generate the ZIP blob and trigger download.
+     */
+    finalizeZip() {
+        const self = this;
+
+        if (this.isCancelled) return;
+
+        if (this.zipPartCount === 0) {
+            this.setStatus('ไม่พบข้อมูลสำหรับ Export', 'alert-warning');
+            this.toggleLoading(false);
+            $('#' + this.options.contentType + 'ExportFormState').show();
+            $('#' + this.options.contentType + 'ExportSuccessState').hide();
+            $('#' + this.options.contentType + 'ExportInitialFooter').show();
+            return;
+        }
+
+        // Progress: 85-95% for ZIP generation
+        this.updateProgressBar(90);
+        this.updateProgressText('กำลังบีบอัดไฟล์ ZIP... 90%');
+
+        setTimeout(function() {
+            try {
+                if (self.isCancelled) return;
+
+                var timestamp = self.formatDateForFilename(new Date());
+                var zipFileName = self.baseFileName + '_' + timestamp + '.zip';
+
+                self.updateProgressBar(95);
+                self.updateProgressText('กำลังบีบอัดไฟล์ ZIP... 95%');
+
+                self.zipInstance.generateAsync({ type: 'blob' }).then(function(content) {
+                    if (self.isCancelled) return;
+
+                    // Download
+                    self.updateProgressBar(100);
+                    self.updateProgressText('กำลังดาวน์โหลด... 100%');
+
+                    saveAs(content, zipFileName);
+
+                    // Show success
+                    self.showSuccessState();
+
+                    var fileList = self.zipPartCount > 1
+                        ? self.zipPartCount + ' ไฟล์ Excel '
+                        : '';
+                    self.updateProgressText(
+                        'Export เสร็จสมบูรณ์! ดาวน์โหลด ' + fileList +
+                        self.totalRows.toLocaleString() + ' รายการ'
+                    );
+
+                    self.toggleLoading(false);
+
+                    // Release ZIP memory
+                    self.zipInstance = null;
+                }).catch(function(err) {
+                    self.setStatus('เกิดข้อผิดพลาดในการสร้างไฟล์ ZIP: ' + err.message, 'alert-danger');
+                    self.toggleLoading(false);
+                });
+            } catch (err) {
+                self.setStatus('เกิดข้อผิดพลาดในการสร้างไฟล์ ZIP: ' + err.message, 'alert-danger');
+                self.toggleLoading(false);
+            }
+        }, 50);
     }
 
     formatDateForFilename(date) {
