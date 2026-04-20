@@ -290,7 +290,8 @@ if (!empty($_GET['sort'])) {
 <?= \backend\widgets\AsyncExportModal::widget([
     'contentType' => 'expert',
     'modalTitle' => 'Export ข้อมูลภูมิปัญญา/ปราชญ์',
-    'fetchDataUrl' => Url::to(['/export/fetch-data']),
+    'startExportUrl' => Url::to(['/export/start']),
+    'exportStatusUrl' => Url::to(['/export/status']),
     'searchParams' => $_GET['ContentExpertSearch'] ?? [],
 ]) ?>
 
