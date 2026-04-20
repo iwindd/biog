@@ -43,12 +43,13 @@ class AsyncExportModal extends Widget
     /**
      * @var int Page size for data fetching (rows per request)
      */
-    public $pageSize = 3000;
+    public $pageSize = 2500;
 
     /**
-     * @var int Maximum concurrent requests for parallel fetching
+     * @var int Maximum rows per XLSX file part (memory-safe chunking)
+     * Datasets larger than this are split into multiple XLSX files inside one ZIP.
      */
-    public $maxConcurrentRequests = 3;
+    public $rowsPerPart = 10000;
 
     /**
      * @inheritdoc
@@ -118,7 +119,7 @@ class AsyncExportModal extends Widget
             'fetchDataUrl' => $this->fetchDataUrl,
             'searchParams' => $this->searchParams,
             'pageSize' => $this->pageSize,
-            'maxConcurrentRequests' => $this->maxConcurrentRequests,
+            'rowsPerPart' => $this->rowsPerPart,
         ]);
         
         $js = <<<JS
