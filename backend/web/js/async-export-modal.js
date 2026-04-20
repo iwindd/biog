@@ -79,6 +79,11 @@ class AsyncExportModal {
             self.resetModal();
         });
 
+        // Cancel export button
+        $('#' + prefix + 'ExportCancelBtn').on('click', function() {
+            self.resetModal();
+        });
+
         // Prevent modal from closing during export
         $('#' + this.modalId).on('hide.bs.modal', function(e) {
             // Allow close only when not in progress (success state or initial state)
@@ -120,16 +125,16 @@ class AsyncExportModal {
 
     toggleLoading(isLoading) {
         const submitBtn = $('#' + this.options.contentType + 'ExportSubmitBtn');
-        const cancelBtn = $('#' + this.options.contentType + 'ExportCancelBtn');
+        const closeBtn = $('#' + this.options.contentType + 'ExportCloseBtn');
 
         if (isLoading) {
             submitBtn.prop('disabled', true);
             submitBtn.html('<i class="fa fa-spinner fa-spin"></i> กำลังดำเนินการ...');
-            cancelBtn.prop('disabled', true);
+            closeBtn.prop('disabled', true);
         } else {
             submitBtn.prop('disabled', false);
             submitBtn.html('เริ่ม Export');
-            cancelBtn.prop('disabled', false);
+            closeBtn.prop('disabled', false);
         }
     }
 
@@ -137,6 +142,7 @@ class AsyncExportModal {
         $('#' + this.options.contentType + 'ExportFormState').hide();
         $('#' + this.options.contentType + 'ExportSuccessState').show();
         $('#' + this.options.contentType + 'ExportInitialFooter').hide();
+        $('#' + this.options.contentType + 'ExportProgressFooter').show();
         $('#' + this.options.contentType + 'ExportSuccessFooter').hide();
 
         // Disable modal close during export (prevent backdrop click & keyboard close)
@@ -163,6 +169,7 @@ class AsyncExportModal {
         $('#' + this.options.contentType + 'ExportFormState').hide();
         $('#' + this.options.contentType + 'ExportSuccessState').show();
         $('#' + this.options.contentType + 'ExportInitialFooter').hide();
+        $('#' + this.options.contentType + 'ExportProgressFooter').hide();
         $('#' + this.options.contentType + 'ExportSuccessFooter').show();
 
         // Re-enable modal close after export completes
@@ -243,6 +250,7 @@ class AsyncExportModal {
         $('#' + this.options.contentType + 'ExportFormState').show();
         $('#' + this.options.contentType + 'ExportSuccessState').hide();
         $('#' + this.options.contentType + 'ExportInitialFooter').show();
+        $('#' + this.options.contentType + 'ExportProgressFooter').hide();
         $('#' + this.options.contentType + 'ExportSuccessFooter').hide();
 
         // Reset status
