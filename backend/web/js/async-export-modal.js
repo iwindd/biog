@@ -113,6 +113,18 @@ class AsyncExportModal {
         $('#' + this.options.contentType + 'ExportSuccessState').show();
         $('#' + this.options.contentType + 'ExportInitialFooter').hide();
         $('#' + this.options.contentType + 'ExportSuccessFooter').show();
+
+        // Hide progress bar and update to success state
+        $('#' + this.options.contentType + 'ExportProgressBar').closest('.progress').hide();
+        $('#' + this.options.contentType + 'ExportProgressText').closest('div').hide();
+
+        // Change icon from spinner to check
+        $('#' + this.options.contentType + 'ExportSuccessState').find('.fa-spinner')
+            .removeClass('fa-spinner fa-spin')
+            .addClass('fa-check-circle');
+
+        // Update text from "กำลังดำเนินการ..." to "เสร็จสิ้นแล้ว"
+        $('#' + this.options.contentType + 'ExportSuccessState').find('h4').text('เสร็จสิ้นแล้ว');
     }
 
     updateProgressText(text) {
