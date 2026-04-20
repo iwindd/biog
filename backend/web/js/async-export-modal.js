@@ -217,11 +217,14 @@ class AsyncExportModal {
 
         // Check dependencies
         if (typeof XLSX === 'undefined') {
-            this.setStatus('ไม่พบไลบรารี SheetJS กรุณารีเฟรชหน้าแล้วลองใหม่', 'alert-danger');
+            console.error(`not found XLSX library. Please refresh the page and try again.`);
+            this.setStatus('เกิดข้อผิดพลาดกรุณาลองใหม่อีกครั้งภายหลัง!', 'alert-danger');
             return;
         }
+        
         if (typeof JSZip === 'undefined') {
-            this.setStatus('ไม่พบไลบรารี JSZip กรุณารีเฟรชหน้าแล้วลองใหม่', 'alert-danger');
+            console.error(`not found JSZip library. Please refresh the page and try again.`);
+            this.setStatus('เกิดข้อผิดพลาดกรุณาลองใหม่อีกครั้งภายหลัง!', 'alert-danger');
             return;
         }
 
