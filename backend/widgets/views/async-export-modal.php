@@ -71,8 +71,12 @@ $prefix = $contentType;
             </div>
             <div class="modal-footer">
                 <div id="<?= $prefix ?>ExportInitialFooter">
-                    <button type="button" class="btn btn-default" data-dismiss="modal" id="<?= $prefix ?>ExportCancelBtn">ปิด</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal" id="<?= $prefix ?>ExportCloseBtn">ปิด</button>
                     <button type="button" class="btn btn-primary" id="<?= $prefix ?>ExportSubmitBtn">เริ่ม Export</button>
+                </div>
+
+                <div id="<?= $prefix ?>ExportProgressFooter" style="display: none;">
+                    <button type="button" class="btn btn-warning" id="<?= $prefix ?>ExportCancelBtn">ยกเลิก</button>
                 </div>
                 
                 <div id="<?= $prefix ?>ExportSuccessFooter" style="display: none;">
