@@ -119,6 +119,13 @@ class AsyncExportModal {
         $('#' + this.options.contentType + 'ExportProgressText').text(text);
     }
 
+    updateProgressBar(percent) {
+        let $bar = $('#' + this.options.contentType + 'ExportProgressBar');
+        let $percent = $('#' + this.options.contentType + 'ExportProgressPercent');
+        $bar.css('width', percent + '%');
+        $percent.text(percent + '%');
+    }
+
     cancelExport() {
         this.isCancelled = true;
         // Abort all active AJAX requests
@@ -269,6 +276,7 @@ class AsyncExportModal {
                 const progressPercent = self.totalPages > 0
                     ? Math.round((self.fetchedPages / self.totalPages) * 70)
                     : 0;
+                self.updateProgressBar(progressPercent);
                 self.updateProgressText(
                     'กำลังโหลดข้อมูล... หน้า ' + self.fetchedPages + '/' + self.totalPages +
                     ' (' + self.allRows.length.toLocaleString() + '/' + self.totalRows.toLocaleString() + ' รายการ) ' + progressPercent + '%'
@@ -355,6 +363,7 @@ class AsyncExportModal {
 
                             // Update progress (0-70% for data fetching)
                             const progressPercent = Math.round((self.fetchedPages / self.totalPages) * 70);
+                            self.updateProgressBar(progressPercent);
                             self.updateProgressText(
                                 'กำลังโหลดข้อมูล... หน้า ' + self.fetchedPages + '/' + self.totalPages +
                                 ' (' + self.allRows.length.toLocaleString() + '/' + self.totalRows.toLocaleString() + ' รายการ) ' + progressPercent + '%'
@@ -419,6 +428,7 @@ class AsyncExportModal {
         }
 
         // Step 1: Create XLSX (70-85%)
+        this.updateProgressBar(75);
         this.updateProgressText('กำลังสร้างไฟล์ Excel... 75%');
 
         // Use setTimeout to allow UI to update
@@ -438,11 +448,13 @@ class AsyncExportModal {
                 XLSX.utils.book_append_sheet(wb, ws, sheetName);
 
                 // Generate XLSX binary
+                self.updateProgressBar(85);
                 self.updateProgressText('กำลังสร้างไฟล์ Excel... 85%');
 
                 var wbOut = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
 
                 // Step 2: Create ZIP (85-95%)
+                self.updateProgressBar(90);
                 self.updateProgressText('กำลังบีบอัดไฟล์ ZIP... 90%');
 
                 setTimeout(function() {
@@ -454,10 +466,12 @@ class AsyncExportModal {
 
                         zip.file(xlsxFileName, wbOut);
 
+                        self.updateProgressBar(95);
                         self.updateProgressText('กำลังบีบอัดไฟล์ ZIP... 95%');
 
                         zip.generateAsync({ type: 'blob' }).then(function(content) {
                             // Step 3: Download (95-100%)
+                            self.updateProgressBar(100);
                             self.updateProgressText('กำลังดาวน์โหลด... 100%');
 
                             saveAs(content, zipFileName);
