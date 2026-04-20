@@ -106,6 +106,22 @@ class AsyncExportModal {
         $('#' + this.options.contentType + 'ExportSuccessState').show();
         $('#' + this.options.contentType + 'ExportInitialFooter').hide();
         $('#' + this.options.contentType + 'ExportSuccessFooter').hide();
+
+        // Reset success state UI back to progress state
+        const $state = $('#' + this.options.contentType + 'ExportSuccessState');
+        $state.find('.progress').show();
+        $state.find('.progress-bar').css('width', '0%');
+        $state.find('#' + this.options.contentType + 'ExportProgressPercent').text('0%');
+        $state.find('#' + this.options.contentType + 'ExportProgressText').closest('div').show();
+        $state.find('#' + this.options.contentType + 'ExportProgressText').text('กำลังเริ่มต้นการ Export...');
+
+        // Reset icon back to spinner
+        $state.find('.fa-check-circle')
+            .removeClass('fa-check-circle')
+            .addClass('fa-spinner fa-spin');
+
+        // Reset h4 text back to "กำลังดำเนินการ..."
+        $state.find('h4').first().text('กำลังดำเนินการ...');
     }
 
     showSuccessState() {
