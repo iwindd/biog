@@ -4,17 +4,25 @@ namespace backend\controllers;
 
 use Yii;
 use yii\web\Controller;
-use yii\web\NotFoundHttpException;
+use yii\web\Response;
 use yii\filters\AccessControl;
 use yii\filters\AccessRule;
 use backend\components\PermissionAccess;
-use backend\components\ContentAsyncExportService;
-use common\components\DatabaseJobMappingService;
-use common\jobs\ExportJob;
-use yii\web\Response;
+use backend\components\BackendHelper;
 
 class ExportController extends Controller
 {
+    /**
+     * Maximum rows per page for fetch-data API
+     * Reduced from 3000 to 1000 to avoid memory exhaustion
+     */
+    const PAGE_SIZE = 1000;
+
+    /**
+     * Warning threshold for large datasets
+     */
+    const LARGE_DATASET_THRESHOLD = 50000;
+
     public function behaviors()
     {
         return [
@@ -25,7 +33,7 @@ class ExportController extends Controller
                 ],
                 'rules' => [
                     [
-                        'actions' => ['index', 'download', 'delete', 'cancel', 'start', 'status'],
+                        'actions' => ['fetch-data'],
                         'allow' => true,
                         'matchCallback' => function ($rule, $action) {
                             return PermissionAccess::BackendAccess('content_list', 'controller');
@@ -36,287 +44,167 @@ class ExportController extends Controller
         ];
     }
 
-    public function actionIndex()
-    {
-        $userId = Yii::$app->user->identity->id;
-        $jobs = ContentAsyncExportService::getAllJobsForUser($userId);
-
-        return $this->render('index', [
-            'jobs' => $jobs,
-        ]);
-    }
-
-    public function actionStart()
+    /**
+     * Fetch paginated export data as JSON for client-side processing.
+     * 
+     * GET /export/fetch-data?content_type=content_fungi&date_from=2024-01-01&date_to=2024-12-31&page=1&per_page=3000
+     * 
+     * Returns: { status, total, page, per_page, total_pages, headers, rows, base_file_name, large_dataset_warning }
+     */
+    public function actionFetchData()
     {
         Yii::$app->response->format = Response::FORMAT_JSON;
 
-        $contentType = Yii::$app->request->post('content_type');
-        $dateFrom = Yii::$app->request->post('date_from');
-        $dateTo = Yii::$app->request->post('date_to');
-        
-        error_log("Export request: content_type=$contentType, date_from=$dateFrom, date_to=$dateTo");
-        
-        if (empty($dateFrom) || empty($dateTo)) {
-            error_log("Export request failed: missing dates");
-            return [
-                'status' => 'error',
-                'message' => 'กรุณาเลือกช่วงวันที่ให้ครบถ้วน',
-            ];
+        // Increase memory limit for export operations
+        ini_set('memory_limit', '256M');
+
+        // Disable Yii debug logging to reduce memory usage
+        if (Yii::$app->has('log', true)) {
+            $log = Yii::$app->getLog();
+            $log->targets = [];
         }
 
-        if (empty($contentType)) {
+        $contentType = Yii::$app->request->get('content_type');
+        $dateFrom = Yii::$app->request->get('date_from');
+        $dateTo = Yii::$app->request->get('date_to');
+        $page = (int) Yii::$app->request->get('page', 1);
+        $perPage = (int) Yii::$app->request->get('per_page', self::PAGE_SIZE);
+
+        // Validate content type
+        $validContentTypes = [
+            'content_plant', 'content_animal', 'content_fungi',
+            'content_ecotourism', 'content_expert', 'content_product'
+        ];
+
+        if (empty($contentType) || !in_array($contentType, $validContentTypes)) {
             return [
                 'status' => 'error',
                 'message' => 'ไม่พบประเภทข้อมูลที่ต้องการ Export',
             ];
         }
 
-        // Get filters based on content type
+        if (empty($dateFrom) || empty($dateTo)) {
+            return [
+                'status' => 'error',
+                'message' => 'กรุณาเลือกช่วงวันที่ให้ครบถ้วน',
+            ];
+        }
+
+        if ($dateFrom > $dateTo) {
+            return [
+                'status' => 'error',
+                'message' => 'วันที่เริ่มต้นต้องไม่มากกว่าวันที่สิ้นสุด',
+            ];
+        }
+
+        // Clamp per_page to reasonable limits
+        if ($perPage < 100) {
+            $perPage = 100;
+        }
+        if ($perPage > 5000) {
+            $perPage = self::PAGE_SIZE;
+        }
+
+        // Validate page number
+        if ($page < 1) {
+            $page = 1;
+        }
+
+        // Build filters
         $filters = $this->getExportFilters($contentType);
         $filters['date_from'] = $dateFrom;
         $filters['date_to'] = $dateTo;
 
-        $exportJob = new ExportJob([
-            'typeKey' => $contentType,
-            'filters' => $filters,
-            'userId' => Yii::$app->user->identity->id,
-            'baseFileName' => $this->getBaseFileName($contentType),
-        ]);
-        
-        // Push the job to queue
-        $jobId = Yii::$app->queue->push($exportJob);
-        
-        // Make sure queue job ID is strictly saved as an integer or string representation of it
-        $queueJobIdStr = (string)$jobId;
-        
-        // Also save a fallback mapping in ContentAsyncExportService for direct lookups
-        $service = new ContentAsyncExportService();
-        $initialJobHash = $exportJob->getJobHash();
-        
-        // The export job hasn't started yet, but we create a tracking record for it
-        $userId = Yii::$app->user->identity->id;
-        $userEmail = Yii::$app->user->identity->email;
-        $placeholderJob = $service->createJob($contentType, $filters, $userId, $userEmail);
-        
-        // Overwrite the placeholder job status to pending
-        $placeholderJob['status'] = ContentAsyncExportService::STATUS_PENDING;
-        $service->saveJob($placeholderJob);
-        
-        // Store mappings using database service
-        $mappingService = new DatabaseJobMappingService();
-        $success = $mappingService->storeMappings($queueJobIdStr, $initialJobHash, $placeholderJob['id']);
-        
-        if (!$success) {
-            error_log("Warning: Failed to store job mappings in database: queueJobId=$queueJobIdStr, jobHash=$initialJobHash, exportJobId={$placeholderJob['id']}");
-            error_log("Warning: Job mapping storage failed - UI polling may be affected");
-        }
-
-        return [
-            'status' => 'success',
-            'jobId' => $placeholderJob['id'],
-            'message' => 'เริ่มสร้างไฟล์ export แล้ว',
-        ];
-    }
-
-    public function actionStatus()
-    {
-        Yii::$app->response->format = Response::FORMAT_JSON;
-        
-        $jobId = Yii::$app->request->get('jobId');
-        
-        if (empty($jobId)) {
+        // Build query
+        $query = BackendHelper::buildExportQuery($contentType, $filters);
+        if ($query === null) {
             return [
                 'status' => 'error',
-                'message' => 'ไม่พบ Job ID',
+                'message' => 'ไม่สามารถสร้างคำสั่งสอบถามได้',
             ];
         }
 
         try {
-            $job = ContentAsyncExportService::getJob($jobId);
-            
-            if (empty($job)) {
-                return [
-                    'status' => 'error',
-                    'message' => 'ไม่พบงาน Export ที่ต้องการ',
-                ];
-            }
+            $total = (int) (clone $query)->count();
+            $totalPages = $total > 0 ? (int) ceil($total / $perPage) : 0;
 
-            $response = [
+            // Get rows for current page
+            $offset = ($page - 1) * $perPage;
+            $rawRows = (clone $query)
+                ->offset($offset)
+                ->limit($perPage)
+                ->asArray()
+                ->all();
+
+            // Batch preload name/location lookups to avoid N+1 queries
+            $userIds = [];
+            $regionIds = [];
+            $provinceIds = [];
+            $districtIds = [];
+            $subdistrictIds = [];
+            $zipcodeIds = [];
+            foreach ($rawRows as $row) {
+                if (!empty($row['created_by_user_id'])) $userIds[] = $row['created_by_user_id'];
+                if (!empty($row['approved_by_user_id'])) $userIds[] = $row['approved_by_user_id'];
+                if (!empty($row['region_id'])) $regionIds[] = $row['region_id'];
+                if (!empty($row['province_id'])) $provinceIds[] = $row['province_id'];
+                if (!empty($row['district_id'])) $districtIds[] = $row['district_id'];
+                if (!empty($row['subdistrict_id'])) $subdistrictIds[] = $row['subdistrict_id'];
+                if (!empty($row['zipcode_id'])) $zipcodeIds[] = $row['zipcode_id'];
+            }
+            BackendHelper::preloadNames(array_unique($userIds));
+            BackendHelper::preloadLocations(array_unique($regionIds), array_unique($provinceIds), array_unique($districtIds), array_unique($subdistrictIds), array_unique($zipcodeIds));
+
+            // Format rows for export (uses cached lookups)
+            $formattedRows = BackendHelper::formatExportRows($contentType, $rawRows);
+
+            // Clear raw rows to free memory
+            unset($rawRows);
+
+            // Get headers
+            $headers = BackendHelper::getExportHeaders($contentType);
+
+            // Get base file name
+            $baseFileName = BackendHelper::getExportBaseFileName($contentType);
+
+            // Large dataset warning
+            $largeDatasetWarning = $total > self::LARGE_DATASET_THRESHOLD;
+
+            // Clear export cache to free memory
+            BackendHelper::clearExportCache();
+
+            return [
                 'status' => 'success',
-                'job' => [
-                    'id' => $job['id'],
-                    'state' => $job['status'],
-                    'progress' => 0,
-                    'progressMessage' => $job['progress_message'] ?? 'กำลังดำเนินการ...',
-                    'downloadReady' => false,
-                    'downloadUrl' => null,
-                    'errorMessage' => $job['error_message'] ?? null,
-                ],
+                'total' => $total,
+                'page' => $page,
+                'per_page' => $perPage,
+                'total_pages' => $totalPages,
+                'headers' => $headers,
+                'rows' => $formattedRows,
+                'base_file_name' => $baseFileName,
+                'content_type' => $contentType,
+                'large_dataset_warning' => $largeDatasetWarning,
             ];
-
-            if ($job['status'] === ContentAsyncExportService::STATUS_COMPLETED) {
-                $response['job']['state'] = 'completed';
-                $response['job']['progress'] = 100;
-                $response['job']['progressMessage'] = 'Export เสร็จสมบูรณ์';
-                $response['job']['downloadReady'] = true;
-                $response['job']['downloadUrl'] = \yii\helpers\Url::to(['/export/download', 'jobId' => $jobId], true);
-            } elseif ($job['status'] === ContentAsyncExportService::STATUS_FAILED) {
-                $response['job']['state'] = 'failed';
-                $response['job']['progressMessage'] = 'Export ล้มเหลว';
-            } elseif ($job['status'] === ContentAsyncExportService::STATUS_PROCESSING) {
-                $response['job']['state'] = 'processing';
-                $totalRows = $job['total_rows'] ?? 0;
-                $currentPart = $job['current_part'] ?? 0;
-                $totalFiles = $job['total_files'] ?? 1;
-                
-                if ($totalFiles > 0) {
-                    $progress = min(99, (int)(($currentPart / $totalFiles) * 100));
-                    $response['job']['progress'] = $progress;
-                }
-            }
-            
-            return $response;
         } catch (\Exception $e) {
-            return ['status' => 'failed', 'message' => 'ไม่สามารถตรวจสอบสถานะได้: ' . $e->getMessage()];
-        }
-    }
-
-    public function actionDownload($jobId)
-    {
-        $job = ContentAsyncExportService::getJob($jobId);
-        
-        if (empty($job)) {
-            throw new NotFoundHttpException('ไม่พบไฟล์ Export ที่ต้องการ');
-        }
-
-        // Check if user owns this job
-        if ($job['created_by_user_id'] != Yii::$app->user->identity->id) {
-            throw new \yii\web\ForbiddenHttpException('คุณไม่มีสิทธิ์เข้าถึงไฟล์นี้');
-        }
-
-        // Check if job is completed
-        if ($job['status'] !== ContentAsyncExportService::STATUS_COMPLETED) {
-            throw new \yii\web\BadRequestHttpException('ไฟล์ Export ยังไม่เสร็จสมบูรณ์');
-        }
-
-        // Check if file exists
-        $zipPath = ContentAsyncExportService::getDownloadPath($job);
-        if (empty($zipPath) || !is_file($zipPath)) {
-            throw new NotFoundHttpException('ไม่พบไฟล์ที่ต้องการดาวน์โหลด');
-        }
-
-        // Check if expired
-        if (isset($job['expires_at']) && strtotime($job['expires_at']) < time()) {
-            throw new \yii\web\BadRequestHttpException('ไฟล์หมดอายุแล้ว');
-        }
-
-        return Yii::$app->response->sendFile($zipPath, $job['zip_file_name'], [
-            'mimeType' => 'application/zip',
-            'inline' => false
-        ]);
-    }
-
-    public function actionDelete($jobId)
-    {
-        Yii::$app->response->format = Response::FORMAT_JSON;
-
-        $job = ContentAsyncExportService::getJob($jobId);
-        
-        if (empty($job)) {
+            // Clear export cache on error too
+            BackendHelper::clearExportCache();
+            Yii::error('Export fetch-data error: ' . $e->getMessage(), 'export');
             return [
                 'status' => 'error',
-                'message' => 'ไม่พบไฟล์ Export ที่ต้องการ'
-            ];
-        }
-
-        // Check if user owns this job
-        if ($job['created_by_user_id'] != Yii::$app->user->identity->id) {
-            return [
-                'status' => 'error',
-                'message' => 'คุณไม่มีสิทธิ์ลบไฟล์นี้'
-            ];
-        }
-
-        // Check if job can be deleted (only completed jobs with files)
-        if ($job['status'] !== ContentAsyncExportService::STATUS_COMPLETED) {
-            return [
-                'status' => 'error',
-                'message' => 'ไม่สามารถลบงานที่สถานะ ' . $job['status'] . ' ได้'
-            ];
-        }
-
-        if (empty($job['zip_file_name']) || empty($job['zip_path'])) {
-            return [
-                'status' => 'error',
-                'message' => 'ไฟล์ถูกลบแล้วหรือไม่มีไฟล์อยู่'
-            ];
-        }
-
-        $success = ContentAsyncExportService::deleteJob($jobId);
-
-        if ($success) {
-            return [
-                'status' => 'success',
-                'message' => 'ลบไฟล์สำเร็จ'
-            ];
-        } else {
-            return [
-                'status' => 'error',
-                'message' => 'ไม่สามารถลบไฟล์ได้'
+                'message' => 'เกิดข้อผิดพลาดในการดึงข้อมูล: ' . $e->getMessage(),
             ];
         }
     }
 
-    public function actionCancel($jobId)
-    {
-        Yii::$app->response->format = Response::FORMAT_JSON;
-
-        $job = ContentAsyncExportService::getJob($jobId);
-        
-        if (empty($job)) {
-            return [
-                'status' => 'error',
-                'message' => 'ไม่พบงาน Export ที่ต้องการ'
-            ];
-        }
-
-        // Check if user owns this job
-        if ($job['created_by_user_id'] != Yii::$app->user->identity->id) {
-            return [
-                'status' => 'error',
-                'message' => 'คุณไม่มีสิทธิ์ยกเลิกงานนี้'
-            ];
-        }
-
-        // Check if job can be cancelled (only pending or processing)
-        if (!in_array($job['status'], [ContentAsyncExportService::STATUS_PENDING, ContentAsyncExportService::STATUS_PROCESSING])) {
-            return [
-                'status' => 'error',
-                'message' => 'ไม่สามารถยกเลิกงานที่สถานะ ' . $job['status'] . ' ได้'
-            ];
-        }
-
-        $success = ContentAsyncExportService::cancelJob($jobId);
-
-        if ($success) {
-            return [
-                'status' => 'success',
-                'message' => 'ยกเลิกการ Export สำเร็จ'
-            ];
-        } else {
-            return [
-                'status' => 'error',
-                'message' => 'ไม่สามารถยกเลิกการ Export ได้'
-            ];
-        }
-    }
-
+    /**
+     * Get export filters from request parameters based on content type
+     */
     private function getExportFilters($contentType)
     {
         $request = Yii::$app->request;
         $filters = [];
-        
-        // Get search model name based on content type
+
+        // Search model name based on content type
         $searchModelMap = [
             'content_plant' => 'ContentPlantSearch',
             'content_animal' => 'ContentAnimalSearch',
@@ -325,63 +213,60 @@ class ExportController extends Controller
             'content_expert' => 'ContentExpertSearch',
             'content_product' => 'ContentProductSearch',
         ];
-        
+
         $searchModelName = $searchModelMap[$contentType] ?? null;
-        if (!$searchModelName) {
-            return $filters;
+
+        // Get search parameters from GET
+        if ($searchModelName) {
+            $searchParams = $request->get($searchModelName, []);
+            if (!empty($searchParams)) {
+                if (!empty($searchParams['name'])) {
+                    $filters['name'] = $searchParams['name'];
+                }
+                if (!empty($searchParams['created_by_user_id'])) {
+                    $filters['created_by_user_id'] = $searchParams['created_by_user_id'];
+                }
+                if (!empty($searchParams['updated_by_user_id'])) {
+                    $filters['updated_by_user_id'] = $searchParams['updated_by_user_id'];
+                }
+                if (!empty($searchParams['approved_by_user_id'])) {
+                    $filters['approved_by_user_id'] = $searchParams['approved_by_user_id'];
+                }
+                if (!empty($searchParams['status'])) {
+                    $filters['status'] = $searchParams['status'];
+                }
+                if (!empty($searchParams['note'])) {
+                    $filters['note'] = $searchParams['note'];
+                }
+            }
         }
-        
-        // Get search parameters from POST
-        $searchParams = $request->post($searchModelName, []);
-        
-        // Common filters
-        if (!empty($searchParams['name'])) {
-            $filters['name'] = $searchParams['name'];
-        }
-        if (!empty($searchParams['created_by_user_id'])) {
-            $filters['created_by_user_id'] = $searchParams['created_by_user_id'];
-        }
-        if (!empty($searchParams['updated_by_user_id'])) {
-            $filters['updated_by_user_id'] = $searchParams['updated_by_user_id'];
-        }
-        if (!empty($searchParams['approved_by_user_id'])) {
-            $filters['approved_by_user_id'] = $searchParams['approved_by_user_id'];
-        }
-        if (!empty($searchParams['status'])) {
-            $filters['status'] = $searchParams['status'];
-        }
-        if (!empty($searchParams['note'])) {
-            $filters['note'] = $searchParams['note'];
-        }
-        
-        // Content-type specific filters
+
+        // Content-type specific filters from GET params
         switch ($contentType) {
             case 'content_product':
-                if (!empty($searchParams['product_category_id'])) {
-                    $filters['product_category_id'] = $searchParams['product_category_id'];
+                $productCategoryId = $request->get('product_category_id');
+                if (!empty($productCategoryId)) {
+                    $filters['product_category_id'] = $productCategoryId;
                 }
                 break;
             case 'content_expert':
-                if (!empty($searchParams['expert_category_id'])) {
-                    $filters['expert_category_id'] = $searchParams['expert_category_id'];
+                $expertCategoryId = $request->get('expert_category_id');
+                if (!empty($expertCategoryId)) {
+                    $filters['expert_category_id'] = $expertCategoryId;
                 }
                 break;
         }
-        
-        return $filters;
-    }
 
-    private function getBaseFileName($contentType)
-    {
-        $fileNames = [
-            'content_plant' => 'รายงานข้อมูลพืช',
-            'content_animal' => 'รายงานข้อมูลสัตว์',
-            'content_fungi' => 'รายงานข้อมูลจุลินทรีย์',
-            'content_ecotourism' => 'รายงานข้อมูลท่องเที่ยวเชิงนิเวศ',
-            'content_expert' => 'รายงานผู้เชี่ยวชาญ',
-            'content_product' => 'ข้อมูลผลิตภัณฑ์ชุมชน',
-        ];
-        
-        return $fileNames[$contentType] ?? 'Export';
+        // Also check direct GET params for filters
+        $name = $request->get('name');
+        if (!empty($name) && empty($filters['name'])) {
+            $filters['name'] = $name;
+        }
+        $status = $request->get('status');
+        if (!empty($status) && empty($filters['status'])) {
+            $filters['status'] = $status;
+        }
+
+        return $filters;
     }
 }
