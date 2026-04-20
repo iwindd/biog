@@ -499,8 +499,8 @@ class AsyncExportModal {
                     self.fetchedPages++;
                     remaining--;
 
-                    // Update progress (0-60% for data fetching)
-                    const fetchProgress = Math.round((self.fetchedPages / self.totalPages) * 60);
+                    // Update progress (0-90% for data fetching)
+                    const fetchProgress = Math.round((self.fetchedPages / self.totalPages) * 90);
                     const partInfo = self.totalParts > 1
                         ? ' (ส่วนที่ ' + self.currentPart + '/' + self.totalParts + ')'
                         : '';
@@ -651,7 +651,7 @@ class AsyncExportModal {
         }
 
         // Progress: 85-95% for ZIP generation
-        this.updateProgressBar(90);
+        this.updateProgressBar(91);
         this.updateProgressText('กำลังบีบอัดไฟล์ ZIP... 90%');
 
         setTimeout(function() {
@@ -669,7 +669,7 @@ class AsyncExportModal {
 
                     // Download
                     self.updateProgressBar(100);
-                    self.updateProgressText('กำลังดาวน์โหลด... 100%');
+                    self.updateProgressText('กำลังดาวน์โหลด... 99%');
 
                     saveAs(content, zipFileName);
 
@@ -684,6 +684,7 @@ class AsyncExportModal {
                         self.totalRows.toLocaleString() + ' รายการ'
                     );
 
+                    self.updateProgressBar(100);
                     self.toggleLoading(false);
 
                     // Release ZIP memory
