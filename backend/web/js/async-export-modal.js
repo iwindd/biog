@@ -120,8 +120,13 @@ class AsyncExportModal {
     }
 
     updateProgressBar(percent) {
+<<<<<<< HEAD
         const $bar = $('#' + this.options.contentType + 'ExportProgressBar');
         const $percent = $('#' + this.options.contentType + 'ExportProgressPercent');
+=======
+        let $bar = $('#' + this.options.contentType + 'ExportProgressBar');
+        let $percent = $('#' + this.options.contentType + 'ExportProgressPercent');
+>>>>>>> cf6a1f1 (fix: update progress bar width in async export modal)
         $bar.css('width', percent + '%');
         $percent.text(percent + '%');
     }
