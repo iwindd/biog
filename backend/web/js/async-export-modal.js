@@ -79,9 +79,22 @@ class AsyncExportModal {
             self.resetModal();
         });
 
-        // Modal close event - cancel any pending requests
+        // Prevent modal from closing during export
+        $('#' + this.modalId).on('hide.bs.modal', function(e) {
+            // Allow close only when not in progress (success state or initial state)
+            const $successState = $('#' + self.options.contentType + 'ExportSuccessState');
+            const isInProgress = $successState.is(':visible') &&  $successState.find('.fa-spinner').length > 0;
+            
+            if (isInProgress) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                return false;
+            }
+        });
+
+        // Modal close event - reset modal state when actually closed
         $('#' + this.modalId).on('hidden.bs.modal', function() {
-            self.cancelExport();
+            self.resetModal();
         });
     }
 
@@ -126,6 +139,9 @@ class AsyncExportModal {
         $('#' + this.options.contentType + 'ExportInitialFooter').hide();
         $('#' + this.options.contentType + 'ExportSuccessFooter').hide();
 
+        // Disable modal close during export (prevent backdrop click & keyboard close)
+        $('#' + this.modalId).modal({ backdrop: 'static', keyboard: false });
+        $('#' + this.modalId + ' .close').prop('disabled', true).css('display', 'none');
         // Reset success state UI back to progress state
         const $state = $('#' + this.options.contentType + 'ExportSuccessState');
         $state.find('.progress').show();
@@ -148,6 +164,10 @@ class AsyncExportModal {
         $('#' + this.options.contentType + 'ExportSuccessState').show();
         $('#' + this.options.contentType + 'ExportInitialFooter').hide();
         $('#' + this.options.contentType + 'ExportSuccessFooter').show();
+
+        // Re-enable modal close after export completes
+        $('#' + this.modalId).modal({ backdrop: true, keyboard: true });
+        $('#' + this.modalId + ' .close').prop('disabled', false).css('display', 'block');
 
         // Hide progress bar and update to success state
         $('#' + this.options.contentType + 'ExportProgressBar').closest('.progress').hide();
@@ -209,6 +229,10 @@ class AsyncExportModal {
         // Reset form
         $('#' + this.options.contentType + 'ExportDateFrom').val('');
         $('#' + this.options.contentType + 'ExportDateTo').val('');
+
+        // Re-enable modal close in case we're resetting from a cancelled state
+        //$('#' + this.modalId).modal({ backdrop: true, keyboard: true });
+        $('#' + this.modalId + ' .close').prop('disabled', false).css('display', 'block');
 
         // Reset states
         $('#' + this.options.contentType + 'ExportFormState').show();

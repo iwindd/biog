@@ -42,7 +42,7 @@ $prefix = $contentType;
                         <small>
                             - เลือกช่วงวันที่แล้วกดเริ่ม Export<br>
                             - ข้อมูลจำนวนมากจะถูกแบ่งเป็นไฟล์หลายไฟล์ใน ZIP อัตโนมัติ<br>
-                            - <b>กรุณาอย่าปิดหน้านี้จนกว่าจะดาวน์โหลดเสร็จ</b>
+                            - <b>กรุณาอย่าปิดหน้านี้จนกว่าจะเสร็จสิ้น</b>
                         </small>
                     </div>
                     <div id="<?= $prefix ?>ExportStatusBox" class="alert alert-warning" style="display:none; margin-bottom: 0;"></div>
@@ -56,7 +56,7 @@ $prefix = $contentType;
                         <h4 style="color: #007bff; margin-bottom: 15px;">กำลังดำเนินการ...</h4>
                         <p style="font-size: 16px; color: #6c757d; margin-bottom: 15px;">
                             ระบบกำลังดึงข้อมูลและสร้างไฟล์ Export<br>
-                            <b>กรุณาอย่าปิดหน้าต่างนี้</b>
+                            <b>กรุณาอย่าปิดหน้านี้</b>
                         </p>
                         <div class="progress" style="margin-bottom: 15px;">
                             <div id="<?= $prefix ?>ExportProgressBar" class="progress-bar progress-bar-striped active" role="progressbar" style="width: 0%">
