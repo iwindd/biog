@@ -16,14 +16,134 @@ use backend\models\ContentStatistics;
 use common\components\Upload;
 use backend\models\Users;
 use yii\helpers\ArrayHelper;
+
 class BackendHelper
 {
+    /** Static caches for export performance — avoids N+1 DB queries */
+    private static $_nameCache = [];
+    private static $_regionCache = [];
+    private static $_provinceCache = [];
+    private static $_districtCache = [];
+    private static $_subdistrictCache = [];
+    private static $_zipcodeCache = [];
+    private static $_expertCategoryCache = [];
+    private static $_productCategoryCache = null;
+
+    /**
+     * Clear all static caches (call after export to free memory)
+     */
+    public static function clearExportCache()
+    {
+        self::$_nameCache = [];
+        self::$_regionCache = [];
+        self::$_provinceCache = [];
+        self::$_districtCache = [];
+        self::$_subdistrictCache = [];
+        self::$_zipcodeCache = [];
+        self::$_expertCategoryCache = [];
+        self::$_productCategoryCache = null;
+    }
+
+    /**
+     * Batch preload names for export — loads all needed profiles in 1-2 queries
+     * @param array $userIds Array of user IDs to preload
+     */
+    public static function preloadNames(array $userIds)
+    {
+        $uncached = array_filter(array_unique($userIds), function($id) {
+            return $id !== null && !isset(self::$_nameCache[$id]);
+        });
+        if (empty($uncached)) return;
+
+        $profiles = Profile::find()
+            ->select(['user_id', 'firstname', 'lastname'])
+            ->where(['user_id' => $uncached])
+            ->asArray()
+            ->all();
+
+        foreach ($profiles as $p) {
+            self::$_nameCache[$p['user_id']] = trim($p['firstname'] . ' ' . $p['lastname']);
+        }
+        // Set empty string for user IDs not found
+        foreach ($uncached as $uid) {
+            if (!isset(self::$_nameCache[$uid])) {
+                self::$_nameCache[$uid] = '';
+            }
+        }
+    }
+
+    /**
+     * Batch preload location data for export — loads regions, provinces, etc. in bulk
+     * @param array $regionIds
+     * @param array $provinceIds
+     * @param array $districtIds
+     * @param array $subdistrictIds
+     * @param array $zipcodeIds
+     */
+    public static function preloadLocations(array $regionIds, array $provinceIds, array $districtIds, array $subdistrictIds, array $zipcodeIds)
+    {
+        // Regions
+        $uncached = array_filter(array_unique($regionIds), function($id) {
+            return $id !== null && !isset(self::$_regionCache[$id]);
+        });
+        if (!empty($uncached)) {
+            $models = Region::find()->where(['id' => $uncached])->asArray()->all();
+            foreach ($models as $m) { self::$_regionCache[$m['id']] = $m['name_th']; }
+            foreach ($uncached as $id) { if (!isset(self::$_regionCache[$id])) self::$_regionCache[$id] = '-'; }
+        }
+
+        // Provinces
+        $uncached = array_filter(array_unique($provinceIds), function($id) {
+            return $id !== null && !isset(self::$_provinceCache[$id]);
+        });
+        if (!empty($uncached)) {
+            $models = Province::find()->where(['id' => $uncached])->asArray()->all();
+            foreach ($models as $m) { self::$_provinceCache[$m['id']] = $m['name_th']; }
+            foreach ($uncached as $id) { if (!isset(self::$_provinceCache[$id])) self::$_provinceCache[$id] = '-'; }
+        }
+
+        // Districts
+        $uncached = array_filter(array_unique($districtIds), function($id) {
+            return $id !== null && !isset(self::$_districtCache[$id]);
+        });
+        if (!empty($uncached)) {
+            $models = District::find()->where(['id' => $uncached])->asArray()->all();
+            foreach ($models as $m) { self::$_districtCache[$m['id']] = $m['name_th']; }
+            foreach ($uncached as $id) { if (!isset(self::$_districtCache[$id])) self::$_districtCache[$id] = '-'; }
+        }
+
+        // Subdistricts
+        $uncached = array_filter(array_unique($subdistrictIds), function($id) {
+            return $id !== null && !isset(self::$_subdistrictCache[$id]);
+        });
+        if (!empty($uncached)) {
+            $models = Subdistrict::find()->where(['id' => $uncached])->asArray()->all();
+            foreach ($models as $m) { self::$_subdistrictCache[$m['id']] = $m['name_th']; }
+            foreach ($uncached as $id) { if (!isset(self::$_subdistrictCache[$id])) self::$_subdistrictCache[$id] = '-'; }
+        }
+
+        // Zipcodes
+        $uncached = array_filter(array_unique($zipcodeIds), function($id) {
+            return $id !== null && !isset(self::$_zipcodeCache[$id]);
+        });
+        if (!empty($uncached)) {
+            $models = Zipcode::find()->where(['id' => $uncached])->asArray()->all();
+            foreach ($models as $m) { self::$_zipcodeCache[$m['id']] = $m['zipcode']; }
+            foreach ($uncached as $id) { if (!isset(self::$_zipcodeCache[$id])) self::$_zipcodeCache[$id] = '-'; }
+        }
+    }
+
     public static function getName($uid)
     {
+        if ($uid === null) return '';
+        if (isset(self::$_nameCache[$uid])) return self::$_nameCache[$uid];
+
         $profile = Profile::find()->where(['user_id' => $uid])->one();
         if (!empty($profile)) {
-            return $profile->firstname . " " . $profile->lastname;
+            self::$_nameCache[$uid] = $profile->firstname . " " . $profile->lastname;
+            return self::$_nameCache[$uid];
         }
+        self::$_nameCache[$uid] = '';
         return '';
     }
 
@@ -418,63 +538,95 @@ class BackendHelper
         $model->save();
 
     }
-    public static function getNameProvince($id){
+    public static function getNameProvince($id)
+    {
+        if ($id === null) return '-';
+        if (isset(self::$_provinceCache[$id])) return self::$_provinceCache[$id];
         $model = Province::findOne($id);
-        if(!empty($model)){
+        if (!empty($model)) {
+            self::$_provinceCache[$id] = $model['name_th'];
             return $model['name_th'];
-        }else{
-            return "-";
         }
+        self::$_provinceCache[$id] = '-';
+        return '-';
     }
-    public static function getNameSubdistrict($id){
+
+    public static function getNameSubdistrict($id)
+    {
+        if ($id === null) return '-';
+        if (isset(self::$_subdistrictCache[$id])) return self::$_subdistrictCache[$id];
         $model = Subdistrict::findOne($id);
-        if(!empty($model)){
+        if (!empty($model)) {
+            self::$_subdistrictCache[$id] = $model['name_th'];
             return $model['name_th'];
-        }else{
-            return "-";
         }
+        self::$_subdistrictCache[$id] = '-';
+        return '-';
     }
-    public static function getNameDistrict($id){
+
+    public static function getNameDistrict($id)
+    {
+        if ($id === null) return '-';
+        if (isset(self::$_districtCache[$id])) return self::$_districtCache[$id];
         $model = District::findOne($id);
-        if(!empty($model)){
+        if (!empty($model)) {
+            self::$_districtCache[$id] = $model['name_th'];
             return $model['name_th'];
-        }else{
-            return "-";
         }
+        self::$_districtCache[$id] = '-';
+        return '-';
     }
-    public static function getNameRegion($id){
+
+    public static function getNameRegion($id)
+    {
+        if ($id === null) return '-';
+        if (isset(self::$_regionCache[$id])) return self::$_regionCache[$id];
         $model = Region::findOne($id);
-        if(!empty($model)){
+        if (!empty($model)) {
+            self::$_regionCache[$id] = $model['name_th'];
             return $model['name_th'];
-        }else{
-            return "-";
         }
+        self::$_regionCache[$id] = '-';
+        return '-';
     }
 
-    public static function getNameZipcode($id){
+    public static function getNameZipcode($id)
+    {
+        if ($id === null) return '-';
+        if (isset(self::$_zipcodeCache[$id])) return self::$_zipcodeCache[$id];
         $model = Zipcode::findOne($id);
-        if(!empty($model)){
+        if (!empty($model)) {
+            self::$_zipcodeCache[$id] = $model['zipcode'];
             return $model['zipcode'];
-        }else{
-            return "-";
         }
+        self::$_zipcodeCache[$id] = '-';
+        return '-';
     }
 
-     public static function getNameCategoryExpert($id){
+    public static function getNameCategoryExpert($id)
+    {
+        if ($id === null) return '-';
+        if (isset(self::$_expertCategoryCache[$id])) return self::$_expertCategoryCache[$id];
         $model = ExpertCategory::findOne($id);
-        if(!empty($model)){
+        if (!empty($model)) {
+            self::$_expertCategoryCache[$id] = $model['name'];
             return $model['name'];
-        }else{
-            return "-";
         }
+        self::$_expertCategoryCache[$id] = '-';
+        return '-';
     }
-     public static function getNameCategoryProduct($id){
-        $model = ProductCategory::findOne($id);
-        if(!empty($model)){
-            return $model['name'];
-        }else{
-            return "-";
+
+    public static function getNameCategoryProduct($id)
+    {
+        if ($id === null) return '-';
+        if (self::$_productCategoryCache === null) {
+            $categories = ProductCategory::find()->asArray()->all();
+            self::$_productCategoryCache = [];
+            foreach ($categories as $cat) {
+                self::$_productCategoryCache[$cat['id']] = $cat['name'];
+            }
         }
+        return self::$_productCategoryCache[$id] ?? '-';
     }
     public static function getImageContent($folder,$file,$class=''){
         $path = '/files/'.$folder.'/'.$file;
@@ -943,5 +1095,343 @@ class BackendHelper
         }
 
         return $query;
+    }
+
+    /**
+     * Get export headers for a content type (Thai labels)
+     */
+    public static function getExportHeaders($contentType)
+    {
+        $headersMap = [
+            'content_plant' => [
+                'ชื่อเรื่อง', 'ชื่ออื่น', 'ลิงก์', 'ลักษณะ', 'ประโยชน์', 'แหล่งที่พบ',
+                'ชื่อสามัญ', 'ชื่อวิทยาศาสตร์', 'ชื่อวงศ์', 'ภาค', 'จังหวัด', 'อำเภอ',
+                'ตำบล', 'รหัสไปรษณีย์', 'ชื่อผู้นำเข้าข้อมูล', 'ชื่อผู้อนุมัติข้อมูล',
+                'สถานะ', 'หมายเหตุ', 'วันที่นำเข้าข้อมูล',
+            ],
+            'content_animal' => [
+                'ชื่อเรื่อง', 'ชื่ออื่น', 'ลิงก์', 'ลักษณะ', 'ประโยชน์', 'แหล่งที่พบ',
+                'ชื่อสามัญ', 'ชื่อวิทยาศาสตร์', 'ชื่อวงศ์', 'ภาค', 'จังหวัด', 'อำเภอ',
+                'ตำบล', 'รหัสไปรษณีย์', 'ชื่อผู้นำเข้าข้อมูล', 'ชื่อผู้อนุมัติข้อมูล',
+                'สถานะ', 'หมายเหตุ', 'วันที่นำเข้าข้อมูล',
+            ],
+            'content_fungi' => [
+                'ชื่อเรื่อง', 'ชื่ออื่น', 'ลิงก์', 'ลักษณะ', 'ประโยชน์', 'แหล่งที่พบ',
+                'ชื่อสามัญ', 'ชื่อวิทยาศาสตร์', 'ชื่อวงศ์', 'ภาค', 'จังหวัด', 'อำเภอ',
+                'ตำบล', 'รหัสไปรษณีย์', 'ชื่อผู้นำเข้าข้อมูล', 'ชื่อผู้อนุมัติข้อมูล',
+                'สถานะ', 'หมายเหตุ', 'วันที่นำเข้าข้อมูล',
+            ],
+            'content_ecotourism' => [
+                'ชื่อเรื่อง', 'ที่อยู่', 'เบอร์โทรศัพท์', 'ชื่อผู้ติดต่อ', 'ข้อมูลการติดต่อ',
+                'อธิบายการเดินทาง', 'รายละเอียด', 'ข้อมูลอื่นๆ', 'ลิงก์', 'ภาค', 'จังหวัด',
+                'อำเภอ', 'ตำบล', 'รหัสไปรษณีย์', 'ชื่อผู้นำเข้าข้อมูล',
+                'ชื่อผู้อนุมัติข้อมูล', 'สถานะ', 'หมายเหตุ', 'วันที่นำเข้าข้อมูล',
+            ],
+            'content_expert' => [
+                'ชื่อ', 'นามสกุล', 'วันเกิด', 'ความเชี่ยวชาญ', 'อาชีพ', 'เลขบัตรประชาชน',
+                'เบอร์โทรศัพท์', 'ที่อยู่', 'หมวดหมู่ผู้เชี่ยวชาญ', 'ลิงก์', 'ภาค', 'จังหวัด',
+                'อำเภอ', 'ตำบล', 'รหัสไปรษณีย์', 'ชื่อผู้นำเข้าข้อมูล',
+                'ชื่อผู้อนุมัติข้อมูล', 'สถานะ', 'หมายเหตุ', 'วันที่นำเข้าข้อมูล',
+            ],
+            'content_product' => [
+                'ชื่อเรื่อง', 'หมวดหมู่ผลิตภัณฑ์', 'จุดเด่น/ประโยชน์', 'วัตถุดิบหลัก',
+                'แหล่งวัตถุดิบ', 'ราคาขาย', 'สถานที่ผลิต/จำหน่าย', 'ที่อยู่',
+                'เบอร์โทรศัพท์', 'รายละเอียดเพิ่มเติม', 'แหล่งที่พบ', 'ข้อมูลการติดต่อ',
+                'รายละเอียด', 'ข้อมูลอื่นๆ', 'ลิงก์', 'ภาค', 'จังหวัด', 'อำเภอ',
+                'ตำบล', 'รหัสไปรษณีย์', 'ชื่อผู้นำเข้าข้อมูล', 'ชื่อผู้อนุมัติข้อมูล',
+                'สถานะ', 'หมายเหตุ', 'วันที่นำเข้าข้อมูล',
+            ],
+        ];
+
+        return $headersMap[$contentType] ?? [];
+    }
+
+    /**
+     * Get base file name for a content type (Thai)
+     */
+    public static function getExportBaseFileName($contentType)
+    {
+        $names = [
+            'content_plant' => 'รายงานข้อมูลพืช',
+            'content_animal' => 'รายงานข้อมูลสัตว์',
+            'content_fungi' => 'รายงานข้อมูลจุลินทรีย์',
+            'content_ecotourism' => 'รายงานข้อมูลท่องเที่ยวเชิงนิเวศ',
+            'content_expert' => 'รายงานผู้เชี่ยวชาญ',
+            'content_product' => 'ข้อมูลผลิตภัณฑ์ชุมชน',
+        ];
+        return $names[$contentType] ?? 'Export';
+    }
+
+    /**
+     * Build export query for a content type
+     */
+    public static function buildExportQuery($contentType, $filters = [])
+    {
+        $methodMap = [
+            'content_plant' => 'buildPlantExportQuery',
+            'content_animal' => 'buildAnimalExportQuery',
+            'content_fungi' => 'buildFungiExportQuery',
+            'content_ecotourism' => 'buildEcotourismExportQuery',
+            'content_expert' => 'buildExpertExportQuery',
+            'content_product' => 'buildProductExportQuery',
+        ];
+
+        if (!isset($methodMap[$contentType])) {
+            return null;
+        }
+
+        return self::{$methodMap[$contentType]}($filters, true);
+    }
+
+    /**
+     * Format export rows for a content type (resolve IDs to names, generate URLs, clean text)
+     */
+    public static function formatExportRows($contentType, $rows)
+    {
+        $methodMap = [
+            'content_plant' => 'formatPlantExportRows',
+            'content_animal' => 'formatAnimalExportRows',
+            'content_fungi' => 'formatFungiExportRows',
+            'content_ecotourism' => 'formatEcotourismExportRows',
+            'content_expert' => 'formatExpertExportRows',
+            'content_product' => 'formatProductExportRows',
+        ];
+
+        if (!isset($methodMap[$contentType])) {
+            return [];
+        }
+
+        return self::{$methodMap[$contentType]}($rows);
+    }
+
+    private static function getHostUrl()
+    {
+        $protocol = 'https://';
+        $hostname = 'biog.local';
+
+        if (class_exists('\Yii') && \Yii::$app && isset(\Yii::$app->request) && method_exists(\Yii::$app->request, 'getHostInfo')) {
+            $protocol = stripos(\Yii::$app->request->getHostInfo(), 'https://') === 0 ? 'https://' : 'http://';
+            $hostname = \Yii::$app->request->getHostName();
+            if (empty($hostname)) {
+                $hostname = 'localhost:8080';
+            }
+        }
+
+        return $protocol . $hostname;
+    }
+
+    private static function getContentTypeById($typeId)
+    {
+        $map = [1 => 'plant', 2 => 'animal', 3 => 'fungi', 4 => 'expert', 5 => 'ecotourism', 6 => 'product'];
+        return $map[$typeId] ?? 'plant';
+    }
+
+    public static function formatPlantExportRows($rows)
+    {
+        $baseUrl = self::getHostUrl();
+        $exportRows = [];
+        foreach ($rows as $value) {
+            $contentType = self::getContentTypeById($value['type_id'] ?? 1);
+            $exportRows[] = [
+                $value['name'],
+                $value['other_name'],
+                $baseUrl . '/content-' . $contentType . '/' . $value['content_id'],
+                self::cleanExportText($value['features'] ?? ''),
+                self::cleanExportText($value['benefit'] ?? ''),
+                $value['found_source'] ?? '',
+                $value['common_name'] ?? '',
+                $value['scientific_name'] ?? '',
+                $value['family_name'] ?? '',
+                self::getNameRegion($value['region_id'] ?? null),
+                self::getNameProvince($value['province_id'] ?? null),
+                self::getNameDistrict($value['district_id'] ?? null),
+                self::getNameSubdistrict($value['subdistrict_id'] ?? null),
+                self::getNameZipcode($value['zipcode_id'] ?? null),
+                self::getName($value['created_by_user_id'] ?? null),
+                self::getName($value['approved_by_user_id'] ?? null),
+                ucfirst($value['status'] ?? ''),
+                $value['note'] ?? '',
+                $value['created_at'] ?? '',
+            ];
+        }
+        return $exportRows;
+    }
+
+    public static function formatAnimalExportRows($rows)
+    {
+        $baseUrl = self::getHostUrl();
+        $exportRows = [];
+        foreach ($rows as $value) {
+            $contentType = self::getContentTypeById($value['type_id'] ?? 2);
+            $exportRows[] = [
+                $value['name'],
+                $value['other_name'],
+                $baseUrl . '/content-' . $contentType . '/' . $value['content_id'],
+                self::cleanExportText($value['features'] ?? ''),
+                self::cleanExportText($value['benefit'] ?? ''),
+                $value['found_source'] ?? '',
+                $value['common_name'] ?? '',
+                $value['scientific_name'] ?? '',
+                $value['family_name'] ?? '',
+                self::getNameRegion($value['region_id'] ?? null),
+                self::getNameProvince($value['province_id'] ?? null),
+                self::getNameDistrict($value['district_id'] ?? null),
+                self::getNameSubdistrict($value['subdistrict_id'] ?? null),
+                self::getNameZipcode($value['zipcode_id'] ?? null),
+                self::getName($value['created_by_user_id'] ?? null),
+                self::getName($value['approved_by_user_id'] ?? null),
+                ucfirst($value['status'] ?? ''),
+                $value['note'] ?? '',
+                $value['created_at'] ?? '',
+            ];
+        }
+        return $exportRows;
+    }
+
+    public static function formatFungiExportRows($rows)
+    {
+        $baseUrl = self::getHostUrl();
+        $exportRows = [];
+        foreach ($rows as $value) {
+            $contentType = self::getContentTypeById($value['type_id'] ?? 3);
+            $exportRows[] = [
+                $value['name'],
+                $value['other_name'],
+                $baseUrl . '/content-' . $contentType . '/' . $value['content_id'],
+                self::cleanExportText($value['features'] ?? ''),
+                self::cleanExportText($value['benefit'] ?? ''),
+                $value['found_source'] ?? '',
+                $value['common_name'] ?? '',
+                $value['scientific_name'] ?? '',
+                $value['family_name'] ?? '',
+                self::getNameRegion($value['region_id'] ?? null),
+                self::getNameProvince($value['province_id'] ?? null),
+                self::getNameDistrict($value['district_id'] ?? null),
+                self::getNameSubdistrict($value['subdistrict_id'] ?? null),
+                self::getNameZipcode($value['zipcode_id'] ?? null),
+                self::getName($value['created_by_user_id'] ?? null),
+                self::getName($value['approved_by_user_id'] ?? null),
+                ucfirst($value['status'] ?? ''),
+                $value['note'] ?? '',
+                $value['created_at'] ?? '',
+            ];
+        }
+        return $exportRows;
+    }
+
+    public static function formatEcotourismExportRows($rows)
+    {
+        $baseUrl = self::getHostUrl();
+        $exportRows = [];
+        foreach ($rows as $value) {
+            $contentType = self::getContentTypeById($value['type_id'] ?? 5);
+            $exportRows[] = [
+                $value['name'],
+                $value['address'] ?? '',
+                $value['phone'] ?? '',
+                $value['contact_name'] ?? '',
+                $value['contact'] ?? '',
+                self::cleanExportText($value['travel_information'] ?? ''),
+                self::cleanExportText($value['description'] ?? ''),
+                self::cleanExportText($value['other_information'] ?? ''),
+                $baseUrl . '/content-' . $contentType . '/' . $value['content_id'],
+                self::getNameRegion($value['region_id'] ?? null),
+                self::getNameProvince($value['province_id'] ?? null),
+                self::getNameDistrict($value['district_id'] ?? null),
+                self::getNameSubdistrict($value['subdistrict_id'] ?? null),
+                self::getNameZipcode($value['zipcode_id'] ?? null),
+                self::getName($value['created_by_user_id'] ?? null),
+                self::getName($value['approved_by_user_id'] ?? null),
+                ucfirst($value['status'] ?? ''),
+                $value['note'] ?? '',
+                $value['created_at'] ?? '',
+            ];
+        }
+        return $exportRows;
+    }
+
+    public static function formatExpertExportRows($rows)
+    {
+        $baseUrl = self::getHostUrl();
+        $exportRows = [];
+        foreach ($rows as $value) {
+            $contentType = self::getContentTypeById($value['type_id'] ?? 4);
+            $exportRows[] = [
+                $value['expert_firstname'] ?? '',
+                $value['expert_lastname'] ?? '',
+                $value['expert_birthdate'] ?? '',
+                $value['expert_expertise'] ?? '',
+                $value['expert_occupation'] ?? '',
+                $value['expert_card_id'] ?? '',
+                $value['phone'] ?? '',
+                self::cleanExportText($value['address'] ?? ''),
+                self::getNameCategoryExpert($value['expert_category_id'] ?? null),
+                $baseUrl . '/content-' . $contentType . '/' . $value['content_id'],
+                self::getNameRegion($value['region_id'] ?? null),
+                self::getNameProvince($value['province_id'] ?? null),
+                self::getNameDistrict($value['district_id'] ?? null),
+                self::getNameSubdistrict($value['subdistrict_id'] ?? null),
+                self::getNameZipcode($value['zipcode_id'] ?? null),
+                self::getName($value['created_by_user_id'] ?? null),
+                self::getName($value['approved_by_user_id'] ?? null),
+                ucfirst($value['status'] ?? ''),
+                $value['note'] ?? '',
+                $value['created_at'] ?? '',
+            ];
+        }
+        return $exportRows;
+    }
+
+    public static function formatProductExportRows($rows)
+    {
+        $baseUrl = self::getHostUrl();
+        $exportRows = [];
+        foreach ($rows as $value) {
+            $contentType = self::getContentTypeById($value['type_id'] ?? 6);
+            $exportRows[] = [
+                $value['name'],
+                self::getNameCategoryProduct($value['product_category_id'] ?? null),
+                self::cleanExportText($value['product_features'] ?? ''),
+                self::cleanExportText($value['product_main_material'] ?? ''),
+                self::cleanExportText($value['product_sources_material'] ?? ''),
+                $value['product_price'] ?? '',
+                self::cleanExportText($value['product_distribution_location'] ?? ''),
+                self::cleanExportText($value['product_address'] ?? ''),
+                $value['product_phone'] ?? '',
+                self::cleanExportText($value['product_other_info'] ?? ''),
+                self::cleanExportText($value['found_source'] ?? ''),
+                self::cleanExportText($value['contact'] ?? ''),
+                self::cleanExportText($value['description'] ?? ''),
+                self::cleanExportText($value['content_other_info'] ?? ''),
+                $baseUrl . '/content-' . $contentType . '/' . $value['content_id'],
+                self::getNameRegion($value['region_id'] ?? null),
+                self::getNameProvince($value['province_id'] ?? null),
+                self::getNameDistrict($value['district_id'] ?? null),
+                self::getNameSubdistrict($value['subdistrict_id'] ?? null),
+                self::getNameZipcode($value['zipcode_id'] ?? null),
+                self::getName($value['created_by_user_id'] ?? null),
+                self::getName($value['approved_by_user_id'] ?? null),
+                ucfirst($value['status'] ?? ''),
+                $value['note'] ?? '',
+                $value['created_at'] ?? '',
+            ];
+        }
+        return $exportRows;
+    }
+
+    /**
+     * Clean text for export (strip HTML, trim whitespace)
+     */
+    private static function cleanExportText($text)
+    {
+        if (empty($text)) {
+            return '';
+        }
+        // Strip HTML tags and decode entities
+        $text = strip_tags($text);
+        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        // Normalize whitespace
+        $text = preg_replace('/\s+/', ' ', $text);
+        return trim($text);
     }
 }
