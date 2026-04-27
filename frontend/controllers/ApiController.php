@@ -990,6 +990,42 @@ class ApiController extends \yii\web\Controller
         $this->_response(200, "success", $data);
     }
 
+    public function actionHeatmapSubdistrict($district_id = null)
+    {
+        if (empty($district_id)) {
+            $this->_response(400, "district_id is required");
+            return;
+        }
+
+        $cacheKey = 'heatmap_subdistrict_count_' . $district_id;
+        $data = Yii::$app->cache->get($cacheKey);
+
+        if ($data === false) {
+            $sql = "SELECT s.name_en, s.name_th, s.id as subdistrict_id, COUNT(c.id) as total
+                    FROM subdistrict s
+                    LEFT JOIN content c ON c.subdistrict_id = s.id AND c.status = 'approved' AND c.active = 1 AND (c.is_hidden = 0 OR c.is_hidden IS NULL)
+                    LEFT JOIN content_type ct ON c.type_id = ct.id AND ct.is_visible = 1
+                    WHERE s.district_id = :district_id AND (c.id IS NULL OR ct.id IS NOT NULL)
+                    GROUP BY s.id, s.name_en, s.name_th";
+            $data = Yii::$app->db->createCommand($sql)->bindValue(':district_id', $district_id)->queryAll();
+
+            $formattedData = [];
+            foreach ($data as $row) {
+                $formattedData[] = [
+                    'id' => $row['subdistrict_id'],
+                    'name_en' => $row['name_en'],
+                    'name_th' => $row['name_th'],
+                    'total' => (int)$row['total']
+                ];
+            }
+            $data = $formattedData;
+
+            Yii::$app->cache->set($cacheKey, $data, 3600); // Cache for 1 hour
+        }
+
+        $this->_response(200, "success", $data);
+    }
+
     private function _response($status = 200, $message = "", $content = "", $total = "0")
     {
         header('Access-Control-Allow-Origin: *');

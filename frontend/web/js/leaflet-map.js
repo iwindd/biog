@@ -8,6 +8,7 @@ const CONFIG = {
   paths: {
     province: "/data/province_simplify.json",
     amphoe: "/data/thailand_province_amphoe_simplify.json",
+    tambon: "/data/thailand_tambon_simplify.json",
     world: "/data/world-countries.json",
   },
   heatmapColors: ["#d4d4d4", "#e0e7ff", "#818cf8", "#4f46e5", "#3730a3"],
@@ -23,12 +24,16 @@ const Elements = {
 const State = {
   currentMode: "province",
   cachedAmphoeData: null,
+  cachedTambonData: null,
   provinceCounts: {},
   districtCounts: {},
+  subdistrictCounts: {},
   provinceNameToId: {},
   districtNameToId: {},
+  subdistrictNameToId: {},
   provinceLayerMap: {},
   districtLayerMap: {},
+  subdistrictLayerMap: {},
 };
 
 function normalizeThaiName(str) {
@@ -88,11 +93,14 @@ const map = L.map("map", {
 // LAYERS
 let provinceLayer = null;
 let amphoeLayer = null;
+let tambonLayer = null;
 let worldCountriesLayer = null;
 let provinceLabelsLayer = L.layerGroup().addTo(map);
 let amphoeLabelsLayer = L.layerGroup().addTo(map);
+let tambonLabelsLayer = L.layerGroup().addTo(map);
 let markersLayerGroup = L.layerGroup().addTo(map);
 let highlightedDistrictLayer = null;
+let highlightedSubdistrictLayer = null;
 
 // UTILITIES
 function getHeatmapColor(count) {
@@ -117,7 +125,7 @@ function styleGeoJson(feature) {
       if (mappedId) count = State.provinceCounts[mappedId];
     }
     if (count === undefined) count = 0;
-  } else {
+  } else if (State.currentMode === "amphoe") {
     const dId = feature.properties.ID || feature.properties.id || feature.properties.ADM2_PCODE;
     count = State.districtCounts[dId];
 
@@ -126,6 +134,17 @@ function styleGeoJson(feature) {
       const aEnName = (feature.properties.ADM2_EN || "").toLowerCase();
       const dMappedId = State.districtNameToId[aThName] || State.districtNameToId[aEnName];
       if (dMappedId) count = State.districtCounts[dMappedId];
+    }
+    if (count === undefined) count = 0;
+  } else {
+    const sId = feature.properties.ID || feature.properties.id || feature.properties.ADM3_PCODE;
+    count = State.subdistrictCounts[sId];
+
+    if (count === undefined) {
+      const sThName = normalizeThaiName(feature.properties.ADM3_TH || feature.properties.name_th || feature.properties.name);
+      const sEnName = (feature.properties.ADM3_EN || "").toLowerCase();
+      const sMappedId = State.subdistrictNameToId[sThName] || State.subdistrictNameToId[sEnName];
+      if (sMappedId) count = State.subdistrictCounts[sMappedId];
     }
     if (count === undefined) count = 0;
   }
@@ -322,6 +341,7 @@ async function focusProvince(provName) {
 
   // Clear any district highlight when switching provinces
   clearDistrictHighlight();
+  clearSubdistrictHighlight();
 
   const entry = findProvinceInLayerMap(provName);
   if (!entry) {
@@ -451,6 +471,64 @@ function clearDistrictHighlight() {
   if (highlightedDistrictLayer && amphoeLayer) {
     amphoeLayer.resetStyle(highlightedDistrictLayer);
     highlightedDistrictLayer = null;
+  }
+}
+
+function findSubdistrictInLayerMap(subdistrictName) {
+  const norm = normalizeThaiName(subdistrictName);
+  if (State.subdistrictLayerMap[norm]) {
+    return State.subdistrictLayerMap[norm];
+  }
+
+  const keys = Object.keys(State.subdistrictLayerMap);
+  for (const key of keys) {
+    if (norm.includes(key) || key.includes(norm)) {
+      return State.subdistrictLayerMap[key];
+    }
+  }
+  return null;
+}
+
+function focusSubdistrict(subdistrictName) {
+  if (!subdistrictName) {
+    clearSubdistrictHighlight();
+    return;
+  }
+
+  const entry = findSubdistrictInLayerMap(subdistrictName);
+  if (!entry) {
+    console.warn("focusSubdistrict: could not find subdistrict layer for:", subdistrictName);
+    return;
+  }
+
+  const { layer } = entry;
+  clearSubdistrictHighlight();
+
+  layer.setStyle({
+    weight: 3,
+    color: "#f39c12",
+    fillOpacity: 0.9,
+  });
+  layer.bringToFront();
+
+  highlightedSubdistrictLayer = layer;
+  map.fitBounds(layer.getBounds(), {
+    padding: [25, 25],
+    animate: true,
+    duration: 0.6,
+  });
+
+  if (Elements.mainTitle) {
+    const provText = $("#map-province_id option:selected").text().trim();
+    const districtText = $("#map-district_id option:selected").text().trim();
+    Elements.mainTitle.innerText = `ขอบเขต: ${provText} > ${districtText} > ${subdistrictName}`;
+  }
+}
+
+function clearSubdistrictHighlight() {
+  if (highlightedSubdistrictLayer && tambonLayer) {
+    tambonLayer.resetStyle(highlightedSubdistrictLayer);
+    highlightedSubdistrictLayer = null;
   }
 }
 
@@ -615,7 +693,7 @@ function renderAmphoeMap(geoJsonData, targetProvName) {
               amphoeLayer.resetStyle(e.target);
             }
           },
-          click: () => {
+          click: async () => {
             // Look up district database ID from name mapping
             const aThName = normalizeThaiName(ampName);
             const aEnName = (feature.properties.ADM2_EN || "").toLowerCase();
@@ -631,6 +709,7 @@ function renderAmphoeMap(geoJsonData, targetProvName) {
               focusDistrict(ampName);
               // Load subdistricts and search
               showSubDistrictMap("#map");
+              await loadTambonForDistrict(feature.properties.ADM1_TH || $("#map-province_id option:selected").text().trim(), ampName, districtDbId);
               search();
             } else {
               // Fallback: try to focus by name even without ID
@@ -659,11 +738,154 @@ function renderAmphoeMap(geoJsonData, targetProvName) {
   switchMode(State.currentMode);
 }
 
+async function loadTambonForDistrict(provinceName, districtName, districtId) {
+  if (!districtName || !districtId) return;
+
+  setLoading(true);
+  try {
+    const countRes = await fetch(host + `/api/heatmap-subdistrict?district_id=${districtId}`);
+    const countResult = await countRes.json();
+    if (countResult.status === 200) {
+      State.subdistrictCounts = {};
+      State.subdistrictNameToId = {};
+      countResult.data.forEach(item => {
+        State.subdistrictCounts[item.id] = item.total;
+        if (item.name_th) State.subdistrictNameToId[normalizeThaiName(item.name_th)] = item.id;
+        if (item.name_en) State.subdistrictNameToId[item.name_en.toLowerCase()] = item.id;
+      });
+    }
+
+    if (!State.cachedTambonData) {
+      const res = await fetch(CONFIG.paths.tambon);
+      const data = await res.json();
+      State.cachedTambonData = parseMapData(data);
+    }
+
+    renderTambonMap(State.cachedTambonData, provinceName, districtName);
+  } catch (err) {
+    console.error("Error loading tambon data:", err);
+  } finally {
+    setLoading(false);
+  }
+}
+
+function renderTambonMap(geoJsonData, targetProvName, targetDistrictName) {
+  const cleanProvince = normalizeThaiName(targetProvName);
+  const cleanDistrict = normalizeThaiName(targetDistrictName);
+
+  const filteredFeatures = geoJsonData.features.filter((f) => {
+    const pName = normalizeThaiName(f.properties.ADM1_TH || f.properties.pro_name || "");
+    const dName = normalizeThaiName(f.properties.ADM2_TH || f.properties.amp_name || "");
+    return pName === cleanProvince && dName === cleanDistrict;
+  });
+
+  if (filteredFeatures.length === 0) {
+    console.warn(`Could not match tambon data for '${targetProvName}' > '${targetDistrictName}'.`);
+    return;
+  }
+
+  filteredFeatures.forEach((f) => {
+    f.properties.tambonName =
+      f.properties.ADM3_TH ||
+      f.properties.name_th ||
+      f.properties.name ||
+      "Unknown";
+  });
+
+  if (tambonLayer) map.removeLayer(tambonLayer);
+  tambonLabelsLayer.clearLayers();
+  State.subdistrictLayerMap = {};
+  highlightedSubdistrictLayer = null;
+
+  State.currentMode = "tambon";
+  tambonLayer = L.geoJson(
+    { type: "FeatureCollection", features: filteredFeatures },
+    {
+      style: styleGeoJson,
+      onEachFeature: function (feature, layer) {
+        const tambonName = feature.properties.tambonName;
+        const sId = feature.properties.ID || feature.properties.id || feature.properties.ADM3_PCODE;
+        let sCount = State.subdistrictCounts[sId];
+
+        if (sCount === undefined) {
+          const sThName = normalizeThaiName(feature.properties.ADM3_TH || feature.properties.name_th || feature.properties.name);
+          const sEnName = (feature.properties.ADM3_EN || "").toLowerCase();
+          const sMappedId = State.subdistrictNameToId[sThName] || State.subdistrictNameToId[sEnName];
+          if (sMappedId) sCount = State.subdistrictCounts[sMappedId];
+        }
+        const count = sCount || 0;
+
+        const tambonNameNorm = normalizeThaiName(tambonName);
+        const tambonEnNorm = (feature.properties.ADM3_EN || "").toLowerCase().trim();
+        if (tambonNameNorm) {
+          State.subdistrictLayerMap[tambonNameNorm] = { feature, layer };
+        }
+        if (tambonEnNorm) {
+          State.subdistrictLayerMap[tambonEnNorm] = { feature, layer };
+        }
+
+        layer.on({
+          mouseover: (e) => highlightFeature(e),
+          mouseout: (e) => {
+            if (highlightedSubdistrictLayer === e.target) {
+              e.target.setStyle({ weight: 3, color: "#f39c12", fillOpacity: 0.9 });
+              e.target.bringToFront();
+            } else {
+              tambonLayer.resetStyle(e.target);
+            }
+          },
+          click: async () => {
+            const sThName = normalizeThaiName(tambonName);
+            const sEnName = (feature.properties.ADM3_EN || "").toLowerCase();
+            const subdistrictDbId = State.subdistrictNameToId[sThName] || State.subdistrictNameToId[sEnName];
+
+            if (subdistrictDbId) {
+              $("#map-subdistrict_id").val(subdistrictDbId);
+              searchData.subdistrict_id = subdistrictDbId;
+              focusSubdistrict(tambonName);
+              setContentBreadcrumb();
+              search();
+            } else {
+              focusSubdistrict(tambonName);
+            }
+          },
+        });
+
+        layer.bindTooltip(`${tambonName} (เนื้อหา: ${count})`, { sticky: true });
+
+        const center = layer.getBounds().getCenter();
+        const label = L.tooltip({
+          permanent: true,
+          direction: "center",
+          className: "area-label area-label-hidden",
+          interactive: false,
+        })
+          .setContent(tambonName)
+          .setLatLng(center);
+
+        tambonLabelsLayer.addLayer(label);
+      },
+    },
+  );
+
+  switchMode(State.currentMode);
+  if (Elements.mainTitle) {
+    Elements.mainTitle.innerText = `ขอบเขต: ${targetProvName} > ${targetDistrictName}`;
+  }
+  map.fitBounds(tambonLayer.getBounds(), {
+    padding: [30, 30],
+    animate: true,
+    duration: 0.6,
+  });
+}
+
 function switchMode(mode) {
   State.currentMode = mode;
   if (mode === "province") {
     if (amphoeLayer) map.removeLayer(amphoeLayer);
     if (amphoeLabelsLayer) map.removeLayer(amphoeLabelsLayer);
+    if (tambonLayer) map.removeLayer(tambonLayer);
+    if (tambonLabelsLayer) map.removeLayer(tambonLabelsLayer);
 
     if (provinceLayer && !map.hasLayer(provinceLayer))
       provinceLayer.addTo(map);
@@ -692,10 +914,25 @@ function switchMode(mode) {
 
     if (provinceLayer) map.removeLayer(provinceLayer);
     if (provinceLabelsLayer) map.removeLayer(provinceLabelsLayer);
+    if (tambonLayer) map.removeLayer(tambonLayer);
+    if (tambonLabelsLayer) map.removeLayer(tambonLabelsLayer);
 
     if (amphoeLayer && !map.hasLayer(amphoeLayer)) amphoeLayer.addTo(map);
     if (amphoeLabelsLayer && !map.hasLayer(amphoeLabelsLayer))
       amphoeLabelsLayer.addTo(map);
+  } else if (mode === "tambon") {
+    if (worldCountriesLayer && map.hasLayer(worldCountriesLayer)) {
+      map.removeLayer(worldCountriesLayer);
+    }
+
+    if (provinceLayer) map.removeLayer(provinceLayer);
+    if (provinceLabelsLayer) map.removeLayer(provinceLabelsLayer);
+    if (amphoeLayer) map.removeLayer(amphoeLayer);
+    if (amphoeLabelsLayer) map.removeLayer(amphoeLabelsLayer);
+
+    if (tambonLayer && !map.hasLayer(tambonLayer)) tambonLayer.addTo(map);
+    if (tambonLabelsLayer && !map.hasLayer(tambonLabelsLayer))
+      tambonLabelsLayer.addTo(map);
   }
 
   requestAnimationFrame(() => checkLabelsVisibility());
@@ -721,6 +958,7 @@ map.on("zoomend", checkLabelsVisibility);
 if (Elements.btnBack) Elements.btnBack.addEventListener("click", function() {
   switchMode("province");
   clearDistrictHighlight();
+  clearSubdistrictHighlight();
   // Reset dropdowns when returning to country view
   $("#map-province_id").val("");
   $("#map-district_id").empty().append($("<option></option>").attr("value", "").html("กรุณาเลือกอำเภอ"));
@@ -942,6 +1180,8 @@ $("#map-region_id").on("change", function () {
   searchData.province_id = "";
   searchData.district_id = "";
   searchData.subdistrict_id = "";
+  clearDistrictHighlight();
+  clearSubdistrictHighlight();
   search();
   showProvinceMap("#map");
   
@@ -970,6 +1210,7 @@ $("#map-province_id").on("change", function () {
 
   // Clear any district highlight when province changes
   clearDistrictHighlight();
+  clearSubdistrictHighlight();
 
   if (searchData.province_id) {
     // Province selected: focus map on this province and show amphoe view
@@ -984,7 +1225,7 @@ $("#map-province_id").on("change", function () {
   showDistrictMap("#map");
 });
 
-$("#map-district_id").on("change", function () {
+$("#map-district_id").on("change", async function () {
   searchData.district_id = $(this).val();
   searchData.subdistrict_id = "";
 
@@ -992,9 +1233,12 @@ $("#map-district_id").on("change", function () {
     // District selected: highlight and zoom to it on the map
     const selectedDistrictName = $("#map-district_id option:selected").text().trim();
     focusDistrict(selectedDistrictName);
+    await loadTambonForDistrict($("#map-province_id option:selected").text().trim(), selectedDistrictName, searchData.district_id);
   } else {
     // District cleared: remove highlight
     clearDistrictHighlight();
+    clearSubdistrictHighlight();
+    switchMode(searchData.province_id ? "amphoe" : "province");
   }
 
   search();
@@ -1003,6 +1247,12 @@ $("#map-district_id").on("change", function () {
 
 $("#map-subdistrict_id").on("change", function () {
   searchData.subdistrict_id = $(this).val();
+  const selectedSubdistrictName = $("#map-subdistrict_id option:selected").text().trim();
+  if (searchData.subdistrict_id && selectedSubdistrictName) {
+    focusSubdistrict(selectedSubdistrictName);
+  } else {
+    clearSubdistrictHighlight();
+  }
   search();
 });
 
@@ -1213,7 +1463,7 @@ function showSubDistrictMap(id_form, type = "") {
     error: function (error) {
 
     },
-    success: function (result) {
+    success: async function (result) {
       $(id_form + "-subdistrict_id").empty();
       $(id_form + "-subdistrict_id").append($("<option></option>").attr("value", "").html("กรุณาเลือกตำบล"));
       for (let i = 0; i < result.data.length; i++) {
@@ -1231,9 +1481,12 @@ function showSubDistrictMap(id_form, type = "") {
       if (type === "get" && urlParams.has("district_id") && searchData.district_id) {
         const districtName = $(id_form + "-district_id option:selected").text().trim();
         if (districtName && districtName !== "กรุณาเลือกอำเภอ") {
-          setTimeout(function() {
-            focusDistrict(districtName);
-          }, 2000);
+          focusDistrict(districtName);
+          await loadTambonForDistrict($(id_form + "-province_id option:selected").text().trim(), districtName, searchData.district_id);
+          if (searchData.subdistrict_id) {
+            const subdistrictName = $(id_form + "-subdistrict_id option:selected").text().trim();
+            focusSubdistrict(subdistrictName);
+          }
         }
       }
     }
