@@ -52,7 +52,7 @@ class Profile extends \yii\db\ActiveRecord
             [['invite_code'], 'string', 'max' => 6],
             [['home_number'], 'string', 'max' => 128],
 
-            [['display_name', 'firstname', 'lastname'], 'required','message' => '{attribute}ต้องไม่เป็นค่าว่าง'],
+            [['display_name', 'firstname', 'lastname', 'phone'], 'required','message' => '{attribute}ต้องไม่เป็นค่าว่าง'],
         ];
     }
 
@@ -68,7 +68,7 @@ class Profile extends \yii\db\ActiveRecord
             'display_name' => 'ชื่อที่ใช้แสดง',
             'firstname' => 'ชื่อ',
             'lastname' => 'นามสกุล',
-            'phone' => 'Phone',
+            'phone' => 'หมายเลขโทรศัพท์มือถือ',
             'gender' => 'Gender',
             'birthdate' => 'Birthdate',
             'invite_friend' => 'รหัสผู้แนะนำ / อีเมลผู้แนะนำ',

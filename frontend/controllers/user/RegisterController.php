@@ -38,7 +38,13 @@ class RegisterController extends Controller
                     $profileModel->load(Yii::$app->request->post());
                     $schoolModel->load(Yii::$app->request->post());
 
-                    $checkUpdate = $this->handleProfilePicture($profileModel, $error);
+                    if (!$profileModel->validate(['display_name', 'firstname', 'lastname', 'phone'])) {
+                        $checkUpdate = false;
+                    } else {
+                        $checkUpdate = true;
+                    }
+
+                    $checkUpdate = $this->handleProfilePicture($profileModel, $error) && $checkUpdate;
                     $checkUpdate = $this->handleHybridInvite($profileModel, $userModel) && $checkUpdate;
 
                     if ($checkUpdate) {
@@ -48,7 +54,15 @@ class RegisterController extends Controller
 
                             $this->assignUserRole($uid, $userModel->role);
                             $this->assignUserSchool($uid, $userModel->role, $schoolModel);
-                            $this->saveProfile($uid, $profileModel);
+                            if (!$this->saveProfile($uid, $profileModel)) {
+                                $transaction->rollBack();
+                                return $this->render('register', [
+                                    'userModel' => $userModel,
+                                    'profileModel' => $profileModel,
+                                    'schoolModel' => $schoolModel,
+                                    'case_error' => $error
+                                ]);
+                            }
 
                             $transaction->commit();
 
@@ -63,6 +77,10 @@ class RegisterController extends Controller
                             return $this->redirect(['/login']);
                         }
                     }
+                }
+
+                if ($transaction->getIsActive()) {
+                    $transaction->rollBack();
                 }
             } catch (\Exception $e) {
                 $transaction->rollBack();
@@ -172,6 +190,6 @@ class RegisterController extends Controller
 
         $profileModel->user_id = $uid;
         $profileModel->updated_at = date("Y-m-d H:i:s");
-        $profileModel->save();
+        return $profileModel->save();
     }
 }

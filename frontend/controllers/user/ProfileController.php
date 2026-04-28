@@ -118,6 +118,10 @@ class ProfileController extends Controller
                         $schoolModel->load(Yii::$app->request->post());
                         $studentTeacherModel->load(Yii::$app->request->post());
 
+                        if (!$profileModel->validate()) {
+                            $checkUpdate = false;
+                        }
+
                         $post = Yii::$app->request->post();
 
                         $del = 0;
@@ -144,7 +148,7 @@ class ProfileController extends Controller
                         }
     
             
-                        if ($userModel->save()) {
+                        if ($checkUpdate && $userModel->save()) {
                             $uid = $userModel->id;
                             //check add role
                             if (!empty($userModel->role)) {
@@ -238,7 +242,9 @@ class ProfileController extends Controller
     
                             $profileModel->updated_at = date("Y-m-d H:i:s");
     
-                            $profileModel->save();
+                            if (!$profileModel->save()) {
+                                $checkUpdate = false;
+                            }
     
                             if ($checkUpdate) {
                                 $transaction->commit();
@@ -255,6 +261,10 @@ class ProfileController extends Controller
 
                         }
     
+                    }
+
+                    if ($transaction->getIsActive()) {
+                        $transaction->rollBack();
                     }
                 }catch (\Exception $e) {
                     $transaction->rollBack();
