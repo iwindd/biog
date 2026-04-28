@@ -19,10 +19,41 @@ class ThaidController extends Controller
         return 'https://imauthsbx.bora.dopa.go.th';
     }
 
+    private function getRedirectUri()
+    {
+        return Yii::$app->params['thaid_frontend_redirect_uri'] ?: Url::to(['/thaid/callback'], true);
+    }
+
+    private function getBasicToken()
+    {
+        $basicToken = Yii::$app->params['thaid_basic_token'];
+        if ($basicToken) {
+            return $basicToken;
+        }
+
+        $clientId = Yii::$app->params['thaid_client_id'];
+        $clientSecret = Yii::$app->params['thaid_secret'];
+
+        if (!$clientId || !$clientSecret) {
+            return null;
+        }
+
+        return base64_encode($clientId . ':' . $clientSecret);
+    }
+
     public function actionAuth()
     {
         $clientId = Yii::$app->params['thaid_client_id'];
-        $redirectUri = Url::to(['/thaid/callback'], true);
+        $redirectUri = $this->getRedirectUri();
+
+        if (!$clientId || !$redirectUri) {
+            Yii::error('ThaID frontend auth is missing client_id or redirect_uri.', __METHOD__);
+            Yii::$app->session->setFlash('alert-login', [
+                'body' => 'ThaID configuration is incomplete.',
+                'options' => ['class' => 'alert-danger']
+            ]);
+            return $this->redirect(['/login']);
+        }
         
         $state = Yii::$app->security->generateRandomString(16);
         Yii::$app->session->set('thaid_state', $state);
@@ -32,7 +63,7 @@ class ThaidController extends Controller
             'response_type' => 'code',
             'client_id' => $clientId,
             'redirect_uri' => $redirectUri,
-            'scope' => 'pid name birthdate',
+            'scope' => Yii::$app->params['thaid_scope'],
             'state' => $state
         ]);
 
@@ -56,16 +87,28 @@ class ThaidController extends Controller
 
         Yii::$app->session->remove('thaid_state');
 
+        if (!$code) {
+            Yii::warning('ThaID frontend callback missing authorization code.', __METHOD__);
+            Yii::$app->session->setFlash('alert-login', [
+                'body' => 'Failed to authenticate with ThaID.',
+                'options' => ['class' => 'alert-danger']
+            ]);
+            return $this->redirect(['/login']);
+        }
+
         // Exchange code for token
         $baseUrl = $this->getThaidBaseUrl();
         $tokenUrl = $baseUrl . '/api/v2/oauth2/token/';
-        $redirectUri = Url::to(['/thaid/callback'], true);
-        $basicToken = Yii::$app->params['thaid_basic_token'];
+        $redirectUri = $this->getRedirectUri();
+        $basicToken = $this->getBasicToken();
 
         if (!$basicToken) {
-            $clientId = Yii::$app->params['thaid_client_id'];
-            $clientSecret = Yii::$app->params['thaid_secret'];
-            $basicToken = base64_encode($clientId . ':' . $clientSecret);
+            Yii::error('ThaID frontend token exchange is missing Basic credentials.', __METHOD__);
+            Yii::$app->session->setFlash('alert-login', [
+                'body' => 'ThaID configuration is incomplete.',
+                'options' => ['class' => 'alert-danger']
+            ]);
+            return $this->redirect(['/login']);
         }
 
         $postData = http_build_query([
@@ -79,6 +122,8 @@ class ThaidController extends Controller
         curl_setopt($ch, CURLOPT_POST, 1);
         curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Content-Type: application/x-www-form-urlencoded',
             'Authorization: Basic ' . $basicToken
@@ -86,9 +131,11 @@ class ThaidController extends Controller
 
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
         curl_close($ch);
 
         if ($httpCode !== 200) {
+            Yii::warning('ThaID frontend token exchange failed. HTTP: ' . $httpCode . ' Error: ' . $curlError, __METHOD__);
             Yii::$app->session->setFlash('alert-login', [
                 'body' => 'Failed to authenticate with ThaID.',
                 'options' => ['class' => 'alert-danger']
@@ -98,6 +145,7 @@ class ThaidController extends Controller
 
         $data = json_decode($response, true);
         if (!isset($data['pid']) || !isset($data['name'])) {
+            Yii::warning('ThaID frontend response missing required pid or name.', __METHOD__);
             Yii::$app->session->setFlash('alert-login', [
                 'body' => 'Incomplete data received from ThaID.',
                 'options' => ['class' => 'alert-danger']
@@ -221,6 +269,9 @@ class ThaidController extends Controller
 
                     // Hybrid invite
                     $checkUpdate = true;
+                    if (!$profileModel->validate(['display_name', 'firstname', 'lastname', 'phone'])) {
+                        $checkUpdate = false;
+                    }
                     if(!empty($profileModel->invite_friend)){
                         $friend = \frontend\models\Users::find()
                             ->joinWith('profile', true, 'INNER JOIN')
@@ -331,6 +382,10 @@ class ThaidController extends Controller
                             $transaction->rollBack();
                         }
                     }
+                }
+
+                if ($transaction->getIsActive()) {
+                    $transaction->rollBack();
                 }
             } catch (\Exception $e) {
                 $transaction->rollBack();
