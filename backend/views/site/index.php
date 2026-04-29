@@ -17,6 +17,11 @@ $this->title = 'Dashboard';
 
     <!-- Main content -->
     <section class="content">
+        <!-- Actions -->
+        <section style="margin: 0 0 15px 0; display:flex; justify-content: flex-end;">
+            <a href="<?= Url::to(['/site/export-pdf']) ?>" target="_blank" class="btn btn-primary" title="Export to PDF"><i class="fa fa-file-pdf-o"></i> Export PDF</a>
+        </section>
+
         <!-- Info boxes -->
 
         <?php
@@ -205,11 +210,6 @@ CSS;
         </div>
     </section>
     
-    <!-- Actions -->
-    <section style="margin: 15px; display:flex; justify-content: flex-end;">
-        <a href="<?= Url::to(['/site/export-pdf']) ?>" target="_blank" class="btn btn-primary" title="Export to PDF"><i class="fa fa-file-pdf-o"></i> Export PDF</a>
-    </section>
-
     <!-- Chart content -->
     <section class="row" style="margin: 0  ">
         <!-- สถิติจำนวนเรื่องตามประเภทเนื้อหา -->
