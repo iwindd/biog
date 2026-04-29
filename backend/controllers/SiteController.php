@@ -11,6 +11,7 @@ use yii\filters\AccessControl;
 use backend\models\Users;
 use backend\models\Blog;
 use backend\models\Content;
+use backend\models\Region;
 
 use backend\models\LoginForm;
 use dektrium\user\models\RegistrationForm;
@@ -170,11 +171,32 @@ class SiteController extends Controller
             ['y' => (int)$contentStats['product'], 'color' => '#e74c3c'], 
         ];
 
+        $schoolRegionStats = Region::find()
+            ->select([
+                'region.name_th',
+                'COUNT(school.id) AS school_count',
+            ])
+            ->leftJoin('province', 'province.region_id = region.id')
+            ->leftJoin('school', 'school.province_id = province.id')
+            ->groupBy(['region.id', 'region.name_th'])
+            ->orderBy(['region.id' => SORT_ASC])
+            ->asArray()
+            ->all();
+
+        $schoolRegionCategories = [];
+        $schoolRegionSeriesData = [];
+        foreach ($schoolRegionStats as $regionStat) {
+            $schoolRegionCategories[] = $regionStat['name_th'];
+            $schoolRegionSeriesData[] = (int)$regionStat['school_count'];
+        }
+
 
         return $this->render('index', [
             'data' => $data, 
             'chartCategories' => $chartCategories, 
-            'chartSeriesData' => $chartSeriesData
+            'chartSeriesData' => $chartSeriesData,
+            'schoolRegionCategories' => $schoolRegionCategories,
+            'schoolRegionSeriesData' => $schoolRegionSeriesData,
         ]);
        
     }

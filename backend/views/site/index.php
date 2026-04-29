@@ -213,7 +213,7 @@ CSS;
     <!-- Chart content -->
     <section class="row" style="margin: 0  ">
         <!-- สถิติจำนวนเรื่องตามประเภทเนื้อหา -->
-        <div class="col-md-12 col-lg-8">
+        <div class="col-md-12 col-lg-6">
             <div class="box">
                 <div class="box-header with-border">
                 <h3 class="box-title">สถิติจำนวนเรื่องตามประเภทเนื้อหา</h3>
@@ -276,7 +276,7 @@ CSS;
             </div>
         </div>
         <!-- สถิติผู้ใช้งาน -->
-        <div class="col-md-12 col-lg-4">
+        <div class="col-md-6 col-lg-3">
             <div class="box">
                 <div class="box-header with-border">
                 <h3 class="box-title">สถิติผู้ใช้งาน</h3>
@@ -321,6 +321,65 @@ CSS;
                 </div>
                 <!-- ./box-body -->
             
+            </div>
+        </div>
+        <!-- สถิติโรงเรียนตามภาค -->
+        <div class="col-md-6 col-lg-3">
+            <div class="box">
+                <div class="box-header with-border">
+                <h3 class="box-title">สถิติโรงเรียน</h3>
+
+                <div class="box-tools pull-right">
+                    <button type="button" class="btn btn-box-tool" data-widget="collapse"><i class="fa fa-minus"></i></button>
+                    <button type="button" class="btn btn-box-tool" data-widget="remove"><i class="fa fa-times"></i></button>
+                </div>
+                </div>
+                <!-- /.box-header -->
+                <div class="box-body">
+                <div class="row">
+                    <div class="col-md-12">
+
+                    <div class="chart">
+                        <?php
+                        echo Highcharts::widget([
+                            'options' => [
+                                'chart' => [
+                                    'type' => 'bar'
+                                ],
+                                'title' => ['text' => 'จำนวนโรงเรียนแยกตามภาค'],
+                                'xAxis' => [
+                                    'categories' => $schoolRegionCategories,
+                                    'title' => ['text' => null]
+                                ],
+                                'yAxis' => [
+                                    'min' => 0,
+                                    'allowDecimals' => false,
+                                    'title' => [
+                                        'text' => 'จำนวนโรงเรียน'
+                                    ]
+                                ],
+                                'legend' => [
+                                    'enabled' => false
+                                ],
+                                'series' => [
+                                    [
+                                        'name' => 'โรงเรียน',
+                                        'data' => $schoolRegionSeriesData,
+                                        'color' => '#3c8dbc'
+                                    ]
+                                ],
+                            ],
+                        ]);
+                        ?>
+                    </div>
+                    <!-- /.chart-responsive -->
+                    </div>
+                    <!-- /.col -->
+                </div>
+                <!-- /.row -->
+                </div>
+                <!-- ./box-body -->
+
             </div>
         </div>
     </section>
