@@ -78,7 +78,7 @@ class SiteController extends Controller
                         'allow' => true,
                     ],
                     [
-                        'actions' => ['logout', 'index', 'deleteuser', 'export-pdf'],
+                        'actions' => ['logout', 'index', 'deleteuser', 'export-pdf', 'export-csv', 'export-xlsx'],
                         'allow' => true,
                         'roles' => ['@'],
                     ],
@@ -219,7 +219,95 @@ class SiteController extends Controller
             return $this->goHome();
         }
 
-        // Barchart Data grouping by Content Type statuses (Pending, Approved, Rejected etc if needed, or just total)
+        $exportData = $this->getDashboardExportData();
+
+        // Generate PDF
+        $content = $this->renderPartial('export-pdf', [
+            'contentList' => $exportData['contentList'],
+            'userRoleList' => $exportData['userRoleList'],
+            'schoolRegionList' => $exportData['schoolRegionList'],
+        ]);
+
+        $pdf = new \kartik\mpdf\Pdf([
+            'mode' => \kartik\mpdf\Pdf::MODE_UTF8, 
+            'format' => \kartik\mpdf\Pdf::FORMAT_A4, 
+            'orientation' => \kartik\mpdf\Pdf::ORIENT_PORTRAIT, 
+            'destination' => \kartik\mpdf\Pdf::DEST_BROWSER, 
+            'content' => $content,  
+            'cssInline' => '
+                body { font-family: "Garuda", "Kinnari", sans-serif; }
+                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+                th { background-color: #f5f5f5; font-weight: bold; }
+                .text-center { text-align: center; }
+                .text-right { text-align: right; }
+                h2 { text-align: center; margin-bottom: 5px; }
+                .date-info { text-align: center; color: #666; margin-bottom: 20px; }
+            ',
+            'options' => ['title' => 'รายงานสถิติ Dashboard'],
+            'methods' => [ 
+                'SetHeader'=>['รายงานสถิติ Dashboard||Generated On: ' . date("r")], 
+                'SetFooter'=>['|Page {PAGENO}|'],
+            ]
+        ]);
+        
+        return $pdf->render(); 
+    }
+
+    public function actionExportCsv()
+    {
+        if(!PermissionAccess::BackendAccess('login_backend', 'function')){
+            Yii::$app->user->logout();
+            return $this->goHome();
+        }
+
+        $exportData = $this->getDashboardExportData();
+        $handle = fopen('php://temp', 'r+');
+        fwrite($handle, "\xEF\xBB\xBF");
+
+        $this->writeCsvSection($handle, 'สถิติจำนวนเรื่องตามประเภทเนื้อหา', ['ลำดับ', 'ประเภทเนื้อหา', 'จำนวน (เรื่อง)'], $exportData['contentList'], 'category', 'count');
+        $this->writeCsvSection($handle, 'สถิติผู้ใช้งานตาม Role', ['ลำดับ', 'Role', 'จำนวนผู้ใช้งาน'], $exportData['userRoleList'], 'role', 'count');
+        $this->writeCsvSection($handle, 'จำนวนโรงเรียนแยกตามภาค', ['ลำดับ', 'ภาค', 'จำนวนโรงเรียน'], $exportData['schoolRegionList'], 'region_name', 'school_count');
+
+        rewind($handle);
+        $content = stream_get_contents($handle);
+        fclose($handle);
+
+        return Yii::$app->response->sendContentAsFile($content, 'dashboard-statistics-' . date('YmdHis') . '.csv', [
+            'mimeType' => 'text/csv; charset=UTF-8',
+            'inline' => false,
+        ]);
+    }
+
+    public function actionExportXlsx()
+    {
+        if(!PermissionAccess::BackendAccess('login_backend', 'function')){
+            Yii::$app->user->logout();
+            return $this->goHome();
+        }
+
+        $exportData = $this->getDashboardExportData();
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+
+        $this->writeXlsxSheet($spreadsheet->getActiveSheet(), 'ประเภทเนื้อหา', 'สถิติจำนวนเรื่องตามประเภทเนื้อหา', ['ลำดับ', 'ประเภทเนื้อหา', 'จำนวน (เรื่อง)'], $exportData['contentList'], 'category', 'count');
+        $this->writeXlsxSheet($spreadsheet->createSheet(), 'ผู้ใช้งาน', 'สถิติผู้ใช้งานตาม Role', ['ลำดับ', 'Role', 'จำนวนผู้ใช้งาน'], $exportData['userRoleList'], 'role', 'count');
+        $this->writeXlsxSheet($spreadsheet->createSheet(), 'โรงเรียนตามภาค', 'จำนวนโรงเรียนแยกตามภาค', ['ลำดับ', 'ภาค', 'จำนวนโรงเรียน'], $exportData['schoolRegionList'], 'region_name', 'school_count');
+        $spreadsheet->setActiveSheetIndex(0);
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        ob_start();
+        $writer->save('php://output');
+        $content = ob_get_clean();
+        $spreadsheet->disconnectWorksheets();
+
+        return Yii::$app->response->sendContentAsFile($content, 'dashboard-statistics-' . date('YmdHis') . '.xlsx', [
+            'mimeType' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'inline' => false,
+        ]);
+    }
+
+    private function getDashboardExportData()
+    {
         $contentStats = [
             'plant' => Content::find()->where(['active' => 1, 'type_id' => 1, 'status' => 'approved'])->count(),
             'animal' => Content::find()->where(['active' => 1, 'type_id' => 2, 'status' => 'approved'])->count(),
@@ -228,16 +316,15 @@ class SiteController extends Controller
             'eco' => Content::find()->where(['active' => 1, 'type_id' => 5, 'status' => 'approved'])->count(),
             'product' => Content::find()->where(['active' => 1, 'type_id' => 6, 'status' => 'approved'])->count(),
         ];
-        
         $chartCategories = ['พืช', 'สัตว์', 'จุลินทรีย์', 'ภูมิปัญญา/ปราชญ์', 'ท่องเที่ยวเชิงนิเวศ', 'ผลิตภัณฑ์ชุมชน'];
-        
+
         $contentList = [];
         $i = 0;
-        foreach($chartCategories as $category) {
+        foreach ($chartCategories as $category) {
             $key = array_keys($contentStats)[$i];
             $contentList[] = [
                 'category' => $category,
-                'count' => (int)$contentStats[$key]
+                'count' => (int)$contentStats[$key],
             ];
             $i++;
         }
@@ -297,37 +384,57 @@ class SiteController extends Controller
             ];
         }
 
-        // Generate PDF
-        $content = $this->renderPartial('export-pdf', [
+        return [
             'contentList' => $contentList,
             'userRoleList' => $userRoleList,
             'schoolRegionList' => $schoolRegionList,
-        ]);
+        ];
+    }
 
-        $pdf = new \kartik\mpdf\Pdf([
-            'mode' => \kartik\mpdf\Pdf::MODE_UTF8, 
-            'format' => \kartik\mpdf\Pdf::FORMAT_A4, 
-            'orientation' => \kartik\mpdf\Pdf::ORIENT_PORTRAIT, 
-            'destination' => \kartik\mpdf\Pdf::DEST_BROWSER, 
-            'content' => $content,  
-            'cssInline' => '
-                body { font-family: "Garuda", "Kinnari", sans-serif; }
-                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-                th { background-color: #f5f5f5; font-weight: bold; }
-                .text-center { text-align: center; }
-                .text-right { text-align: right; }
-                h2 { text-align: center; margin-bottom: 5px; }
-                .date-info { text-align: center; color: #666; margin-bottom: 20px; }
-            ',
-            'options' => ['title' => 'รายงานสถิติ Dashboard'],
-            'methods' => [ 
-                'SetHeader'=>['รายงานสถิติ Dashboard||Generated On: ' . date("r")], 
-                'SetFooter'=>['|Page {PAGENO}|'],
-            ]
-        ]);
-        
-        return $pdf->render(); 
+    private function writeCsvSection($handle, $title, $headers, $rows, $labelKey, $countKey)
+    {
+        fputcsv($handle, [$title]);
+        fputcsv($handle, $headers);
+
+        $index = 1;
+        $total = 0;
+        foreach ($rows as $row) {
+            $count = (int)$row[$countKey];
+            $total += $count;
+            fputcsv($handle, [$index++, $row[$labelKey], $count]);
+        }
+        fputcsv($handle, ['', 'รวมทั้งหมด', $total]);
+        fputcsv($handle, ['']);
+    }
+
+    private function writeXlsxSheet($sheet, $sheetTitle, $title, $headers, $rows, $labelKey, $countKey)
+    {
+        $sheet->setTitle($sheetTitle);
+        $sheet->setCellValue('A1', $title);
+        $sheet->mergeCells('A1:C1');
+        $sheet->fromArray($headers, null, 'A3');
+
+        $rowNumber = 4;
+        $index = 1;
+        $total = 0;
+        foreach ($rows as $row) {
+            $count = (int)$row[$countKey];
+            $total += $count;
+            $sheet->setCellValue('A' . $rowNumber, $index++);
+            $sheet->setCellValue('B' . $rowNumber, $row[$labelKey]);
+            $sheet->setCellValue('C' . $rowNumber, $count);
+            $rowNumber++;
+        }
+
+        $sheet->setCellValue('B' . $rowNumber, 'รวมทั้งหมด');
+        $sheet->setCellValue('C' . $rowNumber, $total);
+
+        foreach (['A', 'B', 'C'] as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+        $sheet->getStyle('A1:C3')->getFont()->setBold(true);
+        $sheet->getStyle('A:C')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('B:B')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
     }
 
     function readCSV($csvFile, $array)

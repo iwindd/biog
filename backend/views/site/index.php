@@ -19,7 +19,16 @@ $this->title = 'Dashboard';
     <section class="content">
         <!-- Actions -->
         <section style="margin: 0 0 15px 0; display:flex; justify-content: flex-end;">
-            <a href="<?= Url::to(['/site/export-pdf']) ?>" target="_blank" class="btn btn-primary" title="Export to PDF"><i class="fa fa-file-pdf-o"></i> Export PDF</a>
+            <div class="btn-group">
+                <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <i class="fa fa-download"></i> Export <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-right">
+                    <li><a href="<?= Url::to(['/site/export-pdf']) ?>" target="_blank"><i class="fa fa-file-pdf-o"></i> PDF</a></li>
+                    <li><a href="<?= Url::to(['/site/export-csv']) ?>"><i class="fa fa-file-text-o"></i> CSV</a></li>
+                    <li><a href="<?= Url::to(['/site/export-xlsx']) ?>"><i class="fa fa-file-excel-o"></i> XLSX</a></li>
+                </ul>
+            </div>
         </section>
 
         <!-- Info boxes -->
