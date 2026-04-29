@@ -12,6 +12,7 @@ use backend\models\Users;
 use backend\models\Blog;
 use backend\models\Content;
 use backend\models\Region;
+use backend\models\School;
 
 use backend\models\LoginForm;
 use dektrium\user\models\RegistrationForm;
@@ -190,6 +191,16 @@ class SiteController extends Controller
             $schoolRegionSeriesData[] = (int)$regionStat['school_count'];
         }
 
+        $unmappedSchoolCount = School::find()
+            ->leftJoin('province', 'province.id = school.province_id')
+            ->leftJoin('region', 'region.id = province.region_id')
+            ->where(['region.id' => null])
+            ->count();
+        if ($unmappedSchoolCount > 0) {
+            $schoolRegionCategories[] = 'ไม่ระบุภาค';
+            $schoolRegionSeriesData[] = (int)$unmappedSchoolCount;
+        }
+
 
         return $this->render('index', [
             'data' => $data, 
@@ -231,9 +242,66 @@ class SiteController extends Controller
             $i++;
         }
 
+        $userRoleList = [];
+        $userRoles = Users::find()
+            ->select(['role.name as role_name'])
+            ->leftJoin('user_role', 'user_role.user_id = user.id')
+            ->leftJoin('role', 'role.id = user_role.role_id')
+            ->groupBy('user_role.role_id')
+            ->asArray()
+            ->all();
+
+        if (!empty($userRoles)) {
+            foreach ($userRoles as $role) {
+                if (!empty($role['role_name'])) {
+                    $countRole = Users::find()
+                        ->select(['role.name as role_name'])
+                        ->leftJoin('user_role', 'user_role.user_id = user.id')
+                        ->leftJoin('role', 'role.id = user_role.role_id')
+                        ->where(['role.name' => $role['role_name']])
+                        ->andWhere(['blocked_at' => null])
+                        ->asArray()
+                        ->count();
+
+                    if ($countRole != 0) {
+                        $userRoleList[] = [
+                            'role' => $role['role_name'],
+                            'count' => (int)$countRole,
+                        ];
+                    }
+                }
+            }
+        }
+
+        $schoolRegionList = Region::find()
+            ->select([
+                'region.name_th AS region_name',
+                'COUNT(school.id) AS school_count',
+            ])
+            ->leftJoin('province', 'province.region_id = region.id')
+            ->leftJoin('school', 'school.province_id = province.id')
+            ->groupBy(['region.id', 'region.name_th'])
+            ->orderBy(['region.id' => SORT_ASC])
+            ->asArray()
+            ->all();
+
+        $unmappedSchoolCount = School::find()
+            ->leftJoin('province', 'province.id = school.province_id')
+            ->leftJoin('region', 'region.id = province.region_id')
+            ->where(['region.id' => null])
+            ->count();
+        if ($unmappedSchoolCount > 0) {
+            $schoolRegionList[] = [
+                'region_name' => 'ไม่ระบุภาค',
+                'school_count' => (int)$unmappedSchoolCount,
+            ];
+        }
+
         // Generate PDF
         $content = $this->renderPartial('export-pdf', [
-            'contentList' => $contentList
+            'contentList' => $contentList,
+            'userRoleList' => $userRoleList,
+            'schoolRegionList' => $schoolRegionList,
         ]);
 
         $pdf = new \kartik\mpdf\Pdf([
@@ -252,9 +320,9 @@ class SiteController extends Controller
                 h2 { text-align: center; margin-bottom: 5px; }
                 .date-info { text-align: center; color: #666; margin-bottom: 20px; }
             ',
-            'options' => ['title' => 'สถิติจำนวนเรื่องตามประเภทเนื้อหา'],
+            'options' => ['title' => 'รายงานสถิติ Dashboard'],
             'methods' => [ 
-                'SetHeader'=>['สถิติจำนวนเรื่องตามประเภทเนื้อหา||Generated On: ' . date("r")], 
+                'SetHeader'=>['รายงานสถิติ Dashboard||Generated On: ' . date("r")], 
                 'SetFooter'=>['|Page {PAGENO}|'],
             ]
         ]);
