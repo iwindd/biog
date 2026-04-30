@@ -158,7 +158,7 @@ if(!empty($banner->picture_path)){
                     <?= $form->field($profileModel, 'display_name')->textInput()->input('text', ['placeholder' => "ชื่อที่ใช้แสดง"])->label('ชื่อที่ใช้แสดง *');  ?>
                     <?= $form->field($profileModel, 'firstname')->textInput()->input('text', ['placeholder' => "ชื่อ"])->label('ชื่อ *');  ?>
                     <?= $form->field($profileModel, 'lastname')->textInput()->input('text', ['placeholder' => "นามสกุล"])->label('นามสกุล *');  ?>
-                    <?= $form->field($profileModel, 'phone')->textInput()->input('text', ['placeholder' => "หมายเลขโทรศัพท์มือถือ"])->label('หมายเลขโทรศัพท์มือถือ *');  ?>
+                    <?= $form->field($profileModel, 'phone')->textInput()->input('tel', ['placeholder' => "หมายเลขโทรศัพท์มือถือ", 'maxlength' => 10, 'pattern' => '0[689][0-9]{8}'])->label('หมายเลขโทรศัพท์มือถือ *');  ?>
 
                     <?php
                     $genderList = [

@@ -258,7 +258,9 @@ class ApprovedTeacherController extends Controller
                     //$profile->avatar =  Helper::UploadFile('avatar', $profile, '', $profile->avatar, 'picture');
                     $profile->user_id = $model->id;
 
-                    $profile->save();
+                    if (!$profile->save()) {
+                        $error[] = 'บันทึกข้อมูลส่วนตัวไม่สำเร็จ';
+                    }
 
                     // print '<pre>';
                     // print_r($profile);
@@ -437,7 +439,9 @@ class ApprovedTeacherController extends Controller
     
                     $profile->user_id = $model->id;
                     $profile->updated_at = date('Y-m-d H:i:s');
-                    $profile->save();
+                    if (!$profile->save()) {
+                        $error[] = 'บันทึกข้อมูลส่วนตัวไม่สำเร็จ';
+                    }
 
                     if (empty($error)) {
 
