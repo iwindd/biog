@@ -45,11 +45,12 @@ class Profile extends \yii\db\ActiveRecord
             [['birthdate', 'updated_at'], 'safe'],
             [['picture', 'firstname', 'lastname', 'class'], 'string', 'max' => 255],
             [['phone'], 'string', 'max' => 50],
+            [['phone'], 'match', 'pattern' => '/^0[689]\d{8}$/', 'message' => 'กรุณากรอกหมายเลขโทรศัพท์มือถือให้ถูกต้อง เช่น 0812345678'],
             [['invite_code'], 'string', 'max' => 6],
             [['home_number'], 'string', 'max' => 150],
             [['id'], 'unique'],
 
-            [['display_name', 'firstname', 'lastname'], 'required','message' => '{attribute}ต้องไม่เป็นค่าว่าง'],
+            [['display_name', 'firstname', 'lastname', 'phone'], 'required','message' => '{attribute}ต้องไม่เป็นค่าว่าง'],
         ];
     }
 
@@ -65,7 +66,7 @@ class Profile extends \yii\db\ActiveRecord
             'firstname' => 'ชื่อ',
             'lastname' => 'นามสกุล',
             'display_name' => 'ชื่อที่ใช้แสดง',
-            'phone' => 'หมายเลขโทรศัพท์',
+            'phone' => 'หมายเลขโทรศัพท์มือถือ',
             'gender' => 'เพศ',
             'birthdate' => 'วันเกิด',
             'invite_code' => 'Invite Code',

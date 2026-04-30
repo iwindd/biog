@@ -121,7 +121,7 @@ $subdistrict = ArrayHelper::map(Subdistrict::find()->all(), 'id', 'name_th');
                 ]
             ]); ?>
 
-            <?= $form->field($profile, 'phone')->textInput(['maxlength' => true]) ?>
+            <?= $form->field($profile, 'phone')->textInput(['type' => 'tel', 'maxlength' => 10, 'pattern' => '0[689][0-9]{8}'])->label('หมายเลขโทรศัพท์มือถือ *') ?>
 
             <?= $form->field($profile, 'class')->textInput(['maxlength' => true]) ?>
 

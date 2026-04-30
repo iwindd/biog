@@ -266,7 +266,9 @@ class ApprovedStudentController extends Controller
     
                     $profile->user_id = $model->id;
                     $profile->updated_at = date('Y-m-d H:i:s');
-                    $profile->save();
+                    if (!$profile->save()) {
+                        $error[] = 'บันทึกข้อมูลส่วนตัวไม่สำเร็จ';
+                    }
 
                     if (empty($error)) {
 
