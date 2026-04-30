@@ -49,6 +49,7 @@ class Profile extends \yii\db\ActiveRecord
             [['birthdate', 'updated_at', 'invite_friend'], 'safe'],
             [['picture', 'display_name', 'firstname', 'lastname', 'class', 'major'], 'string', 'max' => 255],
             [['phone'], 'string', 'max' => 64],
+            [['phone'], 'match', 'pattern' => '/^0[689]\d{8}$/', 'message' => 'กรุณากรอกหมายเลขโทรศัพท์มือถือให้ถูกต้อง เช่น 0812345678'],
             [['invite_code'], 'string', 'max' => 6],
             [['home_number'], 'string', 'max' => 128],
 
